@@ -1,0 +1,46 @@
+import { Badge } from "@/components/ui/badge";
+
+type RecordStatus = "active" | "resolved" | "cancelled";
+type InvoiceStatus = "pending" | "paid" | "overdue" | "cancelled";
+
+const RECORD_STATUS_STYLES: Record<RecordStatus, string> = {
+  active: "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-900 dark:bg-emerald-950 dark:text-emerald-400",
+  resolved: "border-slate-200 bg-slate-100 text-slate-600 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-400",
+  cancelled: "border-red-200 bg-red-50 text-red-700 dark:border-red-900 dark:bg-red-950 dark:text-red-400",
+};
+
+const RECORD_STATUS_LABEL: Record<RecordStatus, string> = {
+  active: "Active",
+  resolved: "Resolved",
+  cancelled: "Cancelled",
+};
+
+export function RecordStatusBadge({ status }: { status: RecordStatus }) {
+  return (
+    <Badge variant="outline" className={RECORD_STATUS_STYLES[status]}>
+      {RECORD_STATUS_LABEL[status]}
+    </Badge>
+  );
+}
+
+const INVOICE_STATUS_STYLES: Record<InvoiceStatus, string> = {
+  pending: "border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-900 dark:bg-amber-950 dark:text-amber-400",
+  paid: "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-900 dark:bg-emerald-950 dark:text-emerald-400",
+  overdue: "border-red-200 bg-red-50 text-red-700 dark:border-red-900 dark:bg-red-950 dark:text-red-400",
+  cancelled: "border-slate-200 bg-slate-100 text-slate-600 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-400",
+};
+
+const INVOICE_STATUS_LABEL: Record<InvoiceStatus, string> = {
+  pending: "Pending",
+  paid: "Paid",
+  overdue: "Overdue",
+  cancelled: "Cancelled",
+};
+
+export function InvoiceStatusBadge({ status }: { status: InvoiceStatus }) {
+  return (
+    <Badge variant="outline" className={INVOICE_STATUS_STYLES[status]}>
+      {INVOICE_STATUS_LABEL[status]}
+    </Badge>
+  );
+}
