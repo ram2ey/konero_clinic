@@ -74,7 +74,7 @@ export function Icd11Combobox({
   }
 
   return (
-    <div ref={containerRef} className="relative flex-1">
+    <div ref={containerRef} className="relative min-w-0 flex-1">
       <div className="relative">
         <Search className="pointer-events-none absolute top-1/2 left-2.5 size-3.5 -translate-y-1/2 text-muted-foreground" />
         <input

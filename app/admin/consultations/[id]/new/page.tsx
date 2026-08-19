@@ -143,6 +143,12 @@ const EMPTY_FORM: FormState = {
 };
 
 const inputClass = "w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground";
+// For a <select> that sits next to a flex-1 growing input: `w-full`
+// alone (no flex-basis override) makes an unconstrained flex child claim
+// 100% of the row as its flex-basis, which starves the actual growing
+// sibling down to near-zero width during flex-shrink. `shrink-0` keeps
+// it sized to its content instead.
+const selectClass = "shrink-0 rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground";
 const textareaClass = `${inputClass} min-h-24`;
 
 function orUndefined(value: string): string | undefined {
@@ -618,7 +624,7 @@ export default function RecordConsultationPage() {
             {diagnoses.length === 0 && <p className="text-sm text-muted-foreground">None added.</p>}
             {diagnoses.map((row, i) => (
               <div key={i} className="flex items-start gap-2">
-                <div className="flex flex-1 items-start gap-2">
+                <div className="flex min-w-0 flex-1 items-start gap-2">
                   <Icd11Combobox
                     value={row.condition}
                     onTextChange={(v) => updateDiagnosis(i, { condition: v, icd11Code: undefined, icd11Uri: undefined })}
@@ -641,7 +647,7 @@ export default function RecordConsultationPage() {
                   value={row.status}
                   onChange={(e) => updateDiagnosis(i, { status: e.target.value as RecordStatus })}
                   disabled={pending}
-                  className={inputClass}
+                  className={selectClass}
                 >
                   {RECORD_STATUSES.map((s) => (
                     <option key={s.value} value={s.value}>
@@ -698,13 +704,13 @@ export default function RecordConsultationPage() {
                     value={row.medicationName}
                     onChange={(e) => updatePrescription(i, { medicationName: e.target.value })}
                     disabled={pending}
-                    className={`${inputClass} flex-1`}
+                    className={`${inputClass} min-w-0 flex-1`}
                   />
                   <select
                     value={row.status}
                     onChange={(e) => updatePrescription(i, { status: e.target.value as RecordStatus })}
                     disabled={pending}
-                    className={inputClass}
+                    className={selectClass}
                   >
                     {RECORD_STATUSES.map((s) => (
                       <option key={s.value} value={s.value}>
