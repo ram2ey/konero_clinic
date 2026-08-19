@@ -32,9 +32,9 @@ export function StatTile({
       )}
     >
       <div className="flex items-center justify-between gap-2">
-        <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{label}</p>
+        <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">{label}</p>
         {Icon && (
-          <div className="flex size-7 items-center justify-center rounded-lg bg-muted/60 text-muted-foreground group-hover:bg-primary/10 group-hover:text-primary transition-colors">
+          <div className="flex size-7 items-center justify-center rounded-lg bg-primary/10 text-primary ring-1 ring-primary/20 group-hover:bg-primary/20 group-hover:scale-105 transition-all">
             <Icon className="size-3.5" />
           </div>
         )}

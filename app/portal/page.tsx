@@ -35,14 +35,14 @@ export default async function PatientPortalPage() {
   return (
     <main className="mx-auto max-w-6xl space-y-6 px-4 py-6 sm:px-6 sm:py-8 lg:px-8">
       {/* Patient Welcome Hero Card */}
-      <div className="relative overflow-hidden rounded-2xl border border-border/80 bg-gradient-to-r from-card via-card to-primary/5 p-6 sm:p-7 shadow-xs">
+      <div className="relative overflow-hidden rounded-2xl border border-border/80 border-l-4 border-l-primary bg-gradient-to-r from-primary/10 via-primary/4 to-card p-6 sm:p-7 shadow-xs">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="space-y-1">
             <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-foreground">
               Patient Health Portal
             </h1>
-            <p className="text-xs sm:text-sm text-muted-foreground">
-              Securely access your medical profile, active prescriptions, clinical diagnoses, and diagnostic reports.
+            <p className="text-xs sm:text-sm text-muted-foreground max-w-2xl">
+              Securely access your medical profile, active prescriptions, clinical diagnoses, and diagnostic reports under <span className="font-semibold text-primary">Dr. Alex Vico-Korda</span>.
             </p>
           </div>
         </div>

@@ -52,42 +52,42 @@
 :root {
     /* Atmospheric slate canvas depth: background is a soft slate-50/100 tint
        while cards remain crisp pure-white, providing immediate physical lift. */
-    --background: oklch(0.985 0.006 260); /* slate-50 canvas */
-    --foreground: oklch(0.208 0.042 265.755); /* slate-900 */
+    --background: oklch(0.985 0.008 280); /* faint violet-slate canvas */
+    --foreground: oklch(0.18 0.04 275); /* deep slate */
     --card: oklch(1 0 0); /* pure white elevated card */
-    --card-foreground: oklch(0.208 0.042 265.755); /* slate-900 */
+    --card-foreground: oklch(0.18 0.04 275); /* deep slate */
     --popover: oklch(1 0 0);
-    --popover-foreground: oklch(0.208 0.042 265.755); /* slate-900 */
+    --popover-foreground: oklch(0.18 0.04 275);
     
-    /* Brand: refined violet & warm champagne gold */
-    --primary: oklch(0.48 0.25 292.5); /* rich violet */
-    --primary-foreground: oklch(0.98 0.01 293.7); /* violet-50 */
-    --secondary: oklch(0.96 0.01 260); /* slate-100 */
-    --secondary-foreground: oklch(0.208 0.042 265.755); /* slate-900 */
-    --muted: oklch(0.96 0.01 260); /* slate-100 */
-    --muted-foreground: oklch(0.52 0.04 257.4); /* slate-500 */
-    --accent: oklch(0.95 0.02 293); /* faint violet tint */
-    --accent-foreground: oklch(0.35 0.2 293); /* deep violet */
+    /* Brand: vibrant rich violet & warm champagne gold */
+    --primary: oklch(0.46 0.27 288); /* vivid royal violet */
+    --primary-foreground: oklch(0.99 0.005 288); /* pure luminous light */
+    --secondary: oklch(0.95 0.015 280); /* light violet-slate */
+    --secondary-foreground: oklch(0.25 0.06 285);
+    --muted: oklch(0.96 0.012 280);
+    --muted-foreground: oklch(0.48 0.04 275);
+    --accent: oklch(0.94 0.035 288); /* soft violet wash */
+    --accent-foreground: oklch(0.38 0.22 288); /* vibrant violet text */
     --destructive: oklch(0.577 0.245 27.325);
-    --border: oklch(0.915 0.015 255); /* subtle slate border */
-    --input: oklch(0.915 0.015 255); /* subtle slate border */
-    --ring: oklch(0.65 0.22 293.5); /* violet-500 focus halo */
-    --brand-gold: oklch(0.77 0.15 85);
+    --border: oklch(0.91 0.018 280); /* crisp hairline border */
+    --input: oklch(0.91 0.018 280);
+    --ring: oklch(0.55 0.25 288); /* glowing violet halo */
+    --brand-gold: oklch(0.77 0.16 85);
     --brand-gold-foreground: oklch(0.25 0.06 80);
-    --chart-1: oklch(0.87 0 0);
-    --chart-2: oklch(0.556 0 0);
-    --chart-3: oklch(0.439 0 0);
-    --chart-4: oklch(0.371 0 0);
+    --chart-1: oklch(0.46 0.27 288);
+    --chart-2: oklch(0.65 0.20 288);
+    --chart-3: oklch(0.77 0.16 85);
+    --chart-4: oklch(0.68 0.18 160);
     --chart-5: oklch(0.269 0 0);
     --radius: 0.875rem;
-    --sidebar: oklch(0.99 0.005 293); /* elevated clean sidebar */
-    --sidebar-foreground: oklch(0.208 0.042 265.755); /* slate-900 */
-    --sidebar-primary: oklch(0.48 0.25 292.5); /* violet-700 */
-    --sidebar-primary-foreground: oklch(0.98 0.01 293.7); /* violet-50 */
-    --sidebar-accent: oklch(0.945 0.025 293); /* violet-100 */
-    --sidebar-accent-foreground: oklch(0.35 0.2 293); /* violet-900 */
-    --sidebar-border: oklch(0.92 0.015 255); /* slate-200 */
-    --sidebar-ring: oklch(0.65 0.22 293.5); /* violet-500 */
+    --sidebar: oklch(0.99 0.008 288); /* clean white-violet sidebar */
+    --sidebar-foreground: oklch(0.18 0.04 275);
+    --sidebar-primary: oklch(0.46 0.27 288);
+    --sidebar-primary-foreground: oklch(0.99 0.005 288);
+    --sidebar-accent: oklch(0.93 0.04 288); /* vibrant light violet hover */
+    --sidebar-accent-foreground: oklch(0.35 0.25 288);
+    --sidebar-border: oklch(0.91 0.018 280);
+    --sidebar-ring: oklch(0.55 0.25 288);
 }
 
 .dark {

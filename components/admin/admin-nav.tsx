@@ -33,15 +33,15 @@ export function AdminNav() {
               asChild
               isActive={isActive}
               tooltip={item.label}
-              className="relative h-9 rounded-lg px-2.5 transition-all duration-150 data-[active=true]:bg-primary/10 data-[active=true]:text-primary data-[active=true]:font-semibold dark:data-[active=true]:bg-primary/20 hover:bg-muted/70"
+              className="relative h-9 rounded-lg px-2.5 transition-all duration-150 data-[active=true]:bg-primary/12 data-[active=true]:text-primary data-[active=true]:font-bold data-[active=true]:border-l-2 data-[active=true]:border-primary dark:data-[active=true]:bg-primary/20 hover:bg-muted/70 cursor-pointer"
             >
               {/* Closes the mobile drawer on tap — otherwise it stays open
                   over the destination page until manually dismissed. */}
               <Link href={item.href} onClick={() => setOpenMobile(false)} className="flex items-center gap-2.5">
-                <item.icon className="size-4 shrink-0" />
-                <span className="text-xs font-medium">{item.label}</span>
+                <item.icon className={`size-4 shrink-0 transition-colors ${isActive ? "text-primary font-bold" : "text-muted-foreground"}`} />
+                <span className="text-xs">{item.label}</span>
                 {isActive && (
-                  <span className="ml-auto size-1.5 rounded-full bg-primary group-data-[collapsible=icon]:hidden" />
+                  <span className="ml-auto size-1.5 rounded-full bg-primary shadow-xs shadow-primary/50 group-data-[collapsible=icon]:hidden" />
                 )}
               </Link>
             </SidebarMenuButton>

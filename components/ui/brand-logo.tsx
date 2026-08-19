@@ -47,7 +47,7 @@ export function BrandLogo({
       {showEmblem && (
         <div
           className={cn(
-            "relative flex shrink-0 items-center justify-center bg-gradient-to-br from-primary via-violet-700 to-indigo-800 text-primary-foreground font-sans shadow-xs ring-1 ring-primary/20",
+            "relative flex shrink-0 items-center justify-center bg-gradient-to-br from-violet-600 via-primary to-indigo-700 text-primary-foreground font-sans shadow-md shadow-primary/25 ring-1 ring-white/30",
             emblemSizes[size]
           )}
           aria-hidden="true"
@@ -55,7 +55,7 @@ export function BrandLogo({
           <span className="font-extrabold tracking-wider bg-gradient-to-br from-white via-violet-100 to-amber-200 bg-clip-text text-transparent">
             AVK
           </span>
-          <span className="absolute -top-0.5 -right-0.5 size-2 rounded-full bg-brand-gold ring-1 ring-background" />
+          <span className="absolute -top-0.5 -right-0.5 size-2 rounded-full bg-brand-gold ring-1 ring-background shadow-2xs" />
         </div>
       )}
 
@@ -66,8 +66,8 @@ export function BrandLogo({
         )}
       >
         <div className={cn("flex items-baseline gap-1", titleSizes[size])}>
-          <span className="text-muted-foreground font-medium text-[0.85em]">Dr.</span>
-          <span className="bg-gradient-to-r from-foreground via-foreground to-foreground/90 bg-clip-text font-bold text-foreground">
+          <span className="text-primary font-bold text-[0.85em]">Dr.</span>
+          <span className="bg-gradient-to-r from-foreground via-foreground to-primary/90 bg-clip-text font-extrabold text-foreground">
             Alex Vico-Korda
           </span>
         </div>

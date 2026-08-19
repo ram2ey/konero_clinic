@@ -67,7 +67,7 @@ export function BillingList({ invoices }: { invoices: BillingInvoice[] }) {
                 onClick={() => setActiveStatus(f.value)}
                 className={`inline-flex items-center gap-1.5 rounded-lg px-3.5 py-1.5 text-xs font-semibold transition-all duration-150 outline-none select-none cursor-pointer ${
                   isActive
-                    ? "bg-card text-foreground shadow-xs"
+                    ? "bg-card text-primary font-bold shadow-xs ring-1 ring-primary/25"
                     : "text-muted-foreground hover:text-foreground hover:bg-background/40"
                 }`}
               >
@@ -75,7 +75,7 @@ export function BillingList({ invoices }: { invoices: BillingInvoice[] }) {
                 <span
                   className={`rounded-full px-1.5 py-0.2 text-[10px] tabular-nums font-bold ${
                     isActive
-                      ? "bg-primary/10 text-primary"
+                      ? "bg-primary/15 text-primary font-extrabold"
                       : "bg-muted text-muted-foreground"
                   }`}
                 >

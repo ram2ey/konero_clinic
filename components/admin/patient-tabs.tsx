@@ -29,9 +29,9 @@ export function PatientTabs({ patientId }: { patientId: string }) {
             <Link
               key={tab.label}
               href={href}
-              className={`inline-flex items-center gap-1.5 rounded-lg px-3.5 py-1.5 text-xs font-semibold transition-all duration-150 outline-none select-none ${
+              className={`inline-flex items-center gap-1.5 rounded-lg px-3.5 py-1.5 text-xs font-semibold transition-all duration-150 outline-none select-none cursor-pointer ${
                 isActive
-                  ? "bg-card text-foreground shadow-xs"
+                  ? "bg-card text-primary font-bold shadow-xs ring-1 ring-primary/25"
                   : "text-muted-foreground hover:text-foreground hover:bg-background/40"
               }`}
             >

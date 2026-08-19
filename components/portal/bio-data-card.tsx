@@ -67,12 +67,12 @@ export async function BioDataCard({ patientId }: { patientId: string }) {
       <Card className="border-border/80 shadow-xs">
         <CardHeader className="border-b border-border/60 pb-4">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-            <div className="flex items-center gap-3">
-              <div className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-primary/20 via-violet-500/15 to-primary/5 text-primary ring-1 ring-primary/25">
+            <div className="flex items-center gap-3.5">
+              <div className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-violet-600 via-primary to-indigo-700 text-white font-bold shadow-md shadow-primary/25 ring-1 ring-white/30">
                 <User className="size-5" />
               </div>
               <div>
-                <CardTitle className="text-lg sm:text-xl font-bold text-foreground">
+                <CardTitle className="text-lg sm:text-xl font-extrabold text-foreground">
                   {profile?.full_name ?? "Patient Information"}
                 </CardTitle>
                 <div className="flex flex-wrap items-center gap-2 mt-1">
@@ -86,7 +86,7 @@ export async function BioDataCard({ patientId }: { patientId: string }) {
                       {humanizeEnum(profile.sex)}
                     </span>
                   )}
-                  <span className="inline-flex items-center gap-1.5 rounded-md border border-primary/25 bg-primary/10 px-2 py-0.5 font-mono text-xs font-semibold text-primary">
+                  <span className="inline-flex items-center gap-1.5 rounded-md border border-primary/30 bg-primary/10 px-2 py-0.5 font-mono text-xs font-bold text-primary">
                     <IdCard className="size-3" />
                     {formatMedicalId(patientId)}
                   </span>
@@ -99,7 +99,7 @@ export async function BioDataCard({ patientId }: { patientId: string }) {
         <CardContent className="pt-6 space-y-6">
           {/* Section: Personal & Demographics */}
           <div>
-            <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-3">
+            <h3 className="text-xs font-extrabold uppercase tracking-wider text-primary mb-3.5">
               Personal &amp; Demographics
             </h3>
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -118,7 +118,7 @@ export async function BioDataCard({ patientId }: { patientId: string }) {
 
           {/* Section: Residence & Background */}
           <div className="border-t border-border/60 pt-5">
-            <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-3">
+            <h3 className="text-xs font-extrabold uppercase tracking-wider text-primary mb-3.5">
               Location &amp; Socioeconomic
             </h3>
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
