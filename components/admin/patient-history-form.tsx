@@ -139,6 +139,83 @@ export const EMPTY_HISTORY: HistoryState = {
   premorbidPersonality: "",
 };
 
+export function mapDbHistoryToState(raw: unknown): HistoryState {
+  if (!raw || typeof raw !== "object") {
+    return { ...EMPTY_HISTORY };
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const obj = raw as Record<string, any>;
+  const systemic = obj.systemicEnquiry || obj.systemic_enquiry || {};
+  const pastMed = obj.pastMedicalHistory || obj.past_medical_history || {};
+  const treatment = obj.treatmentHistory || obj.treatment_history || {};
+  const family = obj.familyHistory || obj.family_history || {};
+  const personal = obj.personalHistory || obj.personal_history || {};
+
+  return {
+    presentingComplaints: obj.presentingComplaints ?? obj.presenting_complaints ?? "",
+    historyOfPresentingComplaints:
+      obj.historyOfPresentingComplaints ?? obj.history_of_presenting_complaints ?? "",
+    onDirectQuestion: obj.onDirectQuestion ?? obj.on_direct_question ?? "",
+    systemicEnquiry: {
+      general: systemic.general ?? "",
+      respiratory: systemic.respiratory ?? "",
+      cardiovascular: systemic.cardiovascular ?? "",
+      abdominal: systemic.abdominal ?? "",
+      genitourinary: systemic.genitourinary ?? "",
+      centralNervous: systemic.centralNervous ?? systemic.central_nervous ?? "",
+    },
+    pastPsychiatricHistory: obj.pastPsychiatricHistory ?? obj.past_psychiatric_history ?? "",
+    pastMedicalHistory: {
+      seizureDisorder: pastMed.seizureDisorder ?? pastMed.seizure_disorder ?? "",
+      sickleCellDisease: pastMed.sickleCellDisease ?? pastMed.sickle_cell_disease ?? "",
+      asthma: pastMed.asthma ?? "",
+      hypertension: pastMed.hypertension ?? "",
+      diabetes: pastMed.diabetes ?? "",
+      tuberculosis: pastMed.tuberculosis ?? "",
+      headInjury: pastMed.headInjury ?? pastMed.head_injury ?? "",
+      roadTrafficAccident: pastMed.roadTrafficAccident ?? pastMed.road_traffic_accident ?? "",
+      other: pastMed.other ?? "",
+    },
+    pastSurgicalHistory: obj.pastSurgicalHistory ?? obj.past_surgical_history ?? "",
+    treatmentHistory: {
+      orthodoxMedications: treatment.orthodoxMedications ?? treatment.orthodox_medications ?? "",
+      herbalMedications: treatment.herbalMedications ?? treatment.herbal_medications ?? "",
+      allergies: treatment.allergies ?? "",
+      churchPrayerCamps: treatment.churchPrayerCamps ?? treatment.church_prayer_camps ?? "",
+      other: treatment.other ?? "",
+    },
+    familyHistory: {
+      father: family.father ?? "",
+      mother: family.mother ?? "",
+      siblings: family.siblings ?? "",
+      seizureDisorder: family.seizureDisorder ?? family.seizure_disorder ?? "",
+      mentalIllness: family.mentalIllness ?? family.mental_illness ?? "",
+      suicide: family.suicide ?? "",
+      addiction: family.addiction ?? "",
+      hypertension: family.hypertension ?? "",
+      diabetes: family.diabetes ?? "",
+      asthma: family.asthma ?? "",
+      sickleCellDisease: family.sickleCellDisease ?? family.sickle_cell_disease ?? "",
+    },
+    personalHistory: {
+      pregnancyAndBirth: personal.pregnancyAndBirth ?? personal.pregnancy_and_birth ?? "",
+      earlyChildhoodAndDevelopment:
+        personal.earlyChildhoodAndDevelopment ?? personal.early_childhood_and_development ?? "",
+      education: personal.education ?? "",
+      occupation: personal.occupation ?? "",
+      psychosexualRelationship:
+        personal.psychosexualRelationship ?? personal.psychosexual_relationship ?? "",
+      maritalHistory: personal.maritalHistory ?? personal.marital_history ?? "",
+      socialHistory: personal.socialHistory ?? personal.social_history ?? "",
+      forensicHistory: personal.forensicHistory ?? personal.forensic_history ?? "",
+    },
+    substanceUseAddictionHistory:
+      obj.substanceUseAddictionHistory ?? obj.substance_use_addiction_history ?? "",
+    premorbidPersonality: obj.premorbidPersonality ?? obj.premorbid_personality ?? "",
+  };
+}
+
 const SYSTEMIC_ENQUIRY_LABELS: Record<keyof SystemicEnquiryState, string> = {
   general: "General",
   respiratory: "Respiratory",
@@ -310,10 +387,10 @@ export function PatientHistoryForm({
   initialHistory: HistoryState;
   initialUpdatedAt: string | null;
 }) {
-  const [savedHistory, setSavedHistory] = useState<HistoryState>(initialHistory);
+  const [savedHistory, setSavedHistory] = useState<HistoryState>(() => mapDbHistoryToState(initialHistory));
   const [savedAt, setSavedAt] = useState<string | null>(initialUpdatedAt);
   const [mode, setMode] = useState<"view" | "edit">(hasAnyValue(initialHistory) ? "view" : "edit");
-  const [history, setHistory] = useState<HistoryState>(initialHistory);
+  const [history, setHistory] = useState<HistoryState>(() => mapDbHistoryToState(initialHistory));
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string[]> | null>(null);

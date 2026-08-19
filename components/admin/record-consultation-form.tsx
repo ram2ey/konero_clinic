@@ -7,7 +7,7 @@ import { createContext, useContext, useState, type FormEvent, type ReactNode } f
 import type { Icd11Match } from "@/actions/search-icd11";
 import { recordConsultation, type RecordConsultationInput } from "@/actions/record-consultation";
 import { Icd11Combobox } from "@/components/admin/icd11-combobox";
-import { type HistoryState, EMPTY_HISTORY } from "@/components/admin/patient-history-form";
+import { type HistoryState, mapDbHistoryToState } from "@/components/admin/patient-history-form";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -343,7 +343,7 @@ export function RecordConsultationForm({
 
   const [visitType, setVisitType] = useState<VisitType>(suggestedVisitType);
   const [form, setForm] = useState<FormState>(EMPTY_FORM);
-  const [history, setHistory] = useState<HistoryState>(initialHistory ?? EMPTY_HISTORY);
+  const [history, setHistory] = useState<HistoryState>(() => mapDbHistoryToState(initialHistory));
   const [mse, setMse] = useState<MseState>(EMPTY_MSE);
   const [diagnoses, setDiagnoses] = useState<DiagnosisRow[]>([]);
   const [prescriptions, setPrescriptions] = useState<PrescriptionRow[]>([]);

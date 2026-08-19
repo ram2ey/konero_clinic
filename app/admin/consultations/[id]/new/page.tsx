@@ -1,4 +1,4 @@
-import type { HistoryState } from "@/components/admin/patient-history-form";
+import { mapDbHistoryToState } from "@/components/admin/patient-history-form";
 import { RecordConsultationForm, type VisitType } from "@/components/admin/record-consultation-form";
 import { createClient } from "@/lib/supabase/server";
 
@@ -20,7 +20,7 @@ export default async function RecordConsultationPage({ params }: { params: Promi
   ]);
 
   const suggestedVisitType: VisitType = count && count > 0 ? "review" : "first_visit";
-  const initialHistory = historyRow?.history ? (historyRow.history as HistoryState) : undefined;
+  const initialHistory = historyRow?.history ? mapDbHistoryToState(historyRow.history) : undefined;
 
   return (
     <RecordConsultationForm
@@ -30,4 +30,3 @@ export default async function RecordConsultationPage({ params }: { params: Promi
     />
   );
 }
-
