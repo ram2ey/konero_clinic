@@ -4,7 +4,9 @@ import {
   CheckCircle2,
   ClipboardCheck,
   FileText,
+  HeartPulse,
   Lightbulb,
+  Pill,
   ShieldAlert,
   Stethoscope,
 } from "lucide-react";
@@ -16,7 +18,6 @@ import {
   MSE_FIELD_LABELS,
   MSE_THOUGHT_LABELS_DB,
 } from "@/lib/mse-labels";
-import { hasAnyValue } from "@/lib/utils";
 
 export type Vitals = {
   blood_pressure?: { systolic: number | null; diastolic: number | null } | null;
@@ -79,27 +80,46 @@ export type Assessment = {
   prognosis?: string | null;
 } | null;
 
+export type DiagnosisRecord = {
+  id?: string;
+  condition: string;
+  status: string;
+  icd11_code?: string | null;
+  icd11_uri?: string | null;
+};
+
+export type PrescriptionRecord = {
+  id?: string;
+  medication_name: string;
+  dosage?: string | null;
+  frequency?: string | null;
+  instructions?: string | null;
+  status: string;
+};
+
 export type ConsultationDetail = {
   id: string;
   created_at: string;
   vitals: Vitals;
   assessment: Assessment;
   visit_type: "first_visit" | "review";
+  diagnoses?: DiagnosisRecord[];
+  prescriptions?: PrescriptionRecord[];
 };
 
-const PHYSICAL_EXAM_LABELS: Record<string, string> = {
-  general: "General Examination",
-  anthropometric: "Anthropometric Assessment",
-  cardiovascular: "Cardiovascular System (CVS)",
-  respiratory: "Respiratory System",
-  gastrointestinal: "Gastrointestinal System (GIT)",
-  cns: "Central Nervous System (CNS)",
-  musculoskeletal: "Musculoskeletal System",
-  skin: "Skin & Integumentary",
-  other: "Other Systemic Findings",
-};
+const PHYSICAL_EXAM_SYSTEMS: Array<{ key: keyof NonNullable<PhysicalExam>; label: string }> = [
+  { key: "general", label: "General Examination" },
+  { key: "anthropometric", label: "Anthropometric Assessment" },
+  { key: "cardiovascular", label: "Cardiovascular System (CVS)" },
+  { key: "respiratory", label: "Respiratory System" },
+  { key: "gastrointestinal", label: "Gastrointestinal System (GIT)" },
+  { key: "cns", label: "Central Nervous System (CNS)" },
+  { key: "musculoskeletal", label: "Musculoskeletal System" },
+  { key: "skin", label: "Skin & Integumentary" },
+  { key: "other", label: "Other Systemic Findings" },
+];
 
-const MSE_CORE_ORDER = [
+const MSE_CORE_TRAITS = [
   "appearance",
   "behaviour",
   "speech",
@@ -108,338 +128,486 @@ const MSE_CORE_ORDER = [
   "perception",
 ] as const;
 
+const THOUGHT_KEYS: Array<keyof NonNullable<Thought>> = [
+  "stream_flow",
+  "form",
+  "content",
+  "possession",
+  "control",
+];
+
+const COGNITION_KEYS: Array<keyof NonNullable<Cognition>> = [
+  "orientation",
+  "memory",
+  "attention",
+  "concentration",
+  "abstraction",
+  "general_fund_of_knowledge",
+  "judgement",
+];
+
+function NotRecorded({ text = "Not recorded" }: { text?: string }) {
+  return <span className="text-xs text-muted-foreground/60 italic font-normal">{text}</span>;
+}
+
 export function ConsultationDetailView({
   consultation,
 }: {
   consultation: ConsultationDetail;
 }) {
-  const { created_at, vitals, assessment, visit_type } = consultation;
-  const hasAssessment = hasAnyValue(assessment);
+  const { created_at, vitals, assessment, visit_type, diagnoses, prescriptions } = consultation;
+
+  const hasBp = vitals?.blood_pressure?.systolic && vitals?.blood_pressure?.diastolic;
 
   return (
     <div className="space-y-6 text-sm text-foreground">
-      {/* Header Info Banner */}
-      <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border/80 bg-muted/30 p-4">
+      {/* Consultation Header Banner */}
+      <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border/80 bg-muted/40 p-4">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-            Consultation Date &amp; Time
+          <p className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+            Visit Date &amp; Time
           </p>
-          <p className="text-base font-bold text-foreground">
+          <p className="text-base font-bold text-foreground mt-0.5">
             {formatDateTime(created_at)}
           </p>
         </div>
-        <VisitTypeBadge visitType={visit_type} />
+        <div className="flex items-center gap-2">
+          <VisitTypeBadge visitType={visit_type} />
+        </div>
       </div>
 
-      {/* Vitals Section */}
-      {vitals && hasAnyValue(vitals) && (
-        <div className="space-y-2.5">
-          <div className="flex items-center gap-2">
-            <Activity className="size-4 text-primary" />
-            <h4 className="text-xs font-bold uppercase tracking-wider text-foreground">
-              Vital Signs
-            </h4>
-          </div>
-          <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 md:grid-cols-6">
-            {vitals.blood_pressure?.systolic && vitals.blood_pressure?.diastolic && (
-              <div className="rounded-lg border border-border/70 bg-card p-2.5 shadow-2xs">
-                <span className="text-[10px] font-semibold uppercase text-muted-foreground">
-                  Blood Pressure
-                </span>
-                <p className="mt-0.5 font-mono text-xs font-bold text-foreground">
-                  {vitals.blood_pressure.systolic}/{vitals.blood_pressure.diastolic}{" "}
+      {/* 1. Vital Signs (All 6 displayed) */}
+      <div className="space-y-2.5">
+        <div className="flex items-center gap-2">
+          <Activity className="size-4 text-primary" />
+          <h4 className="text-xs font-bold uppercase tracking-wider text-foreground">
+            Vital Signs
+          </h4>
+        </div>
+        <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 md:grid-cols-6">
+          {/* BP */}
+          <div className="rounded-xl border border-border/70 bg-card p-3 shadow-2xs">
+            <span className="text-[10px] font-semibold uppercase text-muted-foreground block">
+              Blood Pressure
+            </span>
+            <div className="mt-1">
+              {hasBp ? (
+                <p className="font-mono text-xs font-bold text-foreground">
+                  {vitals!.blood_pressure!.systolic}/{vitals!.blood_pressure!.diastolic}{" "}
                   <span className="text-[10px] font-normal text-muted-foreground">mmHg</span>
                 </p>
-              </div>
-            )}
+              ) : (
+                <NotRecorded text="—" />
+              )}
+            </div>
+          </div>
 
-            {vitals.heart_rate_bpm && (
-              <div className="rounded-lg border border-border/70 bg-card p-2.5 shadow-2xs">
-                <span className="text-[10px] font-semibold uppercase text-muted-foreground">
-                  Heart Rate
-                </span>
-                <p className="mt-0.5 font-mono text-xs font-bold text-foreground">
+          {/* Heart Rate */}
+          <div className="rounded-xl border border-border/70 bg-card p-3 shadow-2xs">
+            <span className="text-[10px] font-semibold uppercase text-muted-foreground block">
+              Heart Rate
+            </span>
+            <div className="mt-1">
+              {vitals?.heart_rate_bpm ? (
+                <p className="font-mono text-xs font-bold text-foreground">
                   {vitals.heart_rate_bpm}{" "}
                   <span className="text-[10px] font-normal text-muted-foreground">bpm</span>
                 </p>
-              </div>
-            )}
+              ) : (
+                <NotRecorded text="—" />
+              )}
+            </div>
+          </div>
 
-            {vitals.temperature_celsius && (
-              <div className="rounded-lg border border-border/70 bg-card p-2.5 shadow-2xs">
-                <span className="text-[10px] font-semibold uppercase text-muted-foreground">
-                  Temperature
-                </span>
-                <p className="mt-0.5 font-mono text-xs font-bold text-foreground">
+          {/* Temp */}
+          <div className="rounded-xl border border-border/70 bg-card p-3 shadow-2xs">
+            <span className="text-[10px] font-semibold uppercase text-muted-foreground block">
+              Temperature
+            </span>
+            <div className="mt-1">
+              {vitals?.temperature_celsius ? (
+                <p className="font-mono text-xs font-bold text-foreground">
                   {vitals.temperature_celsius}{" "}
                   <span className="text-[10px] font-normal text-muted-foreground">°C</span>
                 </p>
-              </div>
-            )}
+              ) : (
+                <NotRecorded text="—" />
+              )}
+            </div>
+          </div>
 
-            {vitals.respiratory_rate && (
-              <div className="rounded-lg border border-border/70 bg-card p-2.5 shadow-2xs">
-                <span className="text-[10px] font-semibold uppercase text-muted-foreground">
-                  Resp. Rate
-                </span>
-                <p className="mt-0.5 font-mono text-xs font-bold text-foreground">
+          {/* Resp Rate */}
+          <div className="rounded-xl border border-border/70 bg-card p-3 shadow-2xs">
+            <span className="text-[10px] font-semibold uppercase text-muted-foreground block">
+              Resp. Rate
+            </span>
+            <div className="mt-1">
+              {vitals?.respiratory_rate ? (
+                <p className="font-mono text-xs font-bold text-foreground">
                   {vitals.respiratory_rate}{" "}
                   <span className="text-[10px] font-normal text-muted-foreground">cpm</span>
                 </p>
-              </div>
-            )}
+              ) : (
+                <NotRecorded text="—" />
+              )}
+            </div>
+          </div>
 
-            {vitals.oxygen_saturation_percent && (
-              <div className="rounded-lg border border-border/70 bg-card p-2.5 shadow-2xs">
-                <span className="text-[10px] font-semibold uppercase text-muted-foreground">
-                  SpO2
-                </span>
-                <p className="mt-0.5 font-mono text-xs font-bold text-foreground">
+          {/* SpO2 */}
+          <div className="rounded-xl border border-border/70 bg-card p-3 shadow-2xs">
+            <span className="text-[10px] font-semibold uppercase text-muted-foreground block">
+              Oxygen (SpO2)
+            </span>
+            <div className="mt-1">
+              {vitals?.oxygen_saturation_percent ? (
+                <p className="font-mono text-xs font-bold text-foreground">
                   {vitals.oxygen_saturation_percent}%
                 </p>
-              </div>
-            )}
+              ) : (
+                <NotRecorded text="—" />
+              )}
+            </div>
+          </div>
 
-            {vitals.weight_kg && (
-              <div className="rounded-lg border border-border/70 bg-card p-2.5 shadow-2xs">
-                <span className="text-[10px] font-semibold uppercase text-muted-foreground">
-                  Weight
-                </span>
-                <p className="mt-0.5 font-mono text-xs font-bold text-foreground">
+          {/* Weight */}
+          <div className="rounded-xl border border-border/70 bg-card p-3 shadow-2xs">
+            <span className="text-[10px] font-semibold uppercase text-muted-foreground block">
+              Weight
+            </span>
+            <div className="mt-1">
+              {vitals?.weight_kg ? (
+                <p className="font-mono text-xs font-bold text-foreground">
                   {vitals.weight_kg}{" "}
                   <span className="text-[10px] font-normal text-muted-foreground">kg</span>
                 </p>
-              </div>
-            )}
+              ) : (
+                <NotRecorded text="—" />
+              )}
+            </div>
           </div>
         </div>
-      )}
+      </div>
 
-      {/* Clinical Summary & Formulation */}
-      {(assessment?.summary || assessment?.phenomenology) && (
-        <div className="space-y-3">
-          <div className="flex items-center gap-2">
-            <FileText className="size-4 text-primary" />
-            <h4 className="text-xs font-bold uppercase tracking-wider text-foreground">
-              Clinical Formulation &amp; Assessment
-            </h4>
-          </div>
+      {/* 2. Clinical Formulation & Summary */}
+      <div className="space-y-3">
+        <div className="flex items-center gap-2">
+          <FileText className="size-4 text-primary" />
+          <h4 className="text-xs font-bold uppercase tracking-wider text-foreground">
+            Clinical Formulation &amp; Assessment
+          </h4>
+        </div>
 
-          {assessment?.summary && (
-            <div className="rounded-xl border border-border/80 bg-card p-4 shadow-2xs">
-              <h5 className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1.5">
-                Clinical Summary
-              </h5>
-              <p className="whitespace-pre-wrap text-sm leading-relaxed text-foreground">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <div className="rounded-xl border border-border/80 bg-card p-4 shadow-2xs">
+            <h5 className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1.5">
+              Clinical Summary
+            </h5>
+            {assessment?.summary ? (
+              <p className="whitespace-pre-wrap text-xs text-foreground leading-relaxed">
                 {assessment.summary}
               </p>
-            </div>
-          )}
+            ) : (
+              <NotRecorded text="No clinical summary recorded for this visit" />
+            )}
+          </div>
 
-          {assessment?.phenomenology && (
-            <div className="rounded-xl border border-border/80 bg-card p-4 shadow-2xs">
-              <h5 className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1.5">
-                Items of Phenomenology
-              </h5>
-              <p className="whitespace-pre-wrap text-sm leading-relaxed text-foreground">
+          <div className="rounded-xl border border-border/80 bg-card p-4 shadow-2xs">
+            <h5 className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1.5">
+              Items of Phenomenology
+            </h5>
+            {assessment?.phenomenology ? (
+              <p className="whitespace-pre-wrap text-xs text-foreground leading-relaxed">
                 {assessment.phenomenology}
               </p>
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* Mental State Examination (MSE) */}
-      {assessment?.mse && hasAnyValue(assessment.mse) && (
-        <div className="space-y-3">
-          <div className="flex items-center gap-2">
-            <Brain className="size-4 text-primary" />
-            <h4 className="text-xs font-bold uppercase tracking-wider text-primary">
-              Mental State Examination (MSE)
-            </h4>
-          </div>
-
-          <div className="rounded-xl border border-border/80 bg-card p-4 shadow-2xs space-y-4">
-            {/* Core MSE traits */}
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-              {MSE_CORE_ORDER.map((key) => {
-                const value = assessment.mse?.[key];
-                if (!value || typeof value !== "string") return null;
-                return (
-                  <div
-                    key={key}
-                    className="rounded-lg border border-border/60 bg-muted/20 p-3"
-                  >
-                    <p className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
-                      {MSE_FIELD_LABELS[key]}
-                    </p>
-                    <p className="mt-1 whitespace-pre-wrap text-xs text-foreground leading-relaxed">
-                      {value}
-                    </p>
-                  </div>
-                );
-              })}
-            </div>
-
-            {/* Thought */}
-            {assessment.mse.thought && hasAnyValue(assessment.mse.thought) && (
-              <div className="rounded-lg border border-border/60 bg-muted/20 p-3.5 space-y-2">
-                <p className="text-xs font-bold uppercase tracking-wider text-primary">
-                  7. Thought
-                </p>
-                <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-                  {Object.entries(assessment.mse.thought).map(([key, value]) => {
-                    if (!value) return null;
-                    return (
-                      <p key={key} className="text-xs text-foreground">
-                        <span className="font-semibold text-muted-foreground">
-                          {MSE_THOUGHT_LABELS_DB[key as keyof Thought] || key}:{" "}
-                        </span>
-                        <span>{value}</span>
-                      </p>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
-
-            {/* Cognition */}
-            {assessment.mse.cognition && hasAnyValue(assessment.mse.cognition) && (
-              <div className="rounded-lg border border-border/60 bg-muted/20 p-3.5 space-y-2">
-                <p className="text-xs font-bold uppercase tracking-wider text-primary">
-                  8. Cognition
-                </p>
-                <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-                  {Object.entries(assessment.mse.cognition).map(([key, value]) => {
-                    if (!value) return null;
-                    return (
-                      <p key={key} className="text-xs text-foreground">
-                        <span className="font-semibold text-muted-foreground">
-                          {MSE_COGNITION_LABELS_DB[key as keyof Cognition] || key}:{" "}
-                        </span>
-                        <span>{value}</span>
-                      </p>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
-
-            {/* Insight */}
-            {assessment.mse.insight && (
-              <div className="rounded-lg border border-border/60 bg-muted/20 p-3">
-                <p className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
-                  {MSE_FIELD_LABELS.insight}
-                </p>
-                <p className="mt-1 whitespace-pre-wrap text-xs text-foreground leading-relaxed">
-                  {assessment.mse.insight}
-                </p>
-              </div>
+            ) : (
+              <NotRecorded text="No items of phenomenology recorded for this visit" />
             )}
           </div>
         </div>
-      )}
+      </div>
 
-      {/* Physical Examination */}
-      {assessment?.physical_exam && hasAnyValue(assessment.physical_exam) && (
-        <div className="space-y-3">
-          <div className="flex items-center gap-2">
-            <Stethoscope className="size-4 text-primary" />
-            <h4 className="text-xs font-bold uppercase tracking-wider text-foreground">
-              Physical Examination
-            </h4>
-          </div>
+      {/* 3. Mental State Examination (MSE) */}
+      <div className="space-y-3">
+        <div className="flex items-center gap-2">
+          <Brain className="size-4 text-primary" />
+          <h4 className="text-xs font-bold uppercase tracking-wider text-primary">
+            Mental State Examination (MSE)
+          </h4>
+        </div>
 
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 rounded-xl border border-border/80 bg-card p-4 shadow-2xs">
-            {Object.entries(assessment.physical_exam).map(([key, value]) => {
-              if (!value) return null;
+        <div className="rounded-xl border border-border/80 bg-card p-4 shadow-2xs space-y-4">
+          {/* Core MSE Parameters (1-6) */}
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            {MSE_CORE_TRAITS.map((key) => {
+              const value = assessment?.mse?.[key];
               return (
                 <div
                   key={key}
                   className="rounded-lg border border-border/60 bg-muted/20 p-3"
                 >
                   <p className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
-                    {PHYSICAL_EXAM_LABELS[key] || key}
+                    {MSE_FIELD_LABELS[key]}
                   </p>
-                  <p className="mt-1 whitespace-pre-wrap text-xs text-foreground leading-relaxed">
-                    {value}
-                  </p>
+                  <div className="mt-1 leading-relaxed">
+                    {value ? (
+                      <p className="whitespace-pre-wrap text-xs text-foreground">{value}</p>
+                    ) : (
+                      <NotRecorded />
+                    )}
+                  </div>
                 </div>
               );
             })}
           </div>
-        </div>
-      )}
 
-      {/* Management Plan, Investigations & Risk */}
-      {(assessment?.management_plan ||
-        assessment?.investigations ||
-        assessment?.risk_assessment ||
-        assessment?.prognosis) && (
-        <div className="space-y-3">
-          <div className="flex items-center gap-2">
-            <ClipboardCheck className="size-4 text-primary" />
-            <h4 className="text-xs font-bold uppercase tracking-wider text-foreground">
-              Management, Risk &amp; Plan
-            </h4>
+          {/* 7. Thought Breakdown */}
+          <div className="rounded-lg border border-border/60 bg-muted/20 p-3.5 space-y-2.5">
+            <p className="text-xs font-bold uppercase tracking-wider text-primary">
+              7. Thought
+            </p>
+            <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2 lg:grid-cols-3">
+              {THOUGHT_KEYS.map((subKey) => {
+                const subVal = assessment?.mse?.thought?.[subKey];
+                return (
+                  <div key={subKey} className="rounded-md border border-border/50 bg-card/70 p-2.5">
+                    <p className="text-[10px] font-bold text-muted-foreground uppercase">
+                      {MSE_THOUGHT_LABELS_DB[subKey] || subKey}
+                    </p>
+                    <div className="mt-0.5">
+                      {subVal ? (
+                        <p className="text-xs text-foreground leading-relaxed">{subVal}</p>
+                      ) : (
+                        <NotRecorded />
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
           </div>
 
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-            {assessment?.management_plan && (
-              <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/5 p-4 shadow-2xs dark:bg-emerald-500/10">
-                <h5 className="text-xs font-bold uppercase tracking-wider text-emerald-700 dark:text-emerald-400 mb-1.5 flex items-center gap-1.5">
-                  <CheckCircle2 className="size-3.5" />
-                  Management Plan
-                </h5>
-                <p className="whitespace-pre-wrap text-xs text-foreground leading-relaxed">
-                  {assessment.management_plan}
-                </p>
-              </div>
-            )}
+          {/* 8. Cognition Breakdown */}
+          <div className="rounded-lg border border-border/60 bg-muted/20 p-3.5 space-y-2.5">
+            <p className="text-xs font-bold uppercase tracking-wider text-primary">
+              8. Cognition
+            </p>
+            <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2 lg:grid-cols-3">
+              {COGNITION_KEYS.map((subKey) => {
+                const subVal = assessment?.mse?.cognition?.[subKey];
+                return (
+                  <div key={subKey} className="rounded-md border border-border/50 bg-card/70 p-2.5">
+                    <p className="text-[10px] font-bold text-muted-foreground uppercase">
+                      {MSE_COGNITION_LABELS_DB[subKey] || subKey}
+                    </p>
+                    <div className="mt-0.5">
+                      {subVal ? (
+                        <p className="text-xs text-foreground leading-relaxed">{subVal}</p>
+                      ) : (
+                        <NotRecorded />
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
 
-            {assessment?.investigations && (
-              <div className="rounded-xl border border-border/80 bg-card p-4 shadow-2xs">
-                <h5 className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1.5 flex items-center gap-1.5">
-                  <Lightbulb className="size-3.5 text-primary" />
-                  Investigations Ordered / Required
-                </h5>
+          {/* 9. Insight */}
+          <div className="rounded-lg border border-border/60 bg-muted/20 p-3">
+            <p className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+              9. {MSE_FIELD_LABELS.insight}
+            </p>
+            <div className="mt-1 leading-relaxed">
+              {assessment?.mse?.insight ? (
                 <p className="whitespace-pre-wrap text-xs text-foreground leading-relaxed">
-                  {assessment.investigations}
+                  {assessment.mse.insight}
                 </p>
-              </div>
-            )}
+              ) : (
+                <NotRecorded />
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
 
-            {assessment?.risk_assessment && (
-              <div className="rounded-xl border border-amber-500/30 bg-amber-500/5 p-4 shadow-2xs dark:bg-amber-500/10">
-                <h5 className="text-xs font-bold uppercase tracking-wider text-amber-700 dark:text-amber-400 mb-1.5 flex items-center gap-1.5">
-                  <ShieldAlert className="size-3.5" />
-                  Risk Assessment
-                </h5>
-                <p className="whitespace-pre-wrap text-xs text-foreground leading-relaxed">
-                  {assessment.risk_assessment}
-                </p>
-              </div>
-            )}
+      {/* 4. Physical Examination (All 9 systems) */}
+      <div className="space-y-3">
+        <div className="flex items-center gap-2">
+          <Stethoscope className="size-4 text-primary" />
+          <h4 className="text-xs font-bold uppercase tracking-wider text-foreground">
+            Physical Examination
+          </h4>
+        </div>
 
-            {assessment?.prognosis && (
-              <div className="rounded-xl border border-border/80 bg-card p-4 shadow-2xs">
-                <h5 className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1.5">
-                  Prognosis
-                </h5>
-                <p className="whitespace-pre-wrap text-xs text-foreground leading-relaxed">
-                  {assessment.prognosis}
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 rounded-xl border border-border/80 bg-card p-4 shadow-2xs">
+          {PHYSICAL_EXAM_SYSTEMS.map(({ key, label }) => {
+            const val = assessment?.physical_exam?.[key];
+            return (
+              <div
+                key={key}
+                className="rounded-lg border border-border/60 bg-muted/20 p-3"
+              >
+                <p className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+                  {label}
                 </p>
+                <div className="mt-1">
+                  {val ? (
+                    <p className="whitespace-pre-wrap text-xs text-foreground leading-relaxed">
+                      {val}
+                    </p>
+                  ) : (
+                    <NotRecorded text="NAD / Not recorded" />
+                  )}
+                </div>
               </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* 5. Management, Investigations, Risk & Prognosis */}
+      <div className="space-y-3">
+        <div className="flex items-center gap-2">
+          <ClipboardCheck className="size-4 text-primary" />
+          <h4 className="text-xs font-bold uppercase tracking-wider text-foreground">
+            Management &amp; Action Plan
+          </h4>
+        </div>
+
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          {/* Management Plan */}
+          <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/5 p-4 shadow-2xs dark:bg-emerald-500/10">
+            <h5 className="text-xs font-bold uppercase tracking-wider text-emerald-700 dark:text-emerald-400 mb-1.5 flex items-center gap-1.5">
+              <CheckCircle2 className="size-3.5" />
+              Management Plan
+            </h5>
+            {assessment?.management_plan ? (
+              <p className="whitespace-pre-wrap text-xs text-foreground leading-relaxed">
+                {assessment.management_plan}
+              </p>
+            ) : (
+              <NotRecorded text="No management plan recorded" />
+            )}
+          </div>
+
+          {/* Investigations */}
+          <div className="rounded-xl border border-border/80 bg-card p-4 shadow-2xs">
+            <h5 className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1.5 flex items-center gap-1.5">
+              <Lightbulb className="size-3.5 text-primary" />
+              Investigations Ordered
+            </h5>
+            {assessment?.investigations ? (
+              <p className="whitespace-pre-wrap text-xs text-foreground leading-relaxed">
+                {assessment.investigations}
+              </p>
+            ) : (
+              <NotRecorded text="No investigations requested" />
+            )}
+          </div>
+
+          {/* Risk Assessment */}
+          <div className="rounded-xl border border-amber-500/30 bg-amber-500/5 p-4 shadow-2xs dark:bg-amber-500/10">
+            <h5 className="text-xs font-bold uppercase tracking-wider text-amber-700 dark:text-amber-400 mb-1.5 flex items-center gap-1.5">
+              <ShieldAlert className="size-3.5" />
+              Risk Assessment
+            </h5>
+            {assessment?.risk_assessment ? (
+              <p className="whitespace-pre-wrap text-xs text-foreground leading-relaxed">
+                {assessment.risk_assessment}
+              </p>
+            ) : (
+              <NotRecorded text="No risk factors documented" />
+            )}
+          </div>
+
+          {/* Prognosis */}
+          <div className="rounded-xl border border-border/80 bg-card p-4 shadow-2xs">
+            <h5 className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1.5 flex items-center gap-1.5">
+              <HeartPulse className="size-3.5 text-primary" />
+              Prognosis
+            </h5>
+            {assessment?.prognosis ? (
+              <p className="whitespace-pre-wrap text-xs text-foreground leading-relaxed">
+                {assessment.prognosis}
+              </p>
+            ) : (
+              <NotRecorded text="No prognosis stated" />
             )}
           </div>
         </div>
-      )}
+      </div>
 
-      {!hasAssessment && !vitals && (
-        <p className="text-center text-xs text-muted-foreground italic py-4">
-          No detailed clinical notes recorded for this consultation.
-        </p>
-      )}
+      {/* 6. Linked Diagnoses & Prescriptions for this Consultation */}
+      <div className="space-y-3">
+        <div className="flex items-center gap-2">
+          <Pill className="size-4 text-primary" />
+          <h4 className="text-xs font-bold uppercase tracking-wider text-foreground">
+            Diagnoses &amp; Prescriptions Recorded During Visit
+          </h4>
+        </div>
+
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          {/* Diagnoses */}
+          <div className="rounded-xl border border-border/80 bg-card p-4 shadow-2xs space-y-2">
+            <h5 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+              Diagnoses
+            </h5>
+            {diagnoses && diagnoses.length > 0 ? (
+              <div className="space-y-1.5">
+                {diagnoses.map((diag, idx) => (
+                  <div
+                    key={diag.id ?? idx}
+                    className="flex items-center justify-between gap-2 rounded-lg border border-border/60 bg-muted/30 p-2 text-xs"
+                  >
+                    <div>
+                      <p className="font-semibold text-foreground">{diag.condition}</p>
+                      {diag.icd11_code && (
+                        <p className="text-[10px] font-mono text-primary">
+                          ICD-11: {diag.icd11_code}
+                        </p>
+                      )}
+                    </div>
+                    <span className="rounded-md bg-muted px-2 py-0.5 text-[10px] font-medium capitalize text-muted-foreground">
+                      {diag.status}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <NotRecorded text="No diagnoses recorded in this consultation" />
+            )}
+          </div>
+
+          {/* Prescriptions */}
+          <div className="rounded-xl border border-border/80 bg-card p-4 shadow-2xs space-y-2">
+            <h5 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+              Prescriptions
+            </h5>
+            {prescriptions && prescriptions.length > 0 ? (
+              <div className="space-y-1.5">
+                {prescriptions.map((rx, idx) => (
+                  <div
+                    key={rx.id ?? idx}
+                    className="rounded-lg border border-border/60 bg-muted/30 p-2 text-xs space-y-0.5"
+                  >
+                    <div className="flex items-center justify-between gap-2">
+                      <p className="font-semibold text-foreground">{rx.medication_name}</p>
+                      <span className="rounded-md bg-muted px-2 py-0.5 text-[10px] font-medium capitalize text-muted-foreground">
+                        {rx.status}
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-muted-foreground">
+                      {[rx.dosage, rx.frequency, rx.instructions].filter(Boolean).join(" • ")}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <NotRecorded text="No medications prescribed in this consultation" />
+            )}
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

@@ -12,7 +12,7 @@ import {
   ConsultationDetailView,
   Vitals,
 } from "@/components/admin/consultation-detail-view";
-import { ConsultationViewerSheet } from "@/components/admin/consultation-viewer-sheet";
+import { ConsultationModal } from "@/components/admin/consultation-modal";
 import { VisitTypeBadge } from "@/components/portal/status-badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -164,9 +164,9 @@ export function PreviousConsultationsList({
                   </div>
                 </button>
 
-                {/* Direct Action Sheet trigger */}
+                {/* Direct Action Modal trigger */}
                 <div className="flex items-center justify-end border-t border-border/40 pt-2 sm:border-0 sm:pt-0 sm:pl-3">
-                  <ConsultationViewerSheet
+                  <ConsultationModal
                     consultation={item}
                     patientName={patientName}
                     triggerText="Reader View"

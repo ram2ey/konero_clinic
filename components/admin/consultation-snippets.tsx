@@ -16,7 +16,15 @@ export async function ConsultationSnippets({ patientId }: { patientId: string })
   const [consultationsRes, patientRes] = await Promise.all([
     supabase
       .from("consultations")
-      .select("id, created_at, vitals, assessment, visit_type")
+      .select(`
+        id,
+        created_at,
+        vitals,
+        assessment,
+        visit_type,
+        diagnoses (id, condition, status, icd11_code, icd11_uri),
+        prescriptions (id, medication_name, dosage, frequency, instructions, status)
+      `)
       .eq("patient_id", patientId)
       .order("created_at", { ascending: false })
       .limit(6)

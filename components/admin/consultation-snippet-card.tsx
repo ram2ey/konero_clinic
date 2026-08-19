@@ -12,7 +12,7 @@ import {
   ConsultationDetail,
   Vitals,
 } from "@/components/admin/consultation-detail-view";
-import { ConsultationViewerSheet } from "@/components/admin/consultation-viewer-sheet";
+import { ConsultationModal } from "@/components/admin/consultation-modal";
 import { VisitTypeBadge } from "@/components/portal/status-badge";
 import { Button } from "@/components/ui/button";
 import { formatDateTime } from "@/lib/format";
@@ -142,7 +142,7 @@ export function ConsultationSnippetCard({
         </Button>
 
         <div className="flex items-center gap-1.5">
-          <ConsultationViewerSheet
+          <ConsultationModal
             consultation={item}
             patientName={patientName}
             triggerText="Full Record"
