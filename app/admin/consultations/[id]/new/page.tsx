@@ -2,13 +2,14 @@
 
 import { Plus, Trash2 } from "lucide-react";
 import { useParams, useRouter } from "next/navigation";
-import { useState, type FormEvent } from "react";
+import { useState, type FormEvent, type ReactNode } from "react";
 
 import type { Icd11Match } from "@/actions/search-icd11";
 import { recordConsultation, type RecordConsultationInput } from "@/actions/record-consultation";
 import { Icd11Combobox } from "@/components/admin/icd11-combobox";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card } from "@/components/ui/card";
 import { errorInputClass, inputClass, orUndefined, selectClass, textareaClass } from "@/lib/form-ui";
 import { MSE_COGNITION_LABELS, MSE_FIELD_LABELS, MSE_THOUGHT_LABELS } from "@/lib/mse-labels";
 import { createNestedFieldSetter } from "@/lib/nested-field";
@@ -178,6 +179,62 @@ function fieldId(name: string): string {
   return `field-${name}`;
 }
 
+// Maps a Zod field-error path (e.g. "assessment.mse.thought.content" or
+// "diagnoses.0.condition") to the accordion section it lives in, so a
+// failed submit can auto-expand every section that has an error in it —
+// not just scroll to the first one, which would leave the rest of a
+// multi-section error silently collapsed.
+function sectionForField(path: string): string | undefined {
+  if (path.startsWith("vitals")) return "vitals";
+  if (path.startsWith("assessment.mse")) return "mse";
+  if (path.startsWith("assessment.physicalExam")) return "physicalExam";
+  if (path.startsWith("assessment.summary")) return "summary";
+  if (path.startsWith("assessment.phenomenology")) return "phenomenology";
+  if (path.startsWith("assessment.managementPlan")) return "managementPlan";
+  if (path.startsWith("assessment.investigations")) return "investigations";
+  if (path.startsWith("assessment.riskAssessment")) return "riskAssessment";
+  if (path.startsWith("assessment.prognosis")) return "prognosis";
+  if (path.startsWith("diagnoses")) return "diagnoses";
+  if (path.startsWith("prescriptions")) return "prescriptions";
+  if (path.startsWith("invoice")) return "invoice";
+  return undefined;
+}
+
+function hasValue(v: string): boolean {
+  return v.trim().length > 0;
+}
+
+// A small filled dot on a collapsed section's trigger, so a section with
+// data already in it doesn't read as empty just because it's closed.
+function Section({
+  value,
+  title,
+  optional,
+  filled,
+  className,
+  children,
+}: {
+  value: string;
+  title: string;
+  optional?: boolean;
+  filled?: boolean;
+  className?: string;
+  children: ReactNode;
+}) {
+  return (
+    <AccordionItem value={value}>
+      <AccordionTrigger className="px-(--card-spacing)">
+        <span className="flex items-center gap-2">
+          {title}
+          {optional && <span className="font-normal text-muted-foreground">(optional)</span>}
+          {filled && <span className="size-1.5 rounded-full bg-primary" aria-hidden />}
+        </span>
+      </AccordionTrigger>
+      <AccordionContent className={`space-y-4 px-(--card-spacing) ${className ?? ""}`}>{children}</AccordionContent>
+    </AccordionItem>
+  );
+}
+
 export default function RecordConsultationPage() {
   const params = useParams<{ id: string }>();
   const patientId = params.id;
@@ -190,6 +247,7 @@ export default function RecordConsultationPage() {
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string[]> | null>(null);
+  const [openSections, setOpenSections] = useState<string[]>([]);
 
   function fieldMessage(name: string): string | undefined {
     return fieldErrors?.[name]?.[0];
@@ -298,6 +356,51 @@ export default function RecordConsultationPage() {
     setPrescriptions((prev) => prev.filter((_, i) => i !== index));
   }
 
+  // Whether each section already has something in it — shown as a dot on
+  // the (possibly collapsed) trigger so nothing filled-in reads as empty.
+  const sectionHasContent: Record<string, boolean> = {
+    vitals: [
+      form.bloodPressureSystolic,
+      form.bloodPressureDiastolic,
+      form.heartRate,
+      form.temperatureCelsius,
+      form.respiratoryRate,
+      form.weightKg,
+      form.oxygenSaturation,
+    ].some(hasValue),
+    mse: [
+      mse.appearance,
+      mse.behaviour,
+      mse.mood,
+      mse.affect,
+      mse.perception,
+      mse.speech,
+      mse.insight,
+      ...Object.values(mse.thought),
+      ...Object.values(mse.cognition),
+    ].some(hasValue),
+    physicalExam: [
+      form.peGeneral,
+      form.peAnthropometric,
+      form.peCardiovascular,
+      form.peRespiratory,
+      form.peGastrointestinal,
+      form.peCns,
+      form.peMusculoskeletal,
+      form.peSkin,
+      form.peOther,
+    ].some(hasValue),
+    summary: hasValue(form.summary),
+    phenomenology: hasValue(form.phenomenology),
+    diagnoses: diagnoses.length > 0,
+    managementPlan: hasValue(form.managementPlan),
+    investigations: hasValue(form.investigations),
+    prescriptions: prescriptions.length > 0,
+    riskAssessment: hasValue(form.riskAssessment),
+    prognosis: hasValue(form.prognosis),
+    invoice: hasValue(form.invoiceAmount) || hasValue(form.invoiceDescription),
+  };
+
   async function handleSubmit(event: FormEvent) {
     event.preventDefault();
     setError(null);
@@ -401,6 +504,15 @@ export default function RecordConsultationPage() {
       const errors = result.fieldErrors ?? null;
       setFieldErrors(errors);
 
+      if (errors) {
+        const sections = new Set(openSections);
+        for (const key of Object.keys(errors)) {
+          const section = sectionForField(key);
+          if (section) sections.add(section);
+        }
+        setOpenSections(Array.from(sections));
+      }
+
       const firstKey = errors ? Object.keys(errors)[0] : undefined;
       requestAnimationFrame(() => {
         const target = firstKey ? document.getElementById(fieldId(firstKey)) : null;
@@ -419,405 +531,380 @@ export default function RecordConsultationPage() {
     <main className="mx-auto max-w-3xl space-y-6 px-4 py-8 sm:px-6 lg:px-8">
       <header>
         <h1 className="text-2xl font-semibold tracking-tight text-foreground">Record Consultation</h1>
-        <p className="text-sm text-muted-foreground">Everything below is optional except at least a condition or medication if you add one.</p>
+        <p className="text-sm text-muted-foreground">
+          Expand the sections you need for this visit — everything is optional except at least a
+          condition or medication if you add one.
+        </p>
       </header>
 
       <form onSubmit={handleSubmit} className="space-y-6">
-        <Card>
-          <CardHeader>
-            <CardTitle>Vitals (optional)</CardTitle>
-          </CardHeader>
-          <CardContent className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-            <InputField
-              name="vitals.bloodPressureSystolic"
-              label="BP systolic"
-              type="number"
-              value={form.bloodPressureSystolic}
-              onChange={(v) => set("bloodPressureSystolic", v)}
-            />
-            <InputField
-              name="vitals.bloodPressureDiastolic"
-              label="BP diastolic"
-              type="number"
-              value={form.bloodPressureDiastolic}
-              onChange={(v) => set("bloodPressureDiastolic", v)}
-            />
-            <InputField
-              name="vitals.heartRate"
-              label="Heart rate"
-              type="number"
-              value={form.heartRate}
-              onChange={(v) => set("heartRate", v)}
-            />
-            <InputField
-              name="vitals.temperatureCelsius"
-              label="Temp (°C)"
-              type="number"
-              value={form.temperatureCelsius}
-              onChange={(v) => set("temperatureCelsius", v)}
-            />
-            <InputField
-              name="vitals.respiratoryRate"
-              label="Respiratory rate"
-              type="number"
-              value={form.respiratoryRate}
-              onChange={(v) => set("respiratoryRate", v)}
-            />
-            <InputField
-              name="vitals.weightKg"
-              label="Weight (kg)"
-              type="number"
-              value={form.weightKg}
-              onChange={(v) => set("weightKg", v)}
-            />
-            <InputField
-              name="vitals.oxygenSaturation"
-              label="O2 saturation (%)"
-              type="number"
-              value={form.oxygenSaturation}
-              onChange={(v) => set("oxygenSaturation", v)}
-            />
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Mental State Examination (MSE)</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            <TextField name="assessment.mse.appearance" label={MSE_FIELD_LABELS.appearance} value={mse.appearance} onChange={(v) => setMseField("appearance", v)} />
-            <TextField name="assessment.mse.behaviour" label={MSE_FIELD_LABELS.behaviour} value={mse.behaviour} onChange={(v) => setMseField("behaviour", v)} />
-            <TextField name="assessment.mse.mood" label={MSE_FIELD_LABELS.mood} value={mse.mood} onChange={(v) => setMseField("mood", v)} />
-            <TextField name="assessment.mse.affect" label={MSE_FIELD_LABELS.affect} value={mse.affect} onChange={(v) => setMseField("affect", v)} />
-            <TextField name="assessment.mse.perception" label={MSE_FIELD_LABELS.perception} value={mse.perception} onChange={(v) => setMseField("perception", v)} />
-            <TextField name="assessment.mse.speech" label={MSE_FIELD_LABELS.speech} value={mse.speech} onChange={(v) => setMseField("speech", v)} />
-
-            <div>
-              <p className="text-sm font-medium text-foreground">7. Thought</p>
-              <div className="mt-2 grid grid-cols-1 gap-4 sm:grid-cols-2">
-                <TextField
-                  name="assessment.mse.thought.streamFlow"
-                  label={MSE_THOUGHT_LABELS.streamFlow}
-                  value={mse.thought.streamFlow}
-                  onChange={(v) => setThought("streamFlow", v)}
+        <Card className="py-0">
+          <Accordion type="multiple" value={openSections} onValueChange={setOpenSections}>
+            <Section value="vitals" title="Vitals" optional filled={sectionHasContent.vitals}>
+              <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+                <InputField
+                  name="vitals.bloodPressureSystolic"
+                  label="BP systolic"
+                  type="number"
+                  value={form.bloodPressureSystolic}
+                  onChange={(v) => set("bloodPressureSystolic", v)}
                 />
-                <TextField
-                  name="assessment.mse.thought.form"
-                  label={MSE_THOUGHT_LABELS.form}
-                  value={mse.thought.form}
-                  onChange={(v) => setThought("form", v)}
+                <InputField
+                  name="vitals.bloodPressureDiastolic"
+                  label="BP diastolic"
+                  type="number"
+                  value={form.bloodPressureDiastolic}
+                  onChange={(v) => set("bloodPressureDiastolic", v)}
                 />
-                <TextField
-                  name="assessment.mse.thought.content"
-                  label={MSE_THOUGHT_LABELS.content}
-                  value={mse.thought.content}
-                  onChange={(v) => setThought("content", v)}
+                <InputField
+                  name="vitals.heartRate"
+                  label="Heart rate"
+                  type="number"
+                  value={form.heartRate}
+                  onChange={(v) => set("heartRate", v)}
                 />
-                <TextField
-                  name="assessment.mse.thought.possession"
-                  label={MSE_THOUGHT_LABELS.possession}
-                  value={mse.thought.possession}
-                  onChange={(v) => setThought("possession", v)}
+                <InputField
+                  name="vitals.temperatureCelsius"
+                  label="Temp (°C)"
+                  type="number"
+                  value={form.temperatureCelsius}
+                  onChange={(v) => set("temperatureCelsius", v)}
                 />
-                <TextField
-                  name="assessment.mse.thought.control"
-                  label={MSE_THOUGHT_LABELS.control}
-                  value={mse.thought.control}
-                  onChange={(v) => setThought("control", v)}
+                <InputField
+                  name="vitals.respiratoryRate"
+                  label="Respiratory rate"
+                  type="number"
+                  value={form.respiratoryRate}
+                  onChange={(v) => set("respiratoryRate", v)}
+                />
+                <InputField
+                  name="vitals.weightKg"
+                  label="Weight (kg)"
+                  type="number"
+                  value={form.weightKg}
+                  onChange={(v) => set("weightKg", v)}
+                />
+                <InputField
+                  name="vitals.oxygenSaturation"
+                  label="O2 saturation (%)"
+                  type="number"
+                  value={form.oxygenSaturation}
+                  onChange={(v) => set("oxygenSaturation", v)}
                 />
               </div>
-            </div>
+            </Section>
 
-            <div>
-              <p className="text-sm font-medium text-foreground">8. Cognition</p>
-              <div className="mt-2 grid grid-cols-1 gap-4 sm:grid-cols-2">
-                <TextField
-                  name="assessment.mse.cognition.orientation"
-                  label={MSE_COGNITION_LABELS.orientation}
-                  value={mse.cognition.orientation}
-                  onChange={(v) => setCognition("orientation", v)}
-                />
-                <TextField
-                  name="assessment.mse.cognition.memory"
-                  label={MSE_COGNITION_LABELS.memory}
-                  value={mse.cognition.memory}
-                  onChange={(v) => setCognition("memory", v)}
-                />
-                <TextField
-                  name="assessment.mse.cognition.attention"
-                  label={MSE_COGNITION_LABELS.attention}
-                  value={mse.cognition.attention}
-                  onChange={(v) => setCognition("attention", v)}
-                />
-                <TextField
-                  name="assessment.mse.cognition.concentration"
-                  label={MSE_COGNITION_LABELS.concentration}
-                  value={mse.cognition.concentration}
-                  onChange={(v) => setCognition("concentration", v)}
-                />
-                <TextField
-                  name="assessment.mse.cognition.abstraction"
-                  label={MSE_COGNITION_LABELS.abstraction}
-                  value={mse.cognition.abstraction}
-                  onChange={(v) => setCognition("abstraction", v)}
-                />
-                <TextField
-                  name="assessment.mse.cognition.generalFundOfKnowledge"
-                  label={MSE_COGNITION_LABELS.generalFundOfKnowledge}
-                  value={mse.cognition.generalFundOfKnowledge}
-                  onChange={(v) => setCognition("generalFundOfKnowledge", v)}
-                />
-                <TextField
-                  name="assessment.mse.cognition.judgement"
-                  label={MSE_COGNITION_LABELS.judgement}
-                  value={mse.cognition.judgement}
-                  onChange={(v) => setCognition("judgement", v)}
-                />
-              </div>
-            </div>
+            <Section value="mse" title="Mental State Examination (MSE)" filled={sectionHasContent.mse}>
+              <TextField name="assessment.mse.appearance" label={MSE_FIELD_LABELS.appearance} value={mse.appearance} onChange={(v) => setMseField("appearance", v)} />
+              <TextField name="assessment.mse.behaviour" label={MSE_FIELD_LABELS.behaviour} value={mse.behaviour} onChange={(v) => setMseField("behaviour", v)} />
+              <TextField name="assessment.mse.mood" label={MSE_FIELD_LABELS.mood} value={mse.mood} onChange={(v) => setMseField("mood", v)} />
+              <TextField name="assessment.mse.affect" label={MSE_FIELD_LABELS.affect} value={mse.affect} onChange={(v) => setMseField("affect", v)} />
+              <TextField name="assessment.mse.perception" label={MSE_FIELD_LABELS.perception} value={mse.perception} onChange={(v) => setMseField("perception", v)} />
+              <TextField name="assessment.mse.speech" label={MSE_FIELD_LABELS.speech} value={mse.speech} onChange={(v) => setMseField("speech", v)} />
 
-            <TextField name="assessment.mse.insight" label={MSE_FIELD_LABELS.insight} value={mse.insight} onChange={(v) => setMseField("insight", v)} />
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Physical Examination</CardTitle>
-          </CardHeader>
-          <CardContent className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <TextField name="assessment.physicalExam.general" label="General" value={form.peGeneral} onChange={(v) => set("peGeneral", v)} />
-            <TextField
-              name="assessment.physicalExam.anthropometric"
-              label="Anthropometric"
-              value={form.peAnthropometric}
-              onChange={(v) => set("peAnthropometric", v)}
-            />
-            <TextField
-              name="assessment.physicalExam.cardiovascular"
-              label="Cardiovascular"
-              value={form.peCardiovascular}
-              onChange={(v) => set("peCardiovascular", v)}
-            />
-            <TextField
-              name="assessment.physicalExam.respiratory"
-              label="Respiratory"
-              value={form.peRespiratory}
-              onChange={(v) => set("peRespiratory", v)}
-            />
-            <TextField
-              name="assessment.physicalExam.gastrointestinal"
-              label="Gastrointestinal"
-              value={form.peGastrointestinal}
-              onChange={(v) => set("peGastrointestinal", v)}
-            />
-            <TextField name="assessment.physicalExam.cns" label="CNS" value={form.peCns} onChange={(v) => set("peCns", v)} />
-            <TextField
-              name="assessment.physicalExam.musculoskeletal"
-              label="Musculoskeletal"
-              value={form.peMusculoskeletal}
-              onChange={(v) => set("peMusculoskeletal", v)}
-            />
-            <TextField name="assessment.physicalExam.skin" label="Skin" value={form.peSkin} onChange={(v) => set("peSkin", v)} />
-            <TextField name="assessment.physicalExam.other" label="Other" value={form.peOther} onChange={(v) => set("peOther", v)} />
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="space-y-4 pt-6">
-            <TextField name="assessment.summary" label="Summary" value={form.summary} onChange={(v) => set("summary", v)} />
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="space-y-4 pt-6">
-            <TextField
-              name="assessment.phenomenology"
-              label="Items of Phenomenology"
-              value={form.phenomenology}
-              onChange={(v) => set("phenomenology", v)}
-            />
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle>Diagnosis / Differential Diagnosis</CardTitle>
-            <Button type="button" size="sm" variant="outline" onClick={addDiagnosis} disabled={pending}>
-              <Plus className="size-3.5" />
-              Add
-            </Button>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            {diagnoses.length === 0 && <p className="text-sm text-muted-foreground">None added.</p>}
-            {diagnoses.map((row, i) => (
-              <div key={i} className="flex flex-col gap-2 sm:flex-row sm:items-start">
-                <div className="flex min-w-0 flex-1 items-start gap-2">
-                  <Icd11Combobox
-                    ariaLabel="Diagnosis"
-                    value={row.condition}
-                    onTextChange={(v) => updateDiagnosis(i, { condition: v, icd11Code: undefined, icd11Uri: undefined })}
-                    onSelect={(match: Icd11Match) =>
-                      updateDiagnosis(i, {
-                        condition: match.title,
-                        icd11Code: match.code ?? undefined,
-                        icd11Uri: match.uri,
-                      })
-                    }
-                    disabled={pending}
+              <div>
+                <p className="text-sm font-medium text-foreground">7. Thought</p>
+                <div className="mt-2 grid grid-cols-1 gap-4 sm:grid-cols-2">
+                  <TextField
+                    name="assessment.mse.thought.streamFlow"
+                    label={MSE_THOUGHT_LABELS.streamFlow}
+                    value={mse.thought.streamFlow}
+                    onChange={(v) => setThought("streamFlow", v)}
                   />
-                  {row.icd11Code && (
-                    <span className="mt-2 shrink-0 rounded bg-muted px-1.5 py-0.5 font-mono text-xs text-muted-foreground">
-                      {row.icd11Code}
-                    </span>
-                  )}
-                </div>
-                <div className="flex items-center gap-2">
-                  <select
-                    aria-label="Status"
-                    value={row.status}
-                    onChange={(e) => updateDiagnosis(i, { status: e.target.value as RecordStatus })}
-                    disabled={pending}
-                    className={selectClass}
-                  >
-                    {RECORD_STATUSES.map((s) => (
-                      <option key={s.value} value={s.value}>
-                        {s.label}
-                      </option>
-                    ))}
-                  </select>
-                  <Button type="button" variant="ghost" size="icon" onClick={() => removeDiagnosis(i)} disabled={pending} aria-label="Remove diagnosis">
-                    <Trash2 className="size-3.5" />
-                  </Button>
+                  <TextField
+                    name="assessment.mse.thought.form"
+                    label={MSE_THOUGHT_LABELS.form}
+                    value={mse.thought.form}
+                    onChange={(v) => setThought("form", v)}
+                  />
+                  <TextField
+                    name="assessment.mse.thought.content"
+                    label={MSE_THOUGHT_LABELS.content}
+                    value={mse.thought.content}
+                    onChange={(v) => setThought("content", v)}
+                  />
+                  <TextField
+                    name="assessment.mse.thought.possession"
+                    label={MSE_THOUGHT_LABELS.possession}
+                    value={mse.thought.possession}
+                    onChange={(v) => setThought("possession", v)}
+                  />
+                  <TextField
+                    name="assessment.mse.thought.control"
+                    label={MSE_THOUGHT_LABELS.control}
+                    value={mse.thought.control}
+                    onChange={(v) => setThought("control", v)}
+                  />
                 </div>
               </div>
-            ))}
-          </CardContent>
-        </Card>
 
-        <Card>
-          <CardContent className="space-y-4 pt-6">
-            <TextField name="assessment.managementPlan" label="Management Plan" value={form.managementPlan} onChange={(v) => set("managementPlan", v)} />
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="space-y-4 pt-6">
-            <TextField name="assessment.investigations" label="Investigations" value={form.investigations} onChange={(v) => set("investigations", v)} />
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle>Medications</CardTitle>
-            <Button type="button" size="sm" variant="outline" onClick={addPrescription} disabled={pending}>
-              <Plus className="size-3.5" />
-              Add
-            </Button>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            {prescriptions.length === 0 && <p className="text-sm text-muted-foreground">None added.</p>}
-            {prescriptions.map((row, i) => (
-              <div key={i} className="space-y-2 rounded-md border border-border p-3">
-                <div className="flex items-start gap-2">
-                  <input
-                    type="text"
-                    aria-label="Medication name"
-                    placeholder="Medication name"
-                    value={row.medicationName}
-                    onChange={(e) => updatePrescription(i, { medicationName: e.target.value })}
-                    disabled={pending}
-                    className={`${inputClass} min-w-0 flex-1`}
+              <div>
+                <p className="text-sm font-medium text-foreground">8. Cognition</p>
+                <div className="mt-2 grid grid-cols-1 gap-4 sm:grid-cols-2">
+                  <TextField
+                    name="assessment.mse.cognition.orientation"
+                    label={MSE_COGNITION_LABELS.orientation}
+                    value={mse.cognition.orientation}
+                    onChange={(v) => setCognition("orientation", v)}
                   />
-                  <select
-                    aria-label="Status"
-                    value={row.status}
-                    onChange={(e) => updatePrescription(i, { status: e.target.value as RecordStatus })}
-                    disabled={pending}
-                    className={selectClass}
-                  >
-                    {RECORD_STATUSES.map((s) => (
-                      <option key={s.value} value={s.value}>
-                        {s.label}
-                      </option>
-                    ))}
-                  </select>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => removePrescription(i)}
-                    disabled={pending}
-                    aria-label="Remove medication"
-                  >
-                    <Trash2 className="size-3.5" />
-                  </Button>
+                  <TextField
+                    name="assessment.mse.cognition.memory"
+                    label={MSE_COGNITION_LABELS.memory}
+                    value={mse.cognition.memory}
+                    onChange={(v) => setCognition("memory", v)}
+                  />
+                  <TextField
+                    name="assessment.mse.cognition.attention"
+                    label={MSE_COGNITION_LABELS.attention}
+                    value={mse.cognition.attention}
+                    onChange={(v) => setCognition("attention", v)}
+                  />
+                  <TextField
+                    name="assessment.mse.cognition.concentration"
+                    label={MSE_COGNITION_LABELS.concentration}
+                    value={mse.cognition.concentration}
+                    onChange={(v) => setCognition("concentration", v)}
+                  />
+                  <TextField
+                    name="assessment.mse.cognition.abstraction"
+                    label={MSE_COGNITION_LABELS.abstraction}
+                    value={mse.cognition.abstraction}
+                    onChange={(v) => setCognition("abstraction", v)}
+                  />
+                  <TextField
+                    name="assessment.mse.cognition.generalFundOfKnowledge"
+                    label={MSE_COGNITION_LABELS.generalFundOfKnowledge}
+                    value={mse.cognition.generalFundOfKnowledge}
+                    onChange={(v) => setCognition("generalFundOfKnowledge", v)}
+                  />
+                  <TextField
+                    name="assessment.mse.cognition.judgement"
+                    label={MSE_COGNITION_LABELS.judgement}
+                    value={mse.cognition.judgement}
+                    onChange={(v) => setCognition("judgement", v)}
+                  />
                 </div>
-                <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+              </div>
+
+              <TextField name="assessment.mse.insight" label={MSE_FIELD_LABELS.insight} value={mse.insight} onChange={(v) => setMseField("insight", v)} />
+            </Section>
+
+            <Section value="physicalExam" title="Physical Examination" filled={sectionHasContent.physicalExam}>
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <TextField name="assessment.physicalExam.general" label="General" value={form.peGeneral} onChange={(v) => set("peGeneral", v)} />
+                <TextField
+                  name="assessment.physicalExam.anthropometric"
+                  label="Anthropometric"
+                  value={form.peAnthropometric}
+                  onChange={(v) => set("peAnthropometric", v)}
+                />
+                <TextField
+                  name="assessment.physicalExam.cardiovascular"
+                  label="Cardiovascular"
+                  value={form.peCardiovascular}
+                  onChange={(v) => set("peCardiovascular", v)}
+                />
+                <TextField
+                  name="assessment.physicalExam.respiratory"
+                  label="Respiratory"
+                  value={form.peRespiratory}
+                  onChange={(v) => set("peRespiratory", v)}
+                />
+                <TextField
+                  name="assessment.physicalExam.gastrointestinal"
+                  label="Gastrointestinal"
+                  value={form.peGastrointestinal}
+                  onChange={(v) => set("peGastrointestinal", v)}
+                />
+                <TextField name="assessment.physicalExam.cns" label="CNS" value={form.peCns} onChange={(v) => set("peCns", v)} />
+                <TextField
+                  name="assessment.physicalExam.musculoskeletal"
+                  label="Musculoskeletal"
+                  value={form.peMusculoskeletal}
+                  onChange={(v) => set("peMusculoskeletal", v)}
+                />
+                <TextField name="assessment.physicalExam.skin" label="Skin" value={form.peSkin} onChange={(v) => set("peSkin", v)} />
+                <TextField name="assessment.physicalExam.other" label="Other" value={form.peOther} onChange={(v) => set("peOther", v)} />
+              </div>
+            </Section>
+
+            <Section value="summary" title="Summary" filled={sectionHasContent.summary}>
+              <TextField name="assessment.summary" label="Summary" value={form.summary} onChange={(v) => set("summary", v)} />
+            </Section>
+
+            <Section value="phenomenology" title="Items of Phenomenology" filled={sectionHasContent.phenomenology}>
+              <TextField
+                name="assessment.phenomenology"
+                label="Items of Phenomenology"
+                value={form.phenomenology}
+                onChange={(v) => set("phenomenology", v)}
+              />
+            </Section>
+
+            <Section value="diagnoses" title="Diagnosis / Differential Diagnosis" filled={sectionHasContent.diagnoses}>
+              <div className="flex justify-end">
+                <Button type="button" size="sm" variant="outline" onClick={addDiagnosis} disabled={pending}>
+                  <Plus className="size-3.5" />
+                  Add
+                </Button>
+              </div>
+              {diagnoses.length === 0 && <p className="text-sm text-muted-foreground">None added.</p>}
+              {diagnoses.map((row, i) => (
+                <div key={i} className="flex flex-col gap-2 sm:flex-row sm:items-start">
+                  <div className="flex min-w-0 flex-1 items-start gap-2">
+                    <Icd11Combobox
+                      ariaLabel="Diagnosis"
+                      value={row.condition}
+                      onTextChange={(v) => updateDiagnosis(i, { condition: v, icd11Code: undefined, icd11Uri: undefined })}
+                      onSelect={(match: Icd11Match) =>
+                        updateDiagnosis(i, {
+                          condition: match.title,
+                          icd11Code: match.code ?? undefined,
+                          icd11Uri: match.uri,
+                        })
+                      }
+                      disabled={pending}
+                    />
+                    {row.icd11Code && (
+                      <span className="mt-2 shrink-0 rounded bg-muted px-1.5 py-0.5 font-mono text-xs text-muted-foreground">
+                        {row.icd11Code}
+                      </span>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <select
+                      aria-label="Status"
+                      value={row.status}
+                      onChange={(e) => updateDiagnosis(i, { status: e.target.value as RecordStatus })}
+                      disabled={pending}
+                      className={selectClass}
+                    >
+                      {RECORD_STATUSES.map((s) => (
+                        <option key={s.value} value={s.value}>
+                          {s.label}
+                        </option>
+                      ))}
+                    </select>
+                    <Button type="button" variant="ghost" size="icon" onClick={() => removeDiagnosis(i)} disabled={pending} aria-label="Remove diagnosis">
+                      <Trash2 className="size-3.5" />
+                    </Button>
+                  </div>
+                </div>
+              ))}
+            </Section>
+
+            <Section value="managementPlan" title="Management Plan" filled={sectionHasContent.managementPlan}>
+              <TextField name="assessment.managementPlan" label="Management Plan" value={form.managementPlan} onChange={(v) => set("managementPlan", v)} />
+            </Section>
+
+            <Section value="investigations" title="Investigations" filled={sectionHasContent.investigations}>
+              <TextField name="assessment.investigations" label="Investigations" value={form.investigations} onChange={(v) => set("investigations", v)} />
+            </Section>
+
+            <Section value="prescriptions" title="Medications" filled={sectionHasContent.prescriptions}>
+              <div className="flex justify-end">
+                <Button type="button" size="sm" variant="outline" onClick={addPrescription} disabled={pending}>
+                  <Plus className="size-3.5" />
+                  Add
+                </Button>
+              </div>
+              {prescriptions.length === 0 && <p className="text-sm text-muted-foreground">None added.</p>}
+              {prescriptions.map((row, i) => (
+                <div key={i} className="space-y-2 rounded-md border border-border p-3">
+                  <div className="flex items-start gap-2">
+                    <input
+                      type="text"
+                      aria-label="Medication name"
+                      placeholder="Medication name"
+                      value={row.medicationName}
+                      onChange={(e) => updatePrescription(i, { medicationName: e.target.value })}
+                      disabled={pending}
+                      className={`${inputClass} min-w-0 flex-1`}
+                    />
+                    <select
+                      aria-label="Status"
+                      value={row.status}
+                      onChange={(e) => updatePrescription(i, { status: e.target.value as RecordStatus })}
+                      disabled={pending}
+                      className={selectClass}
+                    >
+                      {RECORD_STATUSES.map((s) => (
+                        <option key={s.value} value={s.value}>
+                          {s.label}
+                        </option>
+                      ))}
+                    </select>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => removePrescription(i)}
+                      disabled={pending}
+                      aria-label="Remove medication"
+                    >
+                      <Trash2 className="size-3.5" />
+                    </Button>
+                  </div>
+                  <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                    <input
+                      type="text"
+                      aria-label="Dosage"
+                      placeholder="Dosage"
+                      value={row.dosage}
+                      onChange={(e) => updatePrescription(i, { dosage: e.target.value })}
+                      disabled={pending}
+                      className={inputClass}
+                    />
+                    <input
+                      type="text"
+                      aria-label="Frequency"
+                      placeholder="Frequency"
+                      value={row.frequency}
+                      onChange={(e) => updatePrescription(i, { frequency: e.target.value })}
+                      disabled={pending}
+                      className={inputClass}
+                    />
+                  </div>
                   <input
                     type="text"
-                    aria-label="Dosage"
-                    placeholder="Dosage"
-                    value={row.dosage}
-                    onChange={(e) => updatePrescription(i, { dosage: e.target.value })}
-                    disabled={pending}
-                    className={inputClass}
-                  />
-                  <input
-                    type="text"
-                    aria-label="Frequency"
-                    placeholder="Frequency"
-                    value={row.frequency}
-                    onChange={(e) => updatePrescription(i, { frequency: e.target.value })}
+                    aria-label="Instructions"
+                    placeholder="Instructions (optional)"
+                    value={row.instructions}
+                    onChange={(e) => updatePrescription(i, { instructions: e.target.value })}
                     disabled={pending}
                     className={inputClass}
                   />
                 </div>
-                <input
-                  type="text"
-                  aria-label="Instructions"
-                  placeholder="Instructions (optional)"
-                  value={row.instructions}
-                  onChange={(e) => updatePrescription(i, { instructions: e.target.value })}
-                  disabled={pending}
-                  className={inputClass}
+              ))}
+            </Section>
+
+            <Section value="riskAssessment" title="Risk Assessment" filled={sectionHasContent.riskAssessment}>
+              <TextField name="assessment.riskAssessment" label="Risk Assessment" value={form.riskAssessment} onChange={(v) => set("riskAssessment", v)} />
+            </Section>
+
+            <Section value="prognosis" title="Prognosis" filled={sectionHasContent.prognosis}>
+              <TextField name="assessment.prognosis" label="Prognosis" value={form.prognosis} onChange={(v) => set("prognosis", v)} />
+            </Section>
+
+            <Section value="invoice" title="Invoice" optional filled={sectionHasContent.invoice}>
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <InputField
+                  name="invoice.amount"
+                  label="Amount"
+                  type="number"
+                  step="0.01"
+                  value={form.invoiceAmount}
+                  onChange={(v) => set("invoiceAmount", v)}
+                />
+                <InputField
+                  name="invoice.description"
+                  label="Description"
+                  value={form.invoiceDescription}
+                  onChange={(v) => set("invoiceDescription", v)}
                 />
               </div>
-            ))}
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="space-y-4 pt-6">
-            <TextField name="assessment.riskAssessment" label="Risk Assessment" value={form.riskAssessment} onChange={(v) => set("riskAssessment", v)} />
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="space-y-4 pt-6">
-            <TextField name="assessment.prognosis" label="Prognosis" value={form.prognosis} onChange={(v) => set("prognosis", v)} />
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Invoice (optional)</CardTitle>
-          </CardHeader>
-          <CardContent className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <InputField
-              name="invoice.amount"
-              label="Amount"
-              type="number"
-              step="0.01"
-              value={form.invoiceAmount}
-              onChange={(v) => set("invoiceAmount", v)}
-            />
-            <InputField
-              name="invoice.description"
-              label="Description"
-              value={form.invoiceDescription}
-              onChange={(v) => set("invoiceDescription", v)}
-            />
-          </CardContent>
+            </Section>
+          </Accordion>
         </Card>
 
         {error && (
