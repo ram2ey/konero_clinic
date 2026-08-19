@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useActionState } from "react";
 
 import { signIn } from "@/actions/sign-in";
@@ -35,9 +36,14 @@ export default function LoginPage() {
           </div>
 
           <div>
-            <label htmlFor="password" className="block text-sm font-medium text-foreground">
-              Password
-            </label>
+            <div className="flex items-baseline justify-between">
+              <label htmlFor="password" className="block text-sm font-medium text-foreground">
+                Password
+              </label>
+              <Link href="/forgot-password" className="text-xs text-muted-foreground underline underline-offset-4">
+                Forgot password?
+              </Link>
+            </div>
             <input
               id="password"
               name="password"

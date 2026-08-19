@@ -7,15 +7,22 @@ import { Button } from "@/components/ui/button";
 import { createClient } from "@/lib/supabase/client";
 
 type LinkState = "checking" | "ready" | "invalid";
+// This page now serves two links that both land here the same way (a
+// session encoded in the URL fragment): the initial invite, and a
+// forgot-password reset (see actions/forgot-password.ts). Supabase fires
+// a distinct PASSWORD_RECOVERY auth event for the latter, so the copy
+// below can read correctly for whichever one actually brought them here.
+type Flow = "invite" | "recovery";
 
-// Supabase's invite email points back here with the session encoded as a
-// URL fragment (#access_token=...), not a query param — fragments never
-// reach a server, so this session can only be picked up client-side.
-// createBrowserClient's detectSessionInUrl (on by default) parses it
-// automatically; onAuthStateChange is how we know it's actually done.
+// Supabase's invite/recovery emails point back here with the session
+// encoded as a URL fragment (#access_token=...), not a query param —
+// fragments never reach a server, so this session can only be picked up
+// client-side. createBrowserClient's detectSessionInUrl (on by default)
+// parses it automatically; onAuthStateChange is how we know it's done.
 export default function SetPasswordPage() {
   const router = useRouter();
   const [linkState, setLinkState] = useState<LinkState>("checking");
+  const [flow, setFlow] = useState<Flow>("invite");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -28,9 +35,10 @@ export default function SetPasswordPage() {
 
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
+    } = supabase.auth.onAuthStateChange((event, session) => {
       if (session) {
         resolvedRef.current = true;
+        if (event === "PASSWORD_RECOVERY") setFlow("recovery");
         setLinkState("ready");
       }
     });
@@ -78,18 +86,23 @@ export default function SetPasswordPage() {
   return (
     <main className="flex min-h-screen items-center justify-center bg-background px-4">
       <div className="w-full max-w-sm rounded-lg border border-border bg-card p-6">
-        <h1 className="text-lg font-semibold text-foreground">Set your password</h1>
+        <h1 className="text-lg font-semibold text-foreground">
+          {flow === "recovery" ? "Reset your password" : "Set your password"}
+        </h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          Finish setting up your account to access your patient portal.
+          {flow === "recovery"
+            ? "Enter a new password for your account."
+            : "Finish setting up your account to access your patient portal."}
         </p>
 
         {linkState === "checking" && (
-          <p className="mt-6 text-sm text-muted-foreground">Verifying your invite link…</p>
+          <p className="mt-6 text-sm text-muted-foreground">Verifying your link…</p>
         )}
 
         {linkState === "invalid" && (
           <p role="alert" className="mt-6 text-sm text-destructive">
-            This link is invalid or has expired. Ask your clinic to send a new invite.
+            This link is invalid or has expired. Ask your clinic to send a new invite, or request a new
+            password reset.
           </p>
         )}
 
