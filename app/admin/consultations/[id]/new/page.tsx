@@ -10,6 +10,7 @@ import { Icd11Combobox } from "@/components/admin/icd11-combobox";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { errorInputClass, inputClass, orUndefined, selectClass, textareaClass } from "@/lib/form-ui";
+import { MSE_COGNITION_LABELS, MSE_FIELD_LABELS, MSE_THOUGHT_LABELS } from "@/lib/mse-labels";
 import { createNestedFieldSetter } from "@/lib/nested-field";
 
 const RECORD_STATUSES = [
@@ -484,38 +485,43 @@ export default function RecordConsultationPage() {
             <CardTitle>Mental State Examination (MSE)</CardTitle>
           </CardHeader>
           <CardContent className="space-y-6">
-            <TextField name="assessment.mse.appearance" label="1. Appearance" value={mse.appearance} onChange={(v) => setMseField("appearance", v)} />
-            <TextField name="assessment.mse.behaviour" label="2. Behaviour" value={mse.behaviour} onChange={(v) => setMseField("behaviour", v)} />
-            <TextField name="assessment.mse.mood" label="3. Mood" value={mse.mood} onChange={(v) => setMseField("mood", v)} />
-            <TextField name="assessment.mse.affect" label="4. Affect" value={mse.affect} onChange={(v) => setMseField("affect", v)} />
-            <TextField name="assessment.mse.perception" label="5. Perception" value={mse.perception} onChange={(v) => setMseField("perception", v)} />
-            <TextField name="assessment.mse.speech" label="6. Speech" value={mse.speech} onChange={(v) => setMseField("speech", v)} />
+            <TextField name="assessment.mse.appearance" label={MSE_FIELD_LABELS.appearance} value={mse.appearance} onChange={(v) => setMseField("appearance", v)} />
+            <TextField name="assessment.mse.behaviour" label={MSE_FIELD_LABELS.behaviour} value={mse.behaviour} onChange={(v) => setMseField("behaviour", v)} />
+            <TextField name="assessment.mse.mood" label={MSE_FIELD_LABELS.mood} value={mse.mood} onChange={(v) => setMseField("mood", v)} />
+            <TextField name="assessment.mse.affect" label={MSE_FIELD_LABELS.affect} value={mse.affect} onChange={(v) => setMseField("affect", v)} />
+            <TextField name="assessment.mse.perception" label={MSE_FIELD_LABELS.perception} value={mse.perception} onChange={(v) => setMseField("perception", v)} />
+            <TextField name="assessment.mse.speech" label={MSE_FIELD_LABELS.speech} value={mse.speech} onChange={(v) => setMseField("speech", v)} />
 
             <div>
               <p className="text-sm font-medium text-foreground">7. Thought</p>
               <div className="mt-2 grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <TextField
                   name="assessment.mse.thought.streamFlow"
-                  label="Stream / Flow"
+                  label={MSE_THOUGHT_LABELS.streamFlow}
                   value={mse.thought.streamFlow}
                   onChange={(v) => setThought("streamFlow", v)}
                 />
-                <TextField name="assessment.mse.thought.form" label="Form" value={mse.thought.form} onChange={(v) => setThought("form", v)} />
+                <TextField
+                  name="assessment.mse.thought.form"
+                  label={MSE_THOUGHT_LABELS.form}
+                  value={mse.thought.form}
+                  onChange={(v) => setThought("form", v)}
+                />
                 <TextField
                   name="assessment.mse.thought.content"
-                  label="Content"
+                  label={MSE_THOUGHT_LABELS.content}
                   value={mse.thought.content}
                   onChange={(v) => setThought("content", v)}
                 />
                 <TextField
                   name="assessment.mse.thought.possession"
-                  label="Possession"
+                  label={MSE_THOUGHT_LABELS.possession}
                   value={mse.thought.possession}
                   onChange={(v) => setThought("possession", v)}
                 />
                 <TextField
                   name="assessment.mse.thought.control"
-                  label="Control"
+                  label={MSE_THOUGHT_LABELS.control}
                   value={mse.thought.control}
                   onChange={(v) => setThought("control", v)}
                 />
@@ -527,50 +533,50 @@ export default function RecordConsultationPage() {
               <div className="mt-2 grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <TextField
                   name="assessment.mse.cognition.orientation"
-                  label="Orientation"
+                  label={MSE_COGNITION_LABELS.orientation}
                   value={mse.cognition.orientation}
                   onChange={(v) => setCognition("orientation", v)}
                 />
                 <TextField
                   name="assessment.mse.cognition.memory"
-                  label="Memory"
+                  label={MSE_COGNITION_LABELS.memory}
                   value={mse.cognition.memory}
                   onChange={(v) => setCognition("memory", v)}
                 />
                 <TextField
                   name="assessment.mse.cognition.attention"
-                  label="Attention"
+                  label={MSE_COGNITION_LABELS.attention}
                   value={mse.cognition.attention}
                   onChange={(v) => setCognition("attention", v)}
                 />
                 <TextField
                   name="assessment.mse.cognition.concentration"
-                  label="Concentration"
+                  label={MSE_COGNITION_LABELS.concentration}
                   value={mse.cognition.concentration}
                   onChange={(v) => setCognition("concentration", v)}
                 />
                 <TextField
                   name="assessment.mse.cognition.abstraction"
-                  label="Abstraction"
+                  label={MSE_COGNITION_LABELS.abstraction}
                   value={mse.cognition.abstraction}
                   onChange={(v) => setCognition("abstraction", v)}
                 />
                 <TextField
                   name="assessment.mse.cognition.generalFundOfKnowledge"
-                  label="General Fund of Knowledge"
+                  label={MSE_COGNITION_LABELS.generalFundOfKnowledge}
                   value={mse.cognition.generalFundOfKnowledge}
                   onChange={(v) => setCognition("generalFundOfKnowledge", v)}
                 />
                 <TextField
                   name="assessment.mse.cognition.judgement"
-                  label="Judgement"
+                  label={MSE_COGNITION_LABELS.judgement}
                   value={mse.cognition.judgement}
                   onChange={(v) => setCognition("judgement", v)}
                 />
               </div>
             </div>
 
-            <TextField name="assessment.mse.insight" label="9. Insight" value={mse.insight} onChange={(v) => setMseField("insight", v)} />
+            <TextField name="assessment.mse.insight" label={MSE_FIELD_LABELS.insight} value={mse.insight} onChange={(v) => setMseField("insight", v)} />
           </CardContent>
         </Card>
 

@@ -3,6 +3,7 @@ import { ChevronDown, ClipboardList } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { formatDateTime } from "@/lib/format";
+import { MSE_COGNITION_LABELS_DB, MSE_FIELD_LABELS, MSE_THOUGHT_LABELS_DB } from "@/lib/mse-labels";
 import { createClient } from "@/lib/supabase/server";
 import { hasAnyValue } from "@/lib/utils";
 
@@ -78,32 +79,9 @@ const ASSESSMENT_LABELS: [keyof NonNullable<Assessment>, string][] = [
   ["prognosis", "Prognosis"],
 ];
 
-const MSE_LABELS: [keyof NonNullable<Mse>, string][] = [
-  ["appearance", "1. Appearance"],
-  ["behaviour", "2. Behaviour"],
-  ["mood", "3. Mood"],
-  ["affect", "4. Affect"],
-  ["perception", "5. Perception"],
-  ["speech", "6. Speech"],
-];
-
-const THOUGHT_LABELS: Record<string, string> = {
-  stream_flow: "Stream / Flow",
-  form: "Form",
-  content: "Content",
-  possession: "Possession",
-  control: "Control",
-};
-
-const COGNITION_LABELS: Record<string, string> = {
-  orientation: "Orientation",
-  memory: "Memory",
-  attention: "Attention",
-  concentration: "Concentration",
-  abstraction: "Abstraction",
-  general_fund_of_knowledge: "General Fund of Knowledge",
-  judgement: "Judgement",
-};
+// Display order only — the label text itself lives in lib/mse-labels.ts,
+// shared with the recording form.
+const MSE_DISPLAY_ORDER = ["appearance", "behaviour", "mood", "affect", "perception", "speech"] as const;
 
 function FieldGroup({ title, values, labels }: { title: string; values: Record<string, string | null> | null | undefined; labels: Record<string, string> }) {
   if (!hasAnyValue(values)) return null;
@@ -182,21 +160,21 @@ export async function PreviousConsultations({ patientId }: { patientId: string }
                   <div>
                     <p className="text-xs font-medium tracking-wide text-muted-foreground uppercase">MSE</p>
                     <div className="mt-1 space-y-3">
-                      {MSE_LABELS.map(([key, label]) => {
+                      {MSE_DISPLAY_ORDER.map((key) => {
                         const value = item.assessment!.mse![key];
                         if (!value || typeof value !== "string") return null;
                         return (
                           <p key={key} className="text-sm text-foreground">
-                            <span className="text-muted-foreground">{label}: </span>
+                            <span className="text-muted-foreground">{MSE_FIELD_LABELS[key]}: </span>
                             <span className="whitespace-pre-wrap">{value}</span>
                           </p>
                         );
                       })}
-                      <FieldGroup title="7. Thought" values={item.assessment.mse.thought} labels={THOUGHT_LABELS} />
-                      <FieldGroup title="8. Cognition" values={item.assessment.mse.cognition} labels={COGNITION_LABELS} />
+                      <FieldGroup title="7. Thought" values={item.assessment.mse.thought} labels={MSE_THOUGHT_LABELS_DB} />
+                      <FieldGroup title="8. Cognition" values={item.assessment.mse.cognition} labels={MSE_COGNITION_LABELS_DB} />
                       {item.assessment.mse.insight && (
                         <p className="text-sm text-foreground">
-                          <span className="text-muted-foreground">9. Insight: </span>
+                          <span className="text-muted-foreground">{MSE_FIELD_LABELS.insight}: </span>
                           <span className="whitespace-pre-wrap">{item.assessment.mse.insight}</span>
                         </p>
                       )}
