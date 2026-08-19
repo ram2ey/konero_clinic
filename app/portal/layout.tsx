@@ -2,15 +2,12 @@ import { LogOut } from "lucide-react";
 import { redirect } from "next/navigation";
 
 import { signOut } from "@/actions/sign-out";
-import { PortalNav } from "@/components/portal/portal-nav";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import {
   Sidebar,
   SidebarContent,
   SidebarFooter,
-  SidebarGroup,
-  SidebarGroupContent,
   SidebarHeader,
   SidebarInset,
   SidebarProvider,
@@ -78,13 +75,12 @@ export default async function PortalLayout({ children }: { children: React.React
           </div>
         </SidebarHeader>
 
-        <SidebarContent>
-          <SidebarGroup>
-            <SidebarGroupContent>
-              <PortalNav />
-            </SidebarGroupContent>
-          </SidebarGroup>
-        </SidebarContent>
+        {/* The dashboard's sections live behind tabs now (see
+            app/portal/page.tsx), not per-section sidebar links — /portal is
+            still this app's only portal route, so there's nothing left for
+            a nav to point between. Kept as an empty flex-1 spacer so the
+            footer (avatar + sign out) stays pinned to the bottom. */}
+        <SidebarContent />
 
         <SidebarFooter>
           <div className="flex items-center gap-2 px-2 py-1.5">
