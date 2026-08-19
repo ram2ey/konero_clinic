@@ -7,12 +7,14 @@ import { createContext, useContext, useState, type FormEvent, type ReactNode } f
 import type { Icd11Match } from "@/actions/search-icd11";
 import { recordConsultation, type RecordConsultationInput } from "@/actions/record-consultation";
 import { Icd11Combobox } from "@/components/admin/icd11-combobox";
+import { type HistoryState, EMPTY_HISTORY } from "@/components/admin/patient-history-form";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { errorInputClass, inputClass, orUndefined, selectClass, textareaClass } from "@/lib/form-ui";
 import { MSE_COGNITION_LABELS, MSE_FIELD_LABELS, MSE_THOUGHT_LABELS } from "@/lib/mse-labels";
 import { createNestedFieldSetter } from "@/lib/nested-field";
+import { hasAnyValue } from "@/lib/utils";
 
 const RECORD_STATUSES = [
   { value: "active", label: "Active" },
@@ -193,6 +195,7 @@ function fieldId(name: string): string {
 // multi-section error silently collapsed.
 function sectionForField(path: string): string | undefined {
   if (path.startsWith("vitals")) return "vitals";
+  if (path.startsWith("history")) return "history";
   if (path.startsWith("assessment.mse")) return "mse";
   if (path.startsWith("assessment.physicalExam")) return "physicalExam";
   if (path.startsWith("assessment.summary")) return "summary";
@@ -330,14 +333,17 @@ function InputField({
 export function RecordConsultationForm({
   patientId,
   suggestedVisitType,
+  initialHistory,
 }: {
   patientId: string;
   suggestedVisitType: VisitType;
+  initialHistory?: HistoryState;
 }) {
   const router = useRouter();
 
   const [visitType, setVisitType] = useState<VisitType>(suggestedVisitType);
   const [form, setForm] = useState<FormState>(EMPTY_FORM);
+  const [history, setHistory] = useState<HistoryState>(initialHistory ?? EMPTY_HISTORY);
   const [mse, setMse] = useState<MseState>(EMPTY_MSE);
   const [diagnoses, setDiagnoses] = useState<DiagnosisRow[]>([]);
   const [prescriptions, setPrescriptions] = useState<PrescriptionRow[]>([]);
@@ -349,6 +355,15 @@ export function RecordConsultationForm({
   function set<K extends keyof FormState>(key: K, value: FormState[K]) {
     setForm((prev) => ({ ...prev, [key]: value }));
   }
+
+  function setHistoryField<K extends keyof HistoryState>(key: K, value: HistoryState[K]) {
+    setHistory((prev) => ({ ...prev, [key]: value }));
+  }
+  const setSystemicEnquiry = createNestedFieldSetter(setHistory, "systemicEnquiry");
+  const setPastMedicalHistory = createNestedFieldSetter(setHistory, "pastMedicalHistory");
+  const setTreatmentHistory = createNestedFieldSetter(setHistory, "treatmentHistory");
+  const setFamilyHistory = createNestedFieldSetter(setHistory, "familyHistory");
+  const setPersonalHistory = createNestedFieldSetter(setHistory, "personalHistory");
 
   function setMseField<K extends keyof MseState>(key: K, value: MseState[K]) {
     setMse((prev) => ({ ...prev, [key]: value }));
@@ -391,6 +406,7 @@ export function RecordConsultationForm({
       form.weightKg,
       form.oxygenSaturation,
     ].some(hasValue),
+    history: hasAnyValue(history),
     mse: [
       mse.appearance,
       mse.behaviour,
@@ -454,6 +470,7 @@ export function RecordConsultationForm({
             oxygenSaturation: orUndefined(form.oxygenSaturation),
           }
         : undefined,
+      history: hasAnyValue(history) ? history : undefined,
       assessment: {
         mse: {
           appearance: orUndefined(mse.appearance),
@@ -639,6 +656,321 @@ export function RecordConsultationForm({
                   type="number"
                   value={form.oxygenSaturation}
                   onChange={(v) => set("oxygenSaturation", v)}
+                />
+              </div>
+            </Section>
+
+            <Section value="history" title="History" optional filled={sectionHasContent.history}>
+              <div className="space-y-4">
+                <TextField
+                  name="history.presentingComplaints"
+                  label="1. Presenting Complaint(s)"
+                  value={history.presentingComplaints}
+                  onChange={(v) => setHistoryField("presentingComplaints", v)}
+                />
+                <TextField
+                  name="history.historyOfPresentingComplaints"
+                  label="2. History of Presenting Complaint(s)"
+                  value={history.historyOfPresentingComplaints}
+                  onChange={(v) => setHistoryField("historyOfPresentingComplaints", v)}
+                />
+                <TextField
+                  name="history.onDirectQuestion"
+                  label="3. On Direct Question (ODQ)"
+                  value={history.onDirectQuestion}
+                  onChange={(v) => setHistoryField("onDirectQuestion", v)}
+                />
+
+                <div>
+                  <p className="text-sm font-medium text-foreground">4. Systemic Enquiry</p>
+                  <div className="mt-2 grid grid-cols-1 gap-4 sm:grid-cols-2">
+                    <TextField
+                      name="history.systemicEnquiry.general"
+                      label="General"
+                      value={history.systemicEnquiry.general}
+                      onChange={(v) => setSystemicEnquiry("general", v)}
+                    />
+                    <TextField
+                      name="history.systemicEnquiry.respiratory"
+                      label="Respiratory"
+                      value={history.systemicEnquiry.respiratory}
+                      onChange={(v) => setSystemicEnquiry("respiratory", v)}
+                    />
+                    <TextField
+                      name="history.systemicEnquiry.cardiovascular"
+                      label="Cardiovascular"
+                      value={history.systemicEnquiry.cardiovascular}
+                      onChange={(v) => setSystemicEnquiry("cardiovascular", v)}
+                    />
+                    <TextField
+                      name="history.systemicEnquiry.abdominal"
+                      label="Abdominal"
+                      value={history.systemicEnquiry.abdominal}
+                      onChange={(v) => setSystemicEnquiry("abdominal", v)}
+                    />
+                    <TextField
+                      name="history.systemicEnquiry.genitourinary"
+                      label="Genitourinary"
+                      value={history.systemicEnquiry.genitourinary}
+                      onChange={(v) => setSystemicEnquiry("genitourinary", v)}
+                    />
+                    <TextField
+                      name="history.systemicEnquiry.centralNervous"
+                      label="Central Nervous"
+                      value={history.systemicEnquiry.centralNervous}
+                      onChange={(v) => setSystemicEnquiry("centralNervous", v)}
+                    />
+                  </div>
+                </div>
+
+                <TextField
+                  name="history.pastPsychiatricHistory"
+                  label="5. Past Psychiatric History"
+                  value={history.pastPsychiatricHistory}
+                  onChange={(v) => setHistoryField("pastPsychiatricHistory", v)}
+                />
+
+                <div>
+                  <p className="text-sm font-medium text-foreground">6. Past Medical History</p>
+                  <div className="mt-2 grid grid-cols-1 gap-4 sm:grid-cols-2">
+                    <TextField
+                      name="history.pastMedicalHistory.seizureDisorder"
+                      label="Seizure disorder"
+                      value={history.pastMedicalHistory.seizureDisorder}
+                      onChange={(v) => setPastMedicalHistory("seizureDisorder", v)}
+                    />
+                    <TextField
+                      name="history.pastMedicalHistory.sickleCellDisease"
+                      label="Sickle cell disease"
+                      value={history.pastMedicalHistory.sickleCellDisease}
+                      onChange={(v) => setPastMedicalHistory("sickleCellDisease", v)}
+                    />
+                    <TextField
+                      name="history.pastMedicalHistory.asthma"
+                      label="Asthma"
+                      value={history.pastMedicalHistory.asthma}
+                      onChange={(v) => setPastMedicalHistory("asthma", v)}
+                    />
+                    <TextField
+                      name="history.pastMedicalHistory.hypertension"
+                      label="Hypertension"
+                      value={history.pastMedicalHistory.hypertension}
+                      onChange={(v) => setPastMedicalHistory("hypertension", v)}
+                    />
+                    <TextField
+                      name="history.pastMedicalHistory.diabetes"
+                      label="Diabetes"
+                      value={history.pastMedicalHistory.diabetes}
+                      onChange={(v) => setPastMedicalHistory("diabetes", v)}
+                    />
+                    <TextField
+                      name="history.pastMedicalHistory.tuberculosis"
+                      label="Tuberculosis"
+                      value={history.pastMedicalHistory.tuberculosis}
+                      onChange={(v) => setPastMedicalHistory("tuberculosis", v)}
+                    />
+                    <TextField
+                      name="history.pastMedicalHistory.headInjury"
+                      label="Head injury"
+                      value={history.pastMedicalHistory.headInjury}
+                      onChange={(v) => setPastMedicalHistory("headInjury", v)}
+                    />
+                    <TextField
+                      name="history.pastMedicalHistory.roadTrafficAccident"
+                      label="Road traffic accident"
+                      value={history.pastMedicalHistory.roadTrafficAccident}
+                      onChange={(v) => setPastMedicalHistory("roadTrafficAccident", v)}
+                    />
+                    <TextField
+                      name="history.pastMedicalHistory.other"
+                      label="Other"
+                      value={history.pastMedicalHistory.other}
+                      onChange={(v) => setPastMedicalHistory("other", v)}
+                    />
+                  </div>
+                </div>
+
+                <TextField
+                  name="history.pastSurgicalHistory"
+                  label="7. Past Surgical History"
+                  value={history.pastSurgicalHistory}
+                  onChange={(v) => setHistoryField("pastSurgicalHistory", v)}
+                />
+
+                <div>
+                  <p className="text-sm font-medium text-foreground">8. Treatment History</p>
+                  <div className="mt-2 grid grid-cols-1 gap-4 sm:grid-cols-2">
+                    <TextField
+                      name="history.treatmentHistory.orthodoxMedications"
+                      label="Orthodox medications"
+                      value={history.treatmentHistory.orthodoxMedications}
+                      onChange={(v) => setTreatmentHistory("orthodoxMedications", v)}
+                    />
+                    <TextField
+                      name="history.treatmentHistory.herbalMedications"
+                      label="Herbal medications"
+                      value={history.treatmentHistory.herbalMedications}
+                      onChange={(v) => setTreatmentHistory("herbalMedications", v)}
+                    />
+                    <TextField
+                      name="history.treatmentHistory.allergies"
+                      label="Allergies"
+                      value={history.treatmentHistory.allergies}
+                      onChange={(v) => setTreatmentHistory("allergies", v)}
+                    />
+                    <TextField
+                      name="history.treatmentHistory.churchPrayerCamps"
+                      label="Church / prayer camps"
+                      value={history.treatmentHistory.churchPrayerCamps}
+                      onChange={(v) => setTreatmentHistory("churchPrayerCamps", v)}
+                    />
+                    <TextField
+                      name="history.treatmentHistory.other"
+                      label="Other"
+                      value={history.treatmentHistory.other}
+                      onChange={(v) => setTreatmentHistory("other", v)}
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <p className="text-sm font-medium text-foreground">9. Family History</p>
+                  <div className="mt-2 grid grid-cols-1 gap-4 sm:grid-cols-2">
+                    <TextField
+                      name="history.familyHistory.father"
+                      label="Father"
+                      value={history.familyHistory.father}
+                      onChange={(v) => setFamilyHistory("father", v)}
+                    />
+                    <TextField
+                      name="history.familyHistory.mother"
+                      label="Mother"
+                      value={history.familyHistory.mother}
+                      onChange={(v) => setFamilyHistory("mother", v)}
+                    />
+                    <TextField
+                      name="history.familyHistory.siblings"
+                      label="Siblings"
+                      value={history.familyHistory.siblings}
+                      onChange={(v) => setFamilyHistory("siblings", v)}
+                    />
+                    <TextField
+                      name="history.familyHistory.seizureDisorder"
+                      label="Seizure disorder"
+                      value={history.familyHistory.seizureDisorder}
+                      onChange={(v) => setFamilyHistory("seizureDisorder", v)}
+                    />
+                    <TextField
+                      name="history.familyHistory.mentalIllness"
+                      label="Mental illness"
+                      value={history.familyHistory.mentalIllness}
+                      onChange={(v) => setFamilyHistory("mentalIllness", v)}
+                    />
+                    <TextField
+                      name="history.familyHistory.suicide"
+                      label="Suicide"
+                      value={history.familyHistory.suicide}
+                      onChange={(v) => setFamilyHistory("suicide", v)}
+                    />
+                    <TextField
+                      name="history.familyHistory.addiction"
+                      label="Addiction"
+                      value={history.familyHistory.addiction}
+                      onChange={(v) => setFamilyHistory("addiction", v)}
+                    />
+                    <TextField
+                      name="history.familyHistory.hypertension"
+                      label="Hypertension"
+                      value={history.familyHistory.hypertension}
+                      onChange={(v) => setFamilyHistory("hypertension", v)}
+                    />
+                    <TextField
+                      name="history.familyHistory.diabetes"
+                      label="Diabetes"
+                      value={history.familyHistory.diabetes}
+                      onChange={(v) => setFamilyHistory("diabetes", v)}
+                    />
+                    <TextField
+                      name="history.familyHistory.asthma"
+                      label="Asthma"
+                      value={history.familyHistory.asthma}
+                      onChange={(v) => setFamilyHistory("asthma", v)}
+                    />
+                    <TextField
+                      name="history.familyHistory.sickleCellDisease"
+                      label="Sickle cell disease"
+                      value={history.familyHistory.sickleCellDisease}
+                      onChange={(v) => setFamilyHistory("sickleCellDisease", v)}
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <p className="text-sm font-medium text-foreground">10. Personal History</p>
+                  <div className="mt-2 grid grid-cols-1 gap-4 sm:grid-cols-2">
+                    <TextField
+                      name="history.personalHistory.pregnancyAndBirth"
+                      label="Pregnancy and birth"
+                      value={history.personalHistory.pregnancyAndBirth}
+                      onChange={(v) => setPersonalHistory("pregnancyAndBirth", v)}
+                    />
+                    <TextField
+                      name="history.personalHistory.earlyChildhoodAndDevelopment"
+                      label="Early childhood & development"
+                      value={history.personalHistory.earlyChildhoodAndDevelopment}
+                      onChange={(v) => setPersonalHistory("earlyChildhoodAndDevelopment", v)}
+                    />
+                    <TextField
+                      name="history.personalHistory.education"
+                      label="Education"
+                      value={history.personalHistory.education}
+                      onChange={(v) => setPersonalHistory("education", v)}
+                    />
+                    <TextField
+                      name="history.personalHistory.occupation"
+                      label="Occupation"
+                      value={history.personalHistory.occupation}
+                      onChange={(v) => setPersonalHistory("occupation", v)}
+                    />
+                    <TextField
+                      name="history.personalHistory.psychosexualRelationship"
+                      label="Psychosexual relationship"
+                      value={history.personalHistory.psychosexualRelationship}
+                      onChange={(v) => setPersonalHistory("psychosexualRelationship", v)}
+                    />
+                    <TextField
+                      name="history.personalHistory.maritalHistory"
+                      label="Marital history"
+                      value={history.personalHistory.maritalHistory}
+                      onChange={(v) => setPersonalHistory("maritalHistory", v)}
+                    />
+                    <TextField
+                      name="history.personalHistory.socialHistory"
+                      label="Social history"
+                      value={history.personalHistory.socialHistory}
+                      onChange={(v) => setPersonalHistory("socialHistory", v)}
+                    />
+                    <TextField
+                      name="history.personalHistory.forensicHistory"
+                      label="Forensic history"
+                      value={history.personalHistory.forensicHistory}
+                      onChange={(v) => setPersonalHistory("forensicHistory", v)}
+                    />
+                  </div>
+                </div>
+
+                <TextField
+                  name="history.substanceUseAddictionHistory"
+                  label="11. Substance Use / Addiction History"
+                  value={history.substanceUseAddictionHistory}
+                  onChange={(v) => setHistoryField("substanceUseAddictionHistory", v)}
+                />
+
+                <TextField
+                  name="history.premorbidPersonality"
+                  label="12. Premorbid Personality"
+                  value={history.premorbidPersonality}
+                  onChange={(v) => setHistoryField("premorbidPersonality", v)}
                 />
               </div>
             </Section>

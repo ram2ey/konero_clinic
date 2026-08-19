@@ -2,9 +2,9 @@ import { NotebookPen } from "lucide-react";
 import Link from "next/link";
 import { Suspense } from "react";
 
+import { ConsultationSnippets, ConsultationSnippetsSkeleton } from "@/components/admin/consultation-snippets";
 import { PatientBiodataFull, PatientBiodataFullSkeleton } from "@/components/admin/patient-biodata-full";
 import { PatientFolderView } from "@/components/admin/patient-folder-view";
-import { PatientHistorySection } from "@/components/admin/patient-history-section";
 import { PreviousConsultations, PreviousConsultationsSkeleton } from "@/components/admin/previous-consultations";
 import { SuccessBanner } from "@/components/admin/success-banner";
 import { DiagnosesHistory, DiagnosesHistorySkeleton } from "@/components/portal/diagnoses-history";
@@ -23,13 +23,9 @@ export default async function ConsultationFolderPage({
   return (
     <PatientFolderView
       patientId={patientId}
-      defaultTab="consultation"
-      consultationsNode={
+      defaultTab="overview"
+      overviewNode={
         <div className="space-y-6">
-          <Suspense fallback={null}>
-            <SuccessBanner param="recorded" message="Consultation recorded." />
-          </Suspense>
-
           <div className="grid gap-6 lg:grid-cols-2">
             <Suspense fallback={<MedicationsListSkeleton />}>
               <MedicationsList patientId={patientId} />
@@ -40,11 +36,27 @@ export default async function ConsultationFolderPage({
           </div>
 
           <Suspense fallback={<LabReportsSectionSkeleton />}>
-            <LabReportsSection patientId={patientId} />
+            <LabReportsSection patientId={patientId} showUpload={false} />
+          </Suspense>
+
+          <Suspense fallback={<ConsultationSnippetsSkeleton />}>
+            <ConsultationSnippets patientId={patientId} />
+          </Suspense>
+        </div>
+      }
+      consultationsNode={
+        <div className="space-y-6">
+          <Suspense fallback={null}>
+            <SuccessBanner param="recorded" message="Consultation recorded." />
           </Suspense>
 
           <div className="flex flex-wrap items-center justify-between gap-4">
-            <h2 className="text-lg font-bold tracking-tight text-foreground">Previous Consultations</h2>
+            <div>
+              <h2 className="text-lg font-bold tracking-tight text-foreground">Clinical Consultations</h2>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                Record new clinical visits, view complete consultation histories, and upload diagnostic lab reports.
+              </p>
+            </div>
             <Button asChild size="sm" className="shadow-xs shadow-primary/25">
               <Link href={`/admin/consultations/${patientId}/new`} prefetch={true} className="flex items-center gap-1.5">
                 <NotebookPen className="size-3.5" />
@@ -53,19 +65,21 @@ export default async function ConsultationFolderPage({
             </Button>
           </div>
 
-          <Suspense fallback={<PreviousConsultationsSkeleton />}>
-            <PreviousConsultations patientId={patientId} />
+          <Suspense fallback={<LabReportsSectionSkeleton />}>
+            <LabReportsSection patientId={patientId} showUpload={true} />
           </Suspense>
+
+          <div className="space-y-3">
+            <h3 className="text-sm font-semibold text-foreground">Previous Consultation Records</h3>
+            <Suspense fallback={<PreviousConsultationsSkeleton />}>
+              <PreviousConsultations patientId={patientId} />
+            </Suspense>
+          </div>
         </div>
       }
       bioDataNode={
         <Suspense fallback={<PatientBiodataFullSkeleton />}>
           <PatientBiodataFull patientId={patientId} />
-        </Suspense>
-      }
-      historyNode={
-        <Suspense fallback={<div className="h-64 animate-pulse rounded-2xl bg-muted/60" />}>
-          <PatientHistorySection patientId={patientId} />
         </Suspense>
       }
       financialsNode={
@@ -76,3 +90,4 @@ export default async function ConsultationFolderPage({
     />
   );
 }
+

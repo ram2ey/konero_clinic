@@ -1,6 +1,6 @@
 "use client";
 
-import { History, Receipt, Stethoscope, User } from "lucide-react";
+import { LayoutDashboard, Receipt, Stethoscope, User } from "lucide-react";
 import { useSearchParams } from "next/navigation";
 import type { ReactNode } from "react";
 import { useState } from "react";
@@ -8,23 +8,23 @@ import { useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 const TABS = [
+  { value: "overview", label: "Overview", icon: LayoutDashboard },
   { value: "consultation", label: "Consultation", icon: Stethoscope },
   { value: "bio-data", label: "Bio Data", icon: User },
-  { value: "history", label: "History", icon: History },
   { value: "financials", label: "Financials", icon: Receipt },
 ];
 
 export function PatientFolderView({
+  overviewNode,
   consultationsNode,
   bioDataNode,
-  historyNode,
   financialsNode,
-  defaultTab = "consultation",
+  defaultTab = "overview",
 }: {
   patientId: string;
+  overviewNode: ReactNode;
   consultationsNode: ReactNode;
   bioDataNode: ReactNode;
-  historyNode: ReactNode;
   financialsNode: ReactNode;
   defaultTab?: string;
 }) {
@@ -36,7 +36,7 @@ export function PatientFolderView({
   function handleTabChange(nextTab: string) {
     setActiveTab(nextTab);
     const url = new URL(window.location.href);
-    if (nextTab === "consultation") {
+    if (nextTab === "overview") {
       url.searchParams.delete("tab");
     } else {
       url.searchParams.set("tab", nextTab);
@@ -57,16 +57,16 @@ export function PatientFolderView({
         </TabsList>
       </div>
 
+      <TabsContent value="overview" forceMount>
+        {overviewNode}
+      </TabsContent>
+
       <TabsContent value="consultation" forceMount>
         {consultationsNode}
       </TabsContent>
 
       <TabsContent value="bio-data" forceMount>
         {bioDataNode}
-      </TabsContent>
-
-      <TabsContent value="history" forceMount>
-        {historyNode}
       </TabsContent>
 
       <TabsContent value="financials" forceMount>

@@ -17,7 +17,13 @@ type LabReport = {
   created_at: string;
 };
 
-export async function LabReportsSection({ patientId }: { patientId: string }) {
+export async function LabReportsSection({
+  patientId,
+  showUpload = true,
+}: {
+  patientId: string;
+  showUpload?: boolean;
+}) {
   const supabase = await createClient();
 
   const { data: labReports } = await supabase
@@ -38,7 +44,7 @@ export async function LabReportsSection({ patientId }: { patientId: string }) {
           </div>
           <CardTitle className="text-lg font-bold">Diagnostic Lab Reports</CardTitle>
         </div>
-        <UploadLabDrawer patientId={patientId} />
+        {showUpload && <UploadLabDrawer patientId={patientId} />}
       </CardHeader>
       <CardContent className="pt-5">
         {items.length === 0 ? (
