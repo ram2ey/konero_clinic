@@ -47,11 +47,20 @@ export default async function PortalLayout({ children }: { children: React.React
     redirect("/login");
   }
 
+  // `role` alongside `full_name` in the same query (no extra round trip):
+  // middleware no longer redirects an admin away from /portal on every
+  // request (see middleware.ts), so this layout is now the one place that
+  // still has to catch it — same role check app/admin/layout.tsx already
+  // does in the other direction.
   const { data: profile } = await supabase
     .from("profiles")
-    .select("full_name")
+    .select("full_name, role")
     .eq("id", session.user.id)
-    .single<{ full_name: string | null }>();
+    .single<{ full_name: string | null; role: string }>();
+
+  if (profile?.role === "doctor_admin") {
+    redirect("/admin");
+  }
 
   const fullName = profile?.full_name ?? null;
 

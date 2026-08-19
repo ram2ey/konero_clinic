@@ -57,11 +57,17 @@ export async function middleware(request: NextRequest) {
     return response;
   }
 
-  // Only fetch role when a routing decision actually depends on it — this
-  // query runs as the signed-in user, scoped by the `profiles_patient_select`
-  // / `profiles_admin_select` RLS policies, so it only ever returns their
-  // own row.
-  if (isAdminRoute || isPortalRoute || isLoginRoute) {
+  // Only fetch role here for /login — a signed-in user landing there needs
+  // to be routed to the right home before the login form ever renders, and
+  // that's a rare, one-time-per-session visit so the extra round trip is
+  // cheap. /admin and /portal used to run this same query on *every*
+  // navigation (in addition to the identical role lookup app/admin/layout.tsx
+  // and app/portal/layout.tsx already do for their own UI), which meant two
+  // sequential Supabase round trips of pure auth overhead before a page even
+  // started fetching its own data. That query is gone here now — those
+  // layouts are the single source of truth for role-gating /admin and
+  // /portal, and still redirect away anything that doesn't match.
+  if (isLoginRoute) {
     const { data: profile } = await supabase
       .from("profiles")
       .select("role")
@@ -69,19 +75,7 @@ export async function middleware(request: NextRequest) {
       .single();
 
     const isAdmin = profile?.role === "doctor_admin";
-    const homePath = isAdmin ? ADMIN_HOME : PATIENT_HOME;
-
-    if (isLoginRoute) {
-      return NextResponse.redirect(new URL(homePath, request.url));
-    }
-
-    if (isAdminRoute && !isAdmin) {
-      return NextResponse.redirect(new URL(PATIENT_HOME, request.url));
-    }
-
-    if (isPortalRoute && isAdmin) {
-      return NextResponse.redirect(new URL(ADMIN_HOME, request.url));
-    }
+    return NextResponse.redirect(new URL(isAdmin ? ADMIN_HOME : PATIENT_HOME, request.url));
   }
 
   return response;
