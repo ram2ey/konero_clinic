@@ -1,10 +1,12 @@
 "use client";
 
+import { Pencil } from "lucide-react";
 import { useState, type FormEvent } from "react";
 
 import { savePatientHistory } from "@/actions/save-patient-history";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { formatDateTime } from "@/lib/format";
 
 type SystemicEnquiryState = {
   general: string;
@@ -134,6 +136,106 @@ export const EMPTY_HISTORY: HistoryState = {
   premorbidPersonality: "",
 };
 
+const SYSTEMIC_ENQUIRY_LABELS: Record<keyof SystemicEnquiryState, string> = {
+  general: "General",
+  respiratory: "Respiratory",
+  cardiovascular: "Cardiovascular",
+  abdominal: "Abdominal",
+  genitourinary: "Genitourinary",
+  centralNervous: "Central Nervous",
+};
+
+const PAST_MEDICAL_HISTORY_LABELS: Record<keyof PastMedicalHistoryState, string> = {
+  seizureDisorder: "Seizure Disorder",
+  sickleCellDisease: "Sickle Cell Disease",
+  asthma: "Asthma",
+  hypertension: "Hypertension",
+  diabetes: "Diabetes",
+  tuberculosis: "Tuberculosis",
+  headInjury: "Head Injury",
+  roadTrafficAccident: "Road Traffic Accident",
+  other: "Other",
+};
+
+const TREATMENT_HISTORY_LABELS: Record<keyof TreatmentHistoryState, string> = {
+  orthodoxMedications: "Orthodox Medications",
+  herbalMedications: "Herbal Medications",
+  allergies: "Allergies",
+  churchPrayerCamps: "Church/Prayer Camps",
+  other: "Other",
+};
+
+const FAMILY_HISTORY_LABELS: Record<keyof FamilyHistoryState, string> = {
+  father: "Father",
+  mother: "Mother",
+  siblings: "Siblings",
+  seizureDisorder: "Seizure Disorder",
+  mentalIllness: "Mental Illness",
+  suicide: "Suicide",
+  addiction: "Addiction",
+  hypertension: "Hypertension",
+  diabetes: "Diabetes",
+  asthma: "Asthma",
+  sickleCellDisease: "Sickle Cell Disease",
+};
+
+const PERSONAL_HISTORY_LABELS: Record<keyof PersonalHistoryState, string> = {
+  pregnancyAndBirth: "Pregnancy & Birth",
+  earlyChildhoodAndDevelopment: "Early Childhood & Development",
+  education: "Education",
+  occupation: "Occupation",
+  psychosexualRelationship: "Psychosexual / Relationship",
+  maritalHistory: "Marital History",
+  socialHistory: "Social History",
+  forensicHistory: "Forensic History",
+};
+
+function hasAnyValue(value: unknown): boolean {
+  if (!value) return false;
+  if (typeof value === "string") return value.trim().length > 0;
+  if (typeof value === "object") return Object.values(value as Record<string, unknown>).some(hasAnyValue);
+  return false;
+}
+
+function ViewField({ label, value }: { label: string; value: string }) {
+  if (!value.trim()) return null;
+  return (
+    <div>
+      <p className="text-xs font-medium tracking-wide text-muted-foreground uppercase">{label}</p>
+      <p className="mt-0.5 whitespace-pre-wrap text-sm text-foreground">{value}</p>
+    </div>
+  );
+}
+
+function ViewFieldGroup<T extends Record<string, string>>({
+  title,
+  values,
+  labels,
+}: {
+  title: string;
+  values: T;
+  labels: Record<keyof T, string>;
+}) {
+  if (!hasAnyValue(values)) return null;
+  return (
+    <div>
+      <p className="text-xs font-medium tracking-wide text-muted-foreground uppercase">{title}</p>
+      <div className="mt-1 space-y-2">
+        {(Object.keys(values) as (keyof T)[]).map((key) => {
+          const value = values[key];
+          if (!value.trim()) return null;
+          return (
+            <p key={String(key)} className="text-sm text-foreground">
+              <span className="text-muted-foreground">{labels[key]}: </span>
+              <span className="whitespace-pre-wrap">{value}</span>
+            </p>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 const inputClass = "w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground";
 const textareaClass = `${inputClass} min-h-24`;
 
@@ -169,38 +271,50 @@ function TextField({
 export function PatientHistoryForm({
   patientId,
   initialHistory,
+  initialUpdatedAt,
 }: {
   patientId: string;
   initialHistory: HistoryState;
+  initialUpdatedAt: string | null;
 }) {
+  const [savedHistory, setSavedHistory] = useState<HistoryState>(initialHistory);
+  const [savedAt, setSavedAt] = useState<string | null>(initialUpdatedAt);
+  const [mode, setMode] = useState<"view" | "edit">(hasAnyValue(initialHistory) ? "view" : "edit");
   const [history, setHistory] = useState<HistoryState>(initialHistory);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string[]> | null>(null);
-  const [saved, setSaved] = useState(false);
+
+  function startEdit() {
+    setError(null);
+    setFieldErrors(null);
+    setHistory(savedHistory);
+    setMode("edit");
+  }
+
+  function cancelEdit() {
+    setError(null);
+    setFieldErrors(null);
+    setHistory(savedHistory);
+    setMode("view");
+  }
 
   function setHistoryField<K extends keyof HistoryState>(key: K, value: HistoryState[K]) {
-    setSaved(false);
     setHistory((prev) => ({ ...prev, [key]: value }));
   }
   function setSystemicEnquiry<K extends keyof SystemicEnquiryState>(key: K, value: string) {
-    setSaved(false);
     setHistory((prev) => ({ ...prev, systemicEnquiry: { ...prev.systemicEnquiry, [key]: value } }));
   }
   function setPastMedicalHistory<K extends keyof PastMedicalHistoryState>(key: K, value: string) {
-    setSaved(false);
     setHistory((prev) => ({ ...prev, pastMedicalHistory: { ...prev.pastMedicalHistory, [key]: value } }));
   }
   function setTreatmentHistory<K extends keyof TreatmentHistoryState>(key: K, value: string) {
-    setSaved(false);
     setHistory((prev) => ({ ...prev, treatmentHistory: { ...prev.treatmentHistory, [key]: value } }));
   }
   function setFamilyHistory<K extends keyof FamilyHistoryState>(key: K, value: string) {
-    setSaved(false);
     setHistory((prev) => ({ ...prev, familyHistory: { ...prev.familyHistory, [key]: value } }));
   }
   function setPersonalHistory<K extends keyof PersonalHistoryState>(key: K, value: string) {
-    setSaved(false);
     setHistory((prev) => ({ ...prev, personalHistory: { ...prev.personalHistory, [key]: value } }));
   }
 
@@ -208,7 +322,6 @@ export function PatientHistoryForm({
     event.preventDefault();
     setError(null);
     setFieldErrors(null);
-    setSaved(false);
     setPending(true);
 
     const result = await savePatientHistory({
@@ -280,7 +393,72 @@ export function PatientHistoryForm({
       return;
     }
 
-    setSaved(true);
+    setSavedHistory(history);
+    setSavedAt(new Date().toISOString());
+    setMode("view");
+  }
+
+  if (mode === "view") {
+    return (
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between gap-3">
+          <CardTitle>History</CardTitle>
+          <div className="flex items-center gap-3">
+            {savedAt && <p className="text-xs text-muted-foreground">Saved {formatDateTime(savedAt)}</p>}
+            <Button type="button" size="sm" variant="outline" onClick={startEdit}>
+              <Pencil className="size-3.5" />
+              Edit
+            </Button>
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          {!hasAnyValue(savedHistory) ? (
+            <p className="text-sm text-muted-foreground">No history recorded yet.</p>
+          ) : (
+            <>
+              <ViewField label="1. Presenting Complaint(s)" value={savedHistory.presentingComplaints} />
+              <ViewField
+                label="2. History of Presenting Complaint(s)"
+                value={savedHistory.historyOfPresentingComplaints}
+              />
+              <ViewField label="3. On Direct Question (ODQ)" value={savedHistory.onDirectQuestion} />
+              <ViewFieldGroup
+                title="4. Systemic Enquiry"
+                values={savedHistory.systemicEnquiry}
+                labels={SYSTEMIC_ENQUIRY_LABELS}
+              />
+              <ViewField label="5. Past Psychiatric History" value={savedHistory.pastPsychiatricHistory} />
+              <ViewFieldGroup
+                title="6. Past Medical History"
+                values={savedHistory.pastMedicalHistory}
+                labels={PAST_MEDICAL_HISTORY_LABELS}
+              />
+              <ViewField label="7. Past Surgical History" value={savedHistory.pastSurgicalHistory} />
+              <ViewFieldGroup
+                title="8. Treatment History"
+                values={savedHistory.treatmentHistory}
+                labels={TREATMENT_HISTORY_LABELS}
+              />
+              <ViewFieldGroup
+                title="9. Family History"
+                values={savedHistory.familyHistory}
+                labels={FAMILY_HISTORY_LABELS}
+              />
+              <ViewFieldGroup
+                title="10. Personal History"
+                values={savedHistory.personalHistory}
+                labels={PERSONAL_HISTORY_LABELS}
+              />
+              <ViewField
+                label="11. Substance Use / Addiction History"
+                value={savedHistory.substanceUseAddictionHistory}
+              />
+              <ViewField label="12. Premorbid Personality" value={savedHistory.premorbidPersonality} />
+            </>
+          )}
+        </CardContent>
+      </Card>
+    );
   }
 
   return (
@@ -619,7 +797,11 @@ export function PatientHistoryForm({
       )}
 
       <div className="flex items-center justify-end gap-3">
-        {saved && <p className="text-sm text-muted-foreground">Saved.</p>}
+        {hasAnyValue(savedHistory) && (
+          <Button type="button" variant="outline" onClick={cancelEdit} disabled={pending}>
+            Cancel
+          </Button>
+        )}
         <Button type="submit" disabled={pending}>
           {pending ? "Saving…" : "Save history"}
         </Button>

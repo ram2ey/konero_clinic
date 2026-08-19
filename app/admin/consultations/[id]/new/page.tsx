@@ -4,7 +4,9 @@ import { Plus, Trash2 } from "lucide-react";
 import { useParams, useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
 
+import type { Icd11Match } from "@/actions/search-icd11";
 import { recordConsultation, type RecordConsultationInput } from "@/actions/record-consultation";
+import { Icd11Combobox } from "@/components/admin/icd11-combobox";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
@@ -16,7 +18,12 @@ const RECORD_STATUSES = [
 
 type RecordStatus = (typeof RECORD_STATUSES)[number]["value"];
 
-type DiagnosisRow = { condition: string; status: RecordStatus };
+type DiagnosisRow = {
+  condition: string;
+  status: RecordStatus;
+  icd11Code?: string;
+  icd11Uri?: string;
+};
 type PrescriptionRow = {
   medicationName: string;
   dosage: string;
@@ -292,7 +299,12 @@ export default function RecordConsultationPage() {
       },
       diagnoses: diagnoses
         .filter((d) => d.condition.trim().length > 0)
-        .map((d) => ({ condition: d.condition, status: d.status })),
+        .map((d) => ({
+          condition: d.condition,
+          status: d.status,
+          icd11Code: d.icd11Code,
+          icd11Uri: d.icd11Uri,
+        })),
       prescriptions: prescriptions
         .filter((p) => p.medicationName.trim().length > 0)
         .map((p) => ({
@@ -606,14 +618,25 @@ export default function RecordConsultationPage() {
             {diagnoses.length === 0 && <p className="text-sm text-muted-foreground">None added.</p>}
             {diagnoses.map((row, i) => (
               <div key={i} className="flex items-start gap-2">
-                <input
-                  type="text"
-                  placeholder="Condition"
-                  value={row.condition}
-                  onChange={(e) => updateDiagnosis(i, { condition: e.target.value })}
-                  disabled={pending}
-                  className={`${inputClass} flex-1`}
-                />
+                <div className="flex flex-1 items-start gap-2">
+                  <Icd11Combobox
+                    value={row.condition}
+                    onTextChange={(v) => updateDiagnosis(i, { condition: v, icd11Code: undefined, icd11Uri: undefined })}
+                    onSelect={(match: Icd11Match) =>
+                      updateDiagnosis(i, {
+                        condition: match.title,
+                        icd11Code: match.code ?? undefined,
+                        icd11Uri: match.uri,
+                      })
+                    }
+                    disabled={pending}
+                  />
+                  {row.icd11Code && (
+                    <span className="mt-2 shrink-0 rounded bg-muted px-1.5 py-0.5 font-mono text-xs text-muted-foreground">
+                      {row.icd11Code}
+                    </span>
+                  )}
+                </div>
                 <select
                   value={row.status}
                   onChange={(e) => updateDiagnosis(i, { status: e.target.value as RecordStatus })}

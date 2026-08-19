@@ -100,6 +100,10 @@ const assessmentSchema = z
 const diagnosisSchema = z.object({
   condition: z.string().trim().min(2).max(300),
   status: z.enum(RECORD_STATUSES).default("active"),
+  // Populated when the diagnosis was picked from the WHO ICD-11 search
+  // rather than typed as plain text — see actions/search-icd11.ts.
+  icd11Code: z.string().trim().max(20).optional(),
+  icd11Uri: z.string().trim().max(300).optional(),
 });
 
 const prescriptionSchema = z.object({
@@ -247,7 +251,12 @@ export async function recordConsultation(
       p_doctor_id: admin.userId,
       p_vitals: vitalsJson,
       p_assessment: assessmentJson,
-      p_diagnoses: diagnoses.map((d) => ({ condition: d.condition, status: d.status })),
+      p_diagnoses: diagnoses.map((d) => ({
+        condition: d.condition,
+        status: d.status,
+        icd11_code: d.icd11Code ?? null,
+        icd11_uri: d.icd11Uri ?? null,
+      })),
       p_prescriptions: prescriptions.map((p) => ({
         medication_name: p.medicationName,
         dosage: p.dosage,

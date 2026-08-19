@@ -12,6 +12,7 @@ type Diagnosis = {
   id: string;
   condition: string;
   status: "active" | "resolved" | "cancelled";
+  icd11_code: string | null;
   created_at: string;
 };
 
@@ -20,7 +21,7 @@ export async function DiagnosesHistory({ patientId }: { patientId: string }) {
 
   const { data: diagnoses } = await supabase
     .from("diagnoses")
-    .select("id, condition, status, created_at")
+    .select("id, condition, status, icd11_code, created_at")
     .eq("patient_id", patientId)
     .order("created_at", { ascending: false })
     .returns<Diagnosis[]>();
@@ -40,7 +41,14 @@ export async function DiagnosesHistory({ patientId }: { patientId: string }) {
             {items.map((item) => (
               <li key={item.id} className="flex items-center justify-between gap-3 py-3 first:pt-0 last:pb-0">
                 <div className="min-w-0">
-                  <p className="font-medium text-foreground">{item.condition}</p>
+                  <div className="flex items-center gap-2">
+                    <p className="font-medium text-foreground">{item.condition}</p>
+                    {item.icd11_code && (
+                      <span className="shrink-0 rounded bg-muted px-1.5 py-0.5 font-mono text-xs text-muted-foreground">
+                        {item.icd11_code}
+                      </span>
+                    )}
+                  </div>
                   <p className="text-xs text-muted-foreground">{formatDate(item.created_at)}</p>
                 </div>
                 <RecordStatusBadge status={item.status} />

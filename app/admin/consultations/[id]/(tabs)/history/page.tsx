@@ -85,9 +85,15 @@ export default async function HistoryTabPage({ params }: { params: Promise<{ id:
   const supabase = await createClient();
   const { data } = await supabase
     .from("patient_history")
-    .select("history")
+    .select("history, updated_at")
     .eq("patient_id", patientId)
-    .maybeSingle<{ history: PatientHistoryRow }>();
+    .maybeSingle<{ history: PatientHistoryRow; updated_at: string }>();
 
-  return <PatientHistoryForm patientId={patientId} initialHistory={toHistoryState(data?.history ?? null)} />;
+  return (
+    <PatientHistoryForm
+      patientId={patientId}
+      initialHistory={toHistoryState(data?.history ?? null)}
+      initialUpdatedAt={data?.updated_at ?? null}
+    />
+  );
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import { CalendarClock, LayoutDashboard } from "lucide-react";
+import { CalendarClock, FileText, LayoutDashboard, Receipt, Settings } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { ComponentType } from "react";
@@ -10,6 +10,9 @@ import { SidebarMenu, SidebarMenuButton, SidebarMenuItem } from "@/components/ui
 const NAV_ITEMS: { href: string; label: string; icon: ComponentType<{ className?: string }> }[] = [
   { href: "/admin", label: "Dashboard", icon: LayoutDashboard },
   { href: "/admin/consultations", label: "Consultations", icon: CalendarClock },
+  { href: "/admin/billing", label: "Billing", icon: Receipt },
+  { href: "/admin/lab-reports", label: "Lab Reports", icon: FileText },
+  { href: "/admin/settings", label: "Settings", icon: Settings },
 ];
 
 export function AdminNav() {
