@@ -9,6 +9,7 @@ import { requireAdmin } from "@/lib/require-admin";
 import { zodFieldErrors } from "@/lib/zod-field-errors";
 
 const RECORD_STATUSES = ["active", "resolved", "cancelled"] as const;
+const VISIT_TYPES = ["first_visit", "review"] as const;
 
 // Sanity bounds, not medical-grade validation — catches garbage input
 // (typos, unit mistakes), not clinically implausible-but-real values.
@@ -121,6 +122,7 @@ const invoiceSchema = z.object({
 
 const recordConsultationSchema = z.object({
   patientId: z.string().uuid("Invalid patient id."),
+  visitType: z.enum(VISIT_TYPES),
   vitals: vitalsSchema,
   assessment: assessmentSchema,
   diagnoses: z.array(diagnosisSchema).max(20).default([]),
@@ -175,7 +177,7 @@ export async function recordConsultation(
       };
     }
 
-    const { patientId, vitals, assessment, diagnoses, prescriptions, invoice } = parsed.data;
+    const { patientId, visitType, vitals, assessment, diagnoses, prescriptions, invoice } = parsed.data;
 
     const vitalsJson = vitals
       ? {
@@ -265,6 +267,7 @@ export async function recordConsultation(
         status: p.status,
       })),
       p_invoice: invoice ? { amount: invoice.amount, description: invoice.description ?? null } : null,
+      p_visit_type: visitType,
     });
 
     if (error) {

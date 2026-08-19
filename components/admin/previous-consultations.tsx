@@ -1,5 +1,6 @@
 import { ChevronDown, ClipboardList } from "lucide-react";
 
+import { VisitTypeBadge } from "@/components/portal/status-badge";
 import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { formatDateTime } from "@/lib/format";
@@ -56,6 +57,7 @@ type Consultation = {
   created_at: string;
   vitals: Vitals;
   assessment: Assessment;
+  visit_type: "first_visit" | "review";
 };
 
 const PHYSICAL_EXAM_LABELS: Record<string, string> = {
@@ -119,7 +121,7 @@ export async function PreviousConsultations({ patientId }: { patientId: string }
 
   const { data: consultations } = await supabase
     .from("consultations")
-    .select("id, created_at, vitals, assessment")
+    .select("id, created_at, vitals, assessment, visit_type")
     .eq("patient_id", patientId)
     .order("created_at", { ascending: false })
     .returns<Consultation[]>();
@@ -146,7 +148,10 @@ export async function PreviousConsultations({ patientId }: { patientId: string }
             <details className="group">
               <summary className="flex cursor-pointer list-none items-start justify-between gap-2 p-4">
                 <div className="min-w-0">
-                  <p className="text-sm font-medium text-foreground">{formatDateTime(item.created_at)}</p>
+                  <div className="flex items-center gap-2">
+                    <p className="text-sm font-medium text-foreground">{formatDateTime(item.created_at)}</p>
+                    <VisitTypeBadge visitType={item.visit_type} />
+                  </div>
                   {vSummary && <p className="mt-0.5 text-xs text-muted-foreground">{vSummary}</p>}
                 </div>
                 <ChevronDown className="mt-0.5 size-4 shrink-0 text-muted-foreground transition-transform group-open:rotate-180" />

@@ -45,6 +45,26 @@ export function InvoiceStatusBadge({ status }: { status: InvoiceStatus }) {
   );
 }
 
+type VisitType = "first_visit" | "review";
+
+const VISIT_TYPE_STYLES: Record<VisitType, string> = {
+  first_visit: "border-violet-200 bg-violet-50 text-violet-700 dark:border-violet-900 dark:bg-violet-950 dark:text-violet-400",
+  review: "border-slate-200 bg-slate-100 text-slate-600 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-400",
+};
+
+const VISIT_TYPE_LABEL: Record<VisitType, string> = {
+  first_visit: "1st Visit",
+  review: "Review",
+};
+
+export function VisitTypeBadge({ visitType }: { visitType: VisitType }) {
+  return (
+    <Badge variant="outline" className={VISIT_TYPE_STYLES[visitType]}>
+      {VISIT_TYPE_LABEL[visitType]}
+    </Badge>
+  );
+}
+
 type InformantReliability = "reliable" | "partially_reliable" | "unreliable";
 
 const INFORMANT_RELIABILITY_STYLES: Record<InformantReliability, string> = {
