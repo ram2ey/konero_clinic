@@ -4,18 +4,49 @@ import { StatTile } from "@/components/portal/stat-tile";
 import { formatCurrency } from "@/lib/format";
 import { createClient } from "@/lib/supabase/server";
 
+function monthKey(date: Date) {
+  return `${date.getFullYear()}-${date.getMonth()}`;
+}
+
+/**
+ * Growth trend for a table's row volume: this calendar month's count vs
+ * last month's. Unlike the portal's payment trends (kept neutral-toned —
+ * "you paid more" isn't unambiguously good or bad for a patient), more
+ * new patients / consultations is unambiguously growth for the clinic, so
+ * this one does color the direction.
+ */
+function growthTrend(rows: { created_at: string }[]) {
+  const now = new Date();
+  const thisMonthKey = monthKey(now);
+  const lastMonthKey = monthKey(new Date(now.getFullYear(), now.getMonth() - 1, 1));
+
+  const thisMonth = rows.filter((r) => monthKey(new Date(r.created_at)) === thisMonthKey).length;
+  const lastMonth = rows.filter((r) => monthKey(new Date(r.created_at)) === lastMonthKey).length;
+
+  // Only show a delta when there's a real prior-month figure to compare
+  // against — a percentage change from zero is undefined, not "0%" or "∞%".
+  if (lastMonth === 0) return undefined;
+  return {
+    changePercent: ((thisMonth - lastMonth) / lastMonth) * 100,
+    tone: thisMonth >= lastMonth ? ("positive" as const) : ("negative" as const),
+  };
+}
+
 export async function OverviewStats() {
   const supabase = await createClient();
 
-  const [patientsResult, dueInvoicesResult, consultationsResult] = await Promise.all([
-    supabase.from("profiles").select("id", { count: "exact", head: true }).eq("role", "patient"),
-    supabase.from("invoices").select("amount").in("status", ["pending", "overdue"]),
-    supabase.from("consultations").select("id", { count: "exact", head: true }),
+  const [patientsResult, consultationsResult, invoicesResult] = await Promise.all([
+    supabase.from("profiles").select("created_at").eq("role", "patient"),
+    supabase.from("consultations").select("created_at"),
+    supabase.from("invoices").select("amount, status").in("status", ["pending", "overdue"]),
   ]);
 
-  const patientCount = patientsResult.count ?? 0;
-  const amountDue = (dueInvoicesResult.data ?? []).reduce((sum, i) => sum + i.amount, 0);
-  const consultationCount = consultationsResult.count ?? 0;
+  const patients = patientsResult.data ?? [];
+  const consultations = consultationsResult.data ?? [];
+  const invoices = invoicesResult.data ?? [];
+
+  const pendingAmount = invoices.filter((i) => i.status === "pending").reduce((sum, i) => sum + i.amount, 0);
+  const overdueAmount = invoices.filter((i) => i.status === "overdue").reduce((sum, i) => sum + i.amount, 0);
 
   return (
     <Card>
@@ -23,10 +54,19 @@ export async function OverviewStats() {
         <CardTitle>At a glance</CardTitle>
       </CardHeader>
       <CardContent>
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-          <StatTile label="Patients on record" value={String(patientCount)} />
-          <StatTile label="Outstanding balance" value={formatCurrency(amountDue)} />
-          <StatTile label="Consultations recorded" value={String(consultationCount)} />
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <StatTile
+            label="Patients on record"
+            value={String(patients.length)}
+            trend={growthTrend(patients)}
+          />
+          <StatTile
+            label="Consultations recorded"
+            value={String(consultations.length)}
+            trend={growthTrend(consultations)}
+          />
+          <StatTile label="Pending balance" value={formatCurrency(pendingAmount)} />
+          <StatTile label="Overdue balance" value={formatCurrency(overdueAmount)} />
         </div>
       </CardContent>
     </Card>
@@ -40,8 +80,8 @@ export function OverviewStatsSkeleton() {
         <CardTitle>At a glance</CardTitle>
       </CardHeader>
       <CardContent>
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-          {Array.from({ length: 3 }).map((_, i) => (
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          {Array.from({ length: 4 }).map((_, i) => (
             <Skeleton key={i} className="h-16 rounded-lg" />
           ))}
         </div>
