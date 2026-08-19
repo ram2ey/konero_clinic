@@ -41,15 +41,13 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   return (
     <SidebarProvider>
       <Sidebar collapsible="icon" className="border-r border-border/70 bg-sidebar">
-        <SidebarHeader className="border-b border-border/50 py-3">
-          <div className="flex items-center px-1">
-            <BrandLogo
-              size="sm"
-              subtitle="Admin Portal"
-              collapseTextOnSidebar
-              className="w-full"
-            />
-          </div>
+        <SidebarHeader className="border-b border-border/50 py-3.5 px-3">
+          <BrandLogo
+            size="default"
+            subtitle="Clinical Administration"
+            collapseTextOnSidebar
+            className="w-full"
+          />
         </SidebarHeader>
 
         <SidebarContent className="p-2">

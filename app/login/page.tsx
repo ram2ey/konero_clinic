@@ -30,7 +30,7 @@ export default function LoginPage() {
           <BrandLogo
             size="lg"
             subtitle="Psychiatry & Medical Practice"
-            className="flex-col items-center gap-3 text-center"
+            className="items-center text-center"
           />
         </div>
 

@@ -40,15 +40,13 @@ export default async function PortalLayout({ children }: { children: React.React
   return (
     <SidebarProvider>
       <Sidebar collapsible="icon" className="border-r border-border/70 bg-sidebar">
-        <SidebarHeader className="border-b border-border/50 py-3">
-          <div className="flex items-center px-1">
-            <BrandLogo
-              size="sm"
-              subtitle="Patient Portal"
-              collapseTextOnSidebar
-              className="w-full"
-            />
-          </div>
+        <SidebarHeader className="border-b border-border/50 py-3.5 px-3">
+          <BrandLogo
+            size="default"
+            subtitle="Patient Health Portal"
+            collapseTextOnSidebar
+            className="w-full"
+          />
         </SidebarHeader>
 
         {/* The dashboard's sections live behind tabs (see
