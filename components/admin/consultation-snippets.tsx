@@ -1,4 +1,4 @@
-import { ArrowRight, ClipboardList, NotebookPen, Stethoscope } from "lucide-react";
+import { ArrowRight, ClipboardList, Stethoscope } from "lucide-react";
 import Link from "next/link";
 
 import { VisitTypeBadge } from "@/components/portal/status-badge";
@@ -78,19 +78,11 @@ export async function ConsultationSnippets({ patientId }: { patientId: string })
       </CardHeader>
       <CardContent className="pt-5">
         {items.length === 0 ? (
-          <div className="flex flex-col items-center gap-3 py-8 text-center">
+          <div className="flex flex-col items-center gap-2 py-8 text-center">
             <div className="flex size-10 items-center justify-center rounded-full bg-muted/80 text-muted-foreground">
               <ClipboardList className="size-5 opacity-60" />
             </div>
-            <div>
-              <p className="text-sm font-medium text-muted-foreground">No consultations recorded yet.</p>
-              <Button asChild size="sm" className="mt-3 shadow-xs shadow-primary/25">
-                <Link href={`/admin/consultations/${patientId}/new`} prefetch={true} className="flex items-center gap-1.5">
-                  <NotebookPen className="size-3.5" />
-                  <span>Record consultation</span>
-                </Link>
-              </Button>
-            </div>
+            <p className="text-sm font-medium text-muted-foreground mt-1">No consultations recorded yet.</p>
           </div>
         ) : (
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
