@@ -2,8 +2,9 @@
 
 import { Receipt } from "lucide-react";
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
+import { InvoiceStatusActions } from "@/components/admin/invoice-status-actions";
 import { InvoiceStatusBadge } from "@/components/portal/status-badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { formatCurrency, formatDate } from "@/lib/format";
@@ -28,22 +29,23 @@ const STATUS_FILTERS: { value: InvoiceStatus | "all"; label: string }[] = [
   { value: "cancelled", label: "Cancelled" },
 ];
 
-/**
- * Filtering happens entirely client-side: the full invoice list (fetched
- * once, server-side, when the page loads) is handed to this component,
- * and switching status tabs just re-filters what's already in memory —
- * no navigation, no new Supabase queries, no round-trip through
- * middleware/layout. This used to be <Link href="?status=...">, which
- * re-ran the entire request pipeline on every click regardless of how
- * little data there was to filter; that was the actual source of the
- * lag, not query performance.
- */
 export function BillingList({ invoices }: { invoices: BillingInvoice[] }) {
+  const [invoiceList, setInvoiceList] = useState<BillingInvoice[]>(invoices);
   const [activeStatus, setActiveStatus] = useState<InvoiceStatus | "all">("all");
 
+  useEffect(() => {
+    setInvoiceList(invoices);
+  }, [invoices]);
+
+  function handleInvoiceStatusUpdated(invoiceId: string, nextStatus: InvoiceStatus) {
+    setInvoiceList((prev) =>
+      prev.map((item) => (item.id === invoiceId ? { ...item, status: nextStatus } : item))
+    );
+  }
+
   const filtered = useMemo(
-    () => (activeStatus === "all" ? invoices : invoices.filter((i) => i.status === activeStatus)),
-    [invoices, activeStatus],
+    () => (activeStatus === "all" ? invoiceList : invoiceList.filter((i) => i.status === activeStatus)),
+    [invoiceList, activeStatus],
   );
 
   const activeLabel = STATUS_FILTERS.find((f) => f.value === activeStatus)?.label ?? "";
@@ -57,8 +59,8 @@ export function BillingList({ invoices }: { invoices: BillingInvoice[] }) {
             const isActive = f.value === activeStatus;
             const count =
               f.value === "all"
-                ? invoices.length
-                : invoices.filter((i) => i.status === f.value).length;
+                ? invoiceList.length
+                : invoiceList.filter((i) => i.status === f.value).length;
 
             return (
               <button
@@ -97,7 +99,7 @@ export function BillingList({ invoices }: { invoices: BillingInvoice[] }) {
               <CardTitle className="text-lg font-bold">Invoices &amp; Ledger</CardTitle>
             </div>
             <span className="text-xs font-medium text-muted-foreground">
-              Showing {filtered.length} of {invoices.length} records
+              Showing {filtered.length} of {invoiceList.length} records
             </span>
           </div>
         </CardHeader>
@@ -108,7 +110,7 @@ export function BillingList({ invoices }: { invoices: BillingInvoice[] }) {
                 <Receipt className="size-6 opacity-60" />
               </div>
               <p className="text-sm font-medium text-muted-foreground mt-2">
-                {invoices.length === 0 ? "No invoices on file." : `No ${activeLabel.toLowerCase()} invoices.`}
+                {invoiceList.length === 0 ? "No invoices on file." : `No ${activeLabel.toLowerCase()} invoices.`}
               </p>
             </div>
           ) : (
@@ -129,11 +131,16 @@ export function BillingList({ invoices }: { invoices: BillingInvoice[] }) {
                       {item.description ?? "Medical Consultation"} &bull; {formatDate(item.created_at)}
                     </p>
                   </Link>
-                  <div className="flex shrink-0 items-center gap-3.5 self-start sm:self-center">
+                  <div className="flex flex-wrap items-center gap-3.5 self-start sm:self-center">
                     <span className="text-sm sm:text-base font-bold tabular-nums text-foreground">
                       {formatCurrency(item.amount)}
                     </span>
                     <InvoiceStatusBadge status={item.status} />
+                    <InvoiceStatusActions
+                      invoiceId={item.id}
+                      currentStatus={item.status}
+                      onStatusUpdated={(next) => handleInvoiceStatusUpdated(item.id, next)}
+                    />
                   </div>
                 </div>
               ))}

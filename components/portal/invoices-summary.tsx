@@ -6,6 +6,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { formatCurrency, formatDate } from "@/lib/format";
 import { createClient } from "@/lib/supabase/server";
 
+import { InvoiceStatusActions } from "@/components/admin/invoice-status-actions";
 import { StatTile } from "./stat-tile";
 import { InvoiceStatusBadge } from "./status-badge";
 
@@ -21,7 +22,13 @@ function monthKey(date: Date) {
   return `${date.getFullYear()}-${date.getMonth()}`;
 }
 
-export async function InvoicesSummary({ patientId }: { patientId: string }) {
+export async function InvoicesSummary({
+  patientId,
+  isAdmin = false,
+}: {
+  patientId: string;
+  isAdmin?: boolean;
+}) {
   const supabase = await createClient();
 
   const { data: invoices } = await supabase
@@ -96,7 +103,7 @@ export async function InvoicesSummary({ patientId }: { patientId: string }) {
               {items.map((item) => (
                 <div
                   key={item.id}
-                  className="flex items-center justify-between gap-3 p-4 transition-colors hover:bg-muted/40"
+                  className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 transition-colors hover:bg-muted/40"
                 >
                   <div className="min-w-0">
                     <p className="truncate text-sm font-semibold text-foreground">
@@ -104,11 +111,17 @@ export async function InvoicesSummary({ patientId }: { patientId: string }) {
                     </p>
                     <p className="text-xs text-muted-foreground mt-0.5">{formatDate(item.created_at)}</p>
                   </div>
-                  <div className="flex shrink-0 items-center gap-3">
+                  <div className="flex flex-wrap items-center gap-3 self-start sm:self-center">
                     <span className="text-sm sm:text-base font-bold tabular-nums text-foreground">
                       {formatCurrency(item.amount)}
                     </span>
                     <InvoiceStatusBadge status={item.status} />
+                    {isAdmin && (
+                      <InvoiceStatusActions
+                        invoiceId={item.id}
+                        currentStatus={item.status}
+                      />
+                    )}
                   </div>
                 </div>
               ))}

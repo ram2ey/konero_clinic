@@ -7,7 +7,7 @@ export default async function FinancialsTabPage({ params }: { params: Promise<{ 
 
   return (
     <Suspense fallback={<InvoicesSummarySkeleton />}>
-      <InvoicesSummary patientId={patientId} />
+      <InvoicesSummary patientId={patientId} isAdmin />
     </Suspense>
   );
 }
