@@ -26,20 +26,31 @@ function initials(name: string | null) {
 
 export default async function PortalLayout({ children }: { children: React.ReactNode }) {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
 
-  // Belt and suspenders — middleware already redirects unauthenticated
-  // requests away from /portal before this ever runs.
-  if (!user) {
+  // getSession() (a local cookie decode) rather than getUser() (a network
+  // round-trip that revalidates against Supabase Auth): this belt-and-
+  // suspenders check runs on every single portal navigation, and
+  // middleware.ts already did the authoritative getUser() revalidation
+  // for this exact request — and redirects away anything invalid before
+  // this layout ever runs. Re-deriving user.id from that already-trusted
+  // session costs nothing extra; re-validating it a second time over the
+  // network on every page load did. This safely relies on middleware
+  // being the actual gate — if its matcher ever stops covering /portal,
+  // this check alone wouldn't be enough. RLS is the real data-access
+  // boundary regardless of any of this (see supabase/migrations), so a
+  // misconfigured matcher would show the wrong UI shell, not leak data.
+  const {
+    data: { session },
+  } = await supabase.auth.getSession();
+
+  if (!session) {
     redirect("/login");
   }
 
   const { data: profile } = await supabase
     .from("profiles")
     .select("full_name")
-    .eq("id", user.id)
+    .eq("id", session.user.id)
     .single<{ full_name: string | null }>();
 
   const fullName = profile?.full_name ?? null;
