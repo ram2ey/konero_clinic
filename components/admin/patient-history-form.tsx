@@ -1,7 +1,7 @@
 "use client";
 
 import { Pencil } from "lucide-react";
-import { useState, type FormEvent } from "react";
+import { createContext, useContext, useState, type FormEvent } from "react";
 
 import { savePatientHistory } from "@/actions/save-patient-history";
 import { Button } from "@/components/ui/button";
@@ -259,6 +259,48 @@ function fieldId(name: string): string {
   return `field-${name}`;
 }
 
+const FormErrorContext = createContext<{
+  fieldErrors: Record<string, string[]> | null;
+  pending: boolean;
+}>({ fieldErrors: null, pending: false });
+
+function TextField({
+  name,
+  label,
+  value,
+  onChange,
+}: {
+  name: string;
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+}) {
+  const { fieldErrors, pending } = useContext(FormErrorContext);
+  const id = fieldId(name);
+  const message = fieldErrors?.[name]?.[0];
+  return (
+    <div>
+      <label htmlFor={id} className="block text-sm font-medium text-foreground">
+        {label}
+      </label>
+      <textarea
+        id={id}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        disabled={pending}
+        aria-invalid={message ? true : undefined}
+        aria-describedby={message ? `${id}-error` : undefined}
+        className={`${textareaClass} mt-1 ${message ? errorInputClass : ""}`}
+      />
+      {message && (
+        <p id={`${id}-error`} className="mt-1 text-xs text-destructive">
+          {message}
+        </p>
+      )}
+    </div>
+  );
+}
+
 export function PatientHistoryForm({
   patientId,
   initialHistory,
@@ -275,38 +317,6 @@ export function PatientHistoryForm({
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string[]> | null>(null);
-
-  function fieldMessage(name: string): string | undefined {
-    return fieldErrors?.[name]?.[0];
-  }
-
-  // Nested so it closes over `pending`/`fieldErrors` instead of needing
-  // them re-passed at every one of the ~44 call sites below.
-  function TextField({ name, label, value, onChange }: { name: string; label: string; value: string; onChange: (value: string) => void }) {
-    const id = fieldId(name);
-    const message = fieldMessage(name);
-    return (
-      <div>
-        <label htmlFor={id} className="block text-sm font-medium text-foreground">
-          {label}
-        </label>
-        <textarea
-          id={id}
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
-          disabled={pending}
-          aria-invalid={message ? true : undefined}
-          aria-describedby={message ? `${id}-error` : undefined}
-          className={`${textareaClass} mt-1 ${message ? errorInputClass : ""}`}
-        />
-        {message && (
-          <p id={`${id}-error`} className="mt-1 text-xs text-destructive">
-            {message}
-          </p>
-        )}
-      </div>
-    );
-  }
 
   function startEdit() {
     setError(null);
@@ -485,7 +495,8 @@ export function PatientHistoryForm({
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
+    <FormErrorContext.Provider value={{ fieldErrors, pending }}>
+      <form onSubmit={handleSubmit} className="space-y-6">
       <Card>
         <CardHeader>
           <CardTitle>History</CardTitle>
@@ -830,5 +841,6 @@ export function PatientHistoryForm({
         </Button>
       </div>
     </form>
+  </FormErrorContext.Provider>
   );
 }

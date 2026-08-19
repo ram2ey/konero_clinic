@@ -2,7 +2,7 @@
 
 import { Plus, Trash2 } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useState, type FormEvent, type ReactNode } from "react";
+import { createContext, useContext, useState, type FormEvent, type ReactNode } from "react";
 
 import type { Icd11Match } from "@/actions/search-icd11";
 import { recordConsultation, type RecordConsultationInput } from "@/actions/record-consultation";
@@ -242,6 +242,91 @@ function Section({
   );
 }
 
+const FormErrorContext = createContext<{
+  fieldErrors: Record<string, string[]> | null;
+  pending: boolean;
+}>({ fieldErrors: null, pending: false });
+
+function TextField({
+  name,
+  label,
+  value,
+  onChange,
+}: {
+  name: string;
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+}) {
+  const { fieldErrors, pending } = useContext(FormErrorContext);
+  const id = fieldId(name);
+  const message = fieldErrors?.[name]?.[0];
+  return (
+    <div>
+      <label htmlFor={id} className="block text-sm font-medium text-foreground">
+        {label}
+      </label>
+      <textarea
+        id={id}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        disabled={pending}
+        aria-invalid={message ? true : undefined}
+        aria-describedby={message ? `${id}-error` : undefined}
+        className={`${textareaClass} mt-1 ${message ? errorInputClass : ""}`}
+      />
+      {message && (
+        <p id={`${id}-error`} className="mt-1 text-xs text-destructive">
+          {message}
+        </p>
+      )}
+    </div>
+  );
+}
+
+function InputField({
+  name,
+  label,
+  type = "text",
+  step,
+  value,
+  onChange,
+}: {
+  name: string;
+  label: string;
+  type?: string;
+  step?: string;
+  value: string;
+  onChange: (value: string) => void;
+}) {
+  const { fieldErrors, pending } = useContext(FormErrorContext);
+  const id = fieldId(name);
+  const message = fieldErrors?.[name]?.[0];
+  return (
+    <div>
+      <label htmlFor={id} className="block text-sm font-medium text-foreground">
+        {label}
+      </label>
+      <input
+        id={id}
+        type={type}
+        step={step}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        disabled={pending}
+        aria-invalid={message ? true : undefined}
+        aria-describedby={message ? `${id}-error` : undefined}
+        className={`${inputClass} mt-1 ${message ? errorInputClass : ""}`}
+      />
+      {message && (
+        <p id={`${id}-error`} className="mt-1 text-xs text-destructive">
+          {message}
+        </p>
+      )}
+    </div>
+  );
+}
+
 export function RecordConsultationForm({
   patientId,
   suggestedVisitType,
@@ -260,80 +345,6 @@ export function RecordConsultationForm({
   const [error, setError] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string[]> | null>(null);
   const [openSections, setOpenSections] = useState<string[]>([]);
-
-  function fieldMessage(name: string): string | undefined {
-    return fieldErrors?.[name]?.[0];
-  }
-
-  // Nested so both close over `pending`/`fieldErrors` instead of needing
-  // them re-passed at every one of the ~90 call sites below.
-  function TextField({ name, label, value, onChange }: { name: string; label: string; value: string; onChange: (value: string) => void }) {
-    const id = fieldId(name);
-    const message = fieldMessage(name);
-    return (
-      <div>
-        <label htmlFor={id} className="block text-sm font-medium text-foreground">
-          {label}
-        </label>
-        <textarea
-          id={id}
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
-          disabled={pending}
-          aria-invalid={message ? true : undefined}
-          aria-describedby={message ? `${id}-error` : undefined}
-          className={`${textareaClass} mt-1 ${message ? errorInputClass : ""}`}
-        />
-        {message && (
-          <p id={`${id}-error`} className="mt-1 text-xs text-destructive">
-            {message}
-          </p>
-        )}
-      </div>
-    );
-  }
-
-  function InputField({
-    name,
-    label,
-    type = "text",
-    step,
-    value,
-    onChange,
-  }: {
-    name: string;
-    label: string;
-    type?: string;
-    step?: string;
-    value: string;
-    onChange: (value: string) => void;
-  }) {
-    const id = fieldId(name);
-    const message = fieldMessage(name);
-    return (
-      <div>
-        <label htmlFor={id} className="block text-sm font-medium text-foreground">
-          {label}
-        </label>
-        <input
-          id={id}
-          type={type}
-          step={step}
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
-          disabled={pending}
-          aria-invalid={message ? true : undefined}
-          aria-describedby={message ? `${id}-error` : undefined}
-          className={`${inputClass} mt-1 ${message ? errorInputClass : ""}`}
-        />
-        {message && (
-          <p id={`${id}-error`} className="mt-1 text-xs text-destructive">
-            {message}
-          </p>
-        )}
-      </div>
-    );
-  }
 
   function set<K extends keyof FormState>(key: K, value: FormState[K]) {
     setForm((prev) => ({ ...prev, [key]: value }));
@@ -574,7 +585,8 @@ export function RecordConsultationForm({
         </div>
       </header>
 
-      <form onSubmit={handleSubmit} className="space-y-6">
+      <FormErrorContext.Provider value={{ fieldErrors, pending }}>
+        <form onSubmit={handleSubmit} className="space-y-6">
         <Card className="py-0">
           <Accordion type="multiple" value={openSections} onValueChange={setOpenSections}>
             <Section value="vitals" title="Vitals" optional filled={sectionHasContent.vitals}>
@@ -959,12 +971,13 @@ export function RecordConsultationForm({
           </div>
         )}
 
-        <div className="flex justify-end gap-3">
-          <Button type="submit" disabled={pending}>
-            {pending ? "Saving…" : "Save consultation"}
-          </Button>
-        </div>
-      </form>
+          <div className="flex justify-end gap-3">
+            <Button type="submit" disabled={pending}>
+              {pending ? "Saving…" : "Save consultation"}
+            </Button>
+          </div>
+        </form>
+      </FormErrorContext.Provider>
     </main>
   );
 }
