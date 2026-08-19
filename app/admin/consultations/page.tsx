@@ -50,13 +50,10 @@ export default async function ConsultationsPage({
       {/* Header Banner */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <div className="inline-flex items-center gap-2 rounded-full border border-violet-500/20 bg-violet-500/10 px-2.5 py-0.5 text-xs font-semibold text-violet-700 dark:text-violet-300 mb-1.5">
-            <span>Dr. Alex Vico-Korda Practice</span>
-          </div>
           <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-foreground">
             Patient Consultations
           </h1>
-          <p className="text-xs sm:text-sm text-muted-foreground">
+          <p className="text-xs sm:text-sm text-muted-foreground mt-1">
             {items.length} patient records. Select a patient to record a clinical consultation or review records.
           </p>
         </div>

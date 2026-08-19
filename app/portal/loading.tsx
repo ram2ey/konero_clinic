@@ -8,7 +8,6 @@ export default function PatientPortalLoading() {
       <div className="rounded-2xl border border-border/80 bg-card p-6 sm:p-7 shadow-xs">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="space-y-2">
-            <Skeleton className="h-5 w-36 rounded-full" />
             <Skeleton className="h-8 w-64 rounded-lg" />
             <Skeleton className="h-4 w-80 rounded-md" />
           </div>

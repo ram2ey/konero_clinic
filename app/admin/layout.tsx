@@ -107,9 +107,10 @@ export default async function AdminLayout({ children }: { children: React.ReactN
             </div>
           </div>
 
-          <div className="hidden sm:flex items-center gap-2 rounded-full border border-violet-500/20 bg-violet-500/10 px-2.5 py-1 text-[11px] font-medium text-violet-700 dark:text-violet-300">
-            <ShieldCheck className="size-3.5 text-violet-600 dark:text-violet-400" />
-            <span>Doctor Admin Access</span>
+          <div className="flex items-center gap-2">
+            <span className="rounded-full border border-violet-500/25 bg-violet-500/10 px-2.5 py-0.5 text-xs font-semibold text-violet-700 dark:text-violet-300">
+              Doctor / Admin
+            </span>
           </div>
         </header>
         <div className="flex-1 overflow-auto">

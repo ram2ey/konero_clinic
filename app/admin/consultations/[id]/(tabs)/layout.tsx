@@ -48,9 +48,6 @@ export default async function PatientFolderLayout({
   return (
     <main className="mx-auto max-w-6xl space-y-6 px-4 py-6 sm:px-6 sm:py-8 lg:px-8">
       <div>
-        <div className="inline-flex items-center gap-2 rounded-full border border-violet-500/20 bg-violet-500/10 px-2.5 py-0.5 text-xs font-semibold text-violet-700 dark:text-violet-300 mb-1.5">
-          <span>Dr. Alex Vico-Korda Practice &bull; Clinical Record</span>
-        </div>
         <Suspense fallback={<PatientHeadingSkeleton />}>
           <PatientHeading patientId={patientId} />
         </Suspense>

@@ -10,9 +10,6 @@ export default function AdminDashboardPage() {
       <div className="relative overflow-hidden rounded-2xl border border-border/80 bg-gradient-to-r from-card via-card to-violet-500/5 p-6 sm:p-7 shadow-xs">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="space-y-1">
-            <div className="inline-flex items-center gap-2 rounded-full border border-violet-500/20 bg-violet-500/10 px-2.5 py-0.5 text-xs font-semibold text-violet-700 dark:text-violet-300">
-              <span>Dr. Alex Vico-Korda Practice</span>
-            </div>
             <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-foreground">
               Clinical Administration &amp; Insights
             </h1>

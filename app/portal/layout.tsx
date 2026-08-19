@@ -122,9 +122,10 @@ export default async function PortalLayout({ children }: { children: React.React
             </div>
           </div>
 
-          <div className="hidden sm:flex items-center gap-2 rounded-full border border-emerald-500/20 bg-emerald-500/10 px-2.5 py-1 text-[11px] font-medium text-emerald-700 dark:text-emerald-300">
-            <span className="size-1.5 rounded-full bg-emerald-500 animate-pulse-subtle" />
-            <span>Secure Patient Portal</span>
+          <div className="flex items-center gap-2">
+            <span className="rounded-full border border-primary/20 bg-primary/10 px-2.5 py-0.5 text-xs font-semibold text-primary">
+              Patient
+            </span>
           </div>
         </header>
         <div className="flex-1 overflow-auto">

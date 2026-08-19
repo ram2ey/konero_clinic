@@ -38,9 +38,6 @@ export default async function PatientPortalPage() {
       <div className="relative overflow-hidden rounded-2xl border border-border/80 bg-gradient-to-r from-card via-card to-primary/5 p-6 sm:p-7 shadow-xs">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="space-y-1">
-            <div className="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/10 px-2.5 py-0.5 text-xs font-semibold text-primary">
-              <span>Dr. Alex Vico-Korda Practice</span>
-            </div>
             <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-foreground">
               Patient Health Portal
             </h1>

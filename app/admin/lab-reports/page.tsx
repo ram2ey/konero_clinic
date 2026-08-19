@@ -36,13 +36,10 @@ export default async function LabReportsPage() {
     <main className="mx-auto max-w-6xl space-y-6 px-4 py-6 sm:px-6 sm:py-8 lg:px-8">
       {/* Header Banner */}
       <div>
-        <div className="inline-flex items-center gap-2 rounded-full border border-violet-500/20 bg-violet-500/10 px-2.5 py-0.5 text-xs font-semibold text-violet-700 dark:text-violet-300 mb-1.5">
-          <span>Dr. Alex Vico-Korda Practice</span>
-        </div>
         <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-foreground">
           Diagnostic Lab Reports
         </h1>
-        <p className="text-xs sm:text-sm text-muted-foreground">
+        <p className="text-xs sm:text-sm text-muted-foreground mt-1">
           {items.length} diagnostic test report{items.length === 1 ? "" : "s"} uploaded across all clinical patients.
         </p>
       </div>
