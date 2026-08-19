@@ -31,17 +31,14 @@ export default async function PatientPortalPage() {
         </p>
       </header>
 
-      <div className="grid gap-6 lg:grid-cols-3">
-        <div className="lg:col-span-1">
-          <Suspense fallback={<BioDataCardSkeleton />}>
-            <BioDataCard patientId={patientId} />
-          </Suspense>
-        </div>
-        <div id="financials" className="scroll-mt-20 lg:col-span-2">
-          <Suspense fallback={<InvoicesSummarySkeleton />}>
-            <InvoicesSummary patientId={patientId} />
-          </Suspense>
-        </div>
+      <Suspense fallback={<BioDataCardSkeleton />}>
+        <BioDataCard patientId={patientId} />
+      </Suspense>
+
+      <div id="financials" className="scroll-mt-20">
+        <Suspense fallback={<InvoicesSummarySkeleton />}>
+          <InvoicesSummary patientId={patientId} />
+        </Suspense>
       </div>
 
       <div className="grid gap-6 lg:grid-cols-2">

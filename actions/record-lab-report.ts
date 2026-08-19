@@ -71,7 +71,7 @@ export async function recordLabReport(input: RecordLabReportInput): Promise<Acti
       return { status: "error", message };
     }
 
-    revalidatePath(`/admin/patients/${patientId}`);
+    revalidatePath(`/admin/consultations/${patientId}`);
     revalidatePath("/portal");
 
     return { status: "success", message: "Lab report saved." };

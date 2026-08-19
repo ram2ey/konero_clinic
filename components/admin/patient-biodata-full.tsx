@@ -2,24 +2,28 @@ import {
   Briefcase,
   CalendarDays,
   Church,
+  FileText,
   Globe,
   GraduationCap,
   Heart,
   IdCard,
   MapPin,
   Phone,
+  Send,
   User,
   Users,
   UsersRound,
   VenusAndMars,
 } from "lucide-react";
 
+import { FieldRow } from "@/components/field-row";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
-import { FieldRow } from "@/components/field-row";
 import { calculateAge, formatDate, formatMedicalId, humanizeEnum } from "@/lib/format";
 import { createClient } from "@/lib/supabase/server";
+
+import { InformantReliabilityBadge } from "@/components/portal/status-badge";
 
 type Profile = {
   full_name: string | null;
@@ -37,10 +41,15 @@ type Profile = {
   next_of_kin_name: string | null;
   next_of_kin_relationship: string | null;
   next_of_kin_contact: string | null;
+  informant_name: string | null;
+  informant_relationship: string | null;
+  informant_reliability: "reliable" | "partially_reliable" | "unreliable" | null;
+  referral_source: string | null;
+  referral_reason: string | null;
 };
 
 const PROFILE_COLUMNS =
-  "full_name, phone, dob, sex, gender_identity, marital_status, occupation, education_level, religion, ethnicity, nationality, residence, next_of_kin_name, next_of_kin_relationship, next_of_kin_contact";
+  "full_name, phone, dob, sex, gender_identity, marital_status, occupation, education_level, religion, ethnicity, nationality, residence, next_of_kin_name, next_of_kin_relationship, next_of_kin_contact, informant_name, informant_relationship, informant_reliability, referral_source, referral_reason";
 
 function nextOfKinValue(profile: Profile | null): string {
   if (!profile?.next_of_kin_name) return "Not on file";
@@ -50,7 +59,20 @@ function nextOfKinValue(profile: Profile | null): string {
   return profile.next_of_kin_contact ? `${line} · ${profile.next_of_kin_contact}` : line;
 }
 
-export async function BioDataCard({ patientId }: { patientId: string }) {
+function informantValue(profile: Profile | null): string {
+  if (!profile?.informant_name) return "Not on file";
+  return profile.informant_relationship
+    ? `${profile.informant_name} (${profile.informant_relationship})`
+    : profile.informant_name;
+}
+
+/**
+ * Admin-only counterpart to components/portal/bio-data-card.tsx — includes
+ * everything that one intentionally omits (informant details, referral
+ * reason). Those are clinical intake judgments about the visit, not the
+ * patient's own core data, so they're kept out of the patient-facing view.
+ */
+export async function PatientBiodataFull({ patientId }: { patientId: string }) {
   const supabase = await createClient();
 
   const { data: profile } = await supabase
@@ -85,14 +107,35 @@ export async function BioDataCard({ patientId }: { patientId: string }) {
 
         <div className="sm:col-span-2">
           <Separator className="mb-4" />
-          <FieldRow icon={UsersRound} label="Next of kin" value={nextOfKinValue(profile)} />
+          <p className="mb-3 text-xs font-medium tracking-wide text-muted-foreground uppercase">Next of kin</p>
+          <FieldRow icon={UsersRound} label="Contact" value={nextOfKinValue(profile)} />
+        </div>
+
+        <div className="sm:col-span-2">
+          <Separator className="mb-4" />
+          <p className="mb-3 text-xs font-medium tracking-wide text-muted-foreground uppercase">Informant</p>
+          <div className="flex items-start justify-between gap-3">
+            <FieldRow icon={User} label="Informant" value={informantValue(profile)} />
+            {profile?.informant_reliability && (
+              <InformantReliabilityBadge reliability={profile.informant_reliability} />
+            )}
+          </div>
+        </div>
+
+        <div className="sm:col-span-2">
+          <Separator className="mb-4" />
+          <p className="mb-3 text-xs font-medium tracking-wide text-muted-foreground uppercase">Referral</p>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <FieldRow icon={Send} label="Referral source" value={profile?.referral_source ?? "Not on file"} />
+            <FieldRow icon={FileText} label="Reason for referral" value={profile?.referral_reason ?? "Not on file"} />
+          </div>
         </div>
       </CardContent>
     </Card>
   );
 }
 
-export function BioDataCardSkeleton() {
+export function PatientBiodataFullSkeleton() {
   return (
     <Card>
       <CardHeader>

@@ -13,14 +13,8 @@ export default function PatientPortalLoading() {
         <Skeleton className="h-4 w-80" />
       </header>
 
-      <div className="grid gap-6 lg:grid-cols-3">
-        <div className="lg:col-span-1">
-          <BioDataCardSkeleton />
-        </div>
-        <div className="lg:col-span-2">
-          <InvoicesSummarySkeleton />
-        </div>
-      </div>
+      <BioDataCardSkeleton />
+      <InvoicesSummarySkeleton />
 
       <div className="grid gap-6 lg:grid-cols-2">
         <MedicationsListSkeleton />

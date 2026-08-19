@@ -9,7 +9,10 @@ import { requireAdmin } from "@/lib/require-admin";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { zodFieldErrors } from "@/lib/zod-field-errors";
 
-const GENDERS = ["male", "female", "other", "prefer_not_to_say"] as const;
+const SEXES = ["male", "female", "intersex"] as const;
+const GENDER_IDENTITIES = ["male", "female", "other", "prefer_not_to_say"] as const;
+const MARITAL_STATUSES = ["single", "married", "divorced", "widowed", "separated", "other"] as const;
+const INFORMANT_RELIABILITIES = ["reliable", "partially_reliable", "unreliable"] as const;
 
 function isPastDate(value: string) {
   const date = new Date(`${value}T00:00:00.000Z`);
@@ -18,7 +21,24 @@ function isPastDate(value: string) {
   return date.getUTCFullYear() >= 1900;
 }
 
+// FormData yields "" for a blank text input and null for a missing key —
+// both mean "not provided" for an optional field, not "explicitly empty".
+function optionalText(max: number) {
+  return z.preprocess(
+    (val) => (typeof val === "string" && val.trim() === "" ? undefined : val),
+    z.string().trim().max(max).optional(),
+  );
+}
+
+function optionalEnum<T extends readonly [string, ...string[]]>(values: T) {
+  return z.preprocess(
+    (val) => (val === "" || val === null ? undefined : val),
+    z.enum(values).optional(),
+  );
+}
+
 const registerPatientSchema = z.object({
+  // Core identity — required to send an invite at all.
   fullName: z.string().trim().min(2, "Enter the patient's full name.").max(200),
   email: z.string().trim().toLowerCase().email("Enter a valid email address."),
   phone: z
@@ -29,7 +49,26 @@ const registerPatientSchema = z.object({
     .string()
     .regex(/^\d{4}-\d{2}-\d{2}$/, "Date of birth must be in YYYY-MM-DD format.")
     .refine(isPastDate, "Enter a valid date of birth."),
-  gender: z.enum(GENDERS, { message: "Select a gender." }),
+  sex: z.enum(SEXES, { message: "Select a sex." }),
+
+  // Everything below is intake detail that often isn't known until the
+  // actual assessment — optional at registration, fillable later.
+  genderIdentity: optionalEnum(GENDER_IDENTITIES),
+  maritalStatus: optionalEnum(MARITAL_STATUSES),
+  occupation: optionalText(200),
+  educationLevel: optionalText(200),
+  religion: optionalText(200),
+  ethnicity: optionalText(200),
+  nationality: optionalText(200),
+  residence: optionalText(500),
+  nextOfKinName: optionalText(200),
+  nextOfKinRelationship: optionalText(200),
+  nextOfKinContact: optionalText(200),
+  informantName: optionalText(200),
+  informantRelationship: optionalText(200),
+  informantReliability: optionalEnum(INFORMANT_RELIABILITIES),
+  referralSource: optionalText(200),
+  referralReason: optionalText(1000),
 });
 
 /**
@@ -55,13 +94,7 @@ export async function registerPatient(
       return { status: "error", message: admin.message };
     }
 
-    const parsed = registerPatientSchema.safeParse({
-      fullName: formData.get("fullName"),
-      email: formData.get("email"),
-      phone: formData.get("phone"),
-      dob: formData.get("dob"),
-      gender: formData.get("gender"),
-    });
+    const parsed = registerPatientSchema.safeParse(Object.fromEntries(formData));
 
     if (!parsed.success) {
       return {
@@ -71,7 +104,7 @@ export async function registerPatient(
       };
     }
 
-    const { fullName, email, phone, dob, gender } = parsed.data;
+    const { fullName, email, phone, dob, ...rest } = parsed.data;
 
     const supabaseAdmin = createAdminClient();
 
@@ -128,7 +161,23 @@ export async function registerPatient(
       full_name: fullName,
       phone,
       dob,
-      gender,
+      sex: rest.sex,
+      gender_identity: rest.genderIdentity,
+      marital_status: rest.maritalStatus,
+      occupation: rest.occupation,
+      education_level: rest.educationLevel,
+      religion: rest.religion,
+      ethnicity: rest.ethnicity,
+      nationality: rest.nationality,
+      residence: rest.residence,
+      next_of_kin_name: rest.nextOfKinName,
+      next_of_kin_relationship: rest.nextOfKinRelationship,
+      next_of_kin_contact: rest.nextOfKinContact,
+      informant_name: rest.informantName,
+      informant_relationship: rest.informantRelationship,
+      informant_reliability: rest.informantReliability,
+      referral_source: rest.referralSource,
+      referral_reason: rest.referralReason,
     });
 
     if (profileError) {
@@ -157,7 +206,7 @@ export async function registerPatient(
       return { status: "error", message };
     }
 
-    revalidatePath("/admin/patients");
+    revalidatePath("/admin/consultations");
 
     return { status: "success", message: `Invite sent to ${email}.` };
   } catch (error) {

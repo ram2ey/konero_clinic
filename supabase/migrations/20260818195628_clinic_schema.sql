@@ -434,9 +434,13 @@ insert into storage.buckets (id, name, public)
 values ('lab-documents', 'lab-documents', false)
 on conflict (id) do nothing;
 
--- storage.objects ships with RLS enabled by default in Supabase; this is
--- just a safety net in case the project ever disabled it.
-alter table storage.objects enable row level security;
+-- No `alter table storage.objects enable row level security` here: on
+-- hosted Supabase that table is owned by `supabase_storage_admin`, not
+-- the `postgres` role the SQL Editor runs as, so this statement fails
+-- with "must be owner of table objects" even though the intent (RLS
+-- enabled) is already satisfied — storage.objects ships with RLS on by
+-- default on every Supabase project, and this role has enough privilege
+-- to create policies on it even without owning it.
 
 drop policy if exists "lab_documents_admin_select" on storage.objects;
 create policy "lab_documents_admin_select" on storage.objects

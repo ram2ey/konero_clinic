@@ -17,6 +17,16 @@ export function formatDate(value: string): string {
   });
 }
 
+export function formatDateTime(value: string): string {
+  return new Date(value).toLocaleString(undefined, {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  });
+}
+
 // Adjust to the clinic's actual billing currency.
 const CURRENCY = "USD";
 
@@ -31,4 +41,11 @@ export function formatCurrency(amount: number): string {
  */
 export function formatMedicalId(profileId: string): string {
   return `MRN-${profileId.slice(0, 8).toUpperCase()}`;
+}
+
+/** "partially_reliable" -> "Partially reliable". For displaying enum/db values. */
+export function humanizeEnum(value: string | null | undefined): string {
+  if (!value) return "Not on file";
+  const spaced = value.replace(/_/g, " ");
+  return spaced.charAt(0).toUpperCase() + spaced.slice(1);
 }

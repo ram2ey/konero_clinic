@@ -44,3 +44,25 @@ export function InvoiceStatusBadge({ status }: { status: InvoiceStatus }) {
     </Badge>
   );
 }
+
+type InformantReliability = "reliable" | "partially_reliable" | "unreliable";
+
+const INFORMANT_RELIABILITY_STYLES: Record<InformantReliability, string> = {
+  reliable: "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-900 dark:bg-emerald-950 dark:text-emerald-400",
+  partially_reliable: "border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-900 dark:bg-amber-950 dark:text-amber-400",
+  unreliable: "border-red-200 bg-red-50 text-red-700 dark:border-red-900 dark:bg-red-950 dark:text-red-400",
+};
+
+const INFORMANT_RELIABILITY_LABEL: Record<InformantReliability, string> = {
+  reliable: "Reliable",
+  partially_reliable: "Partially reliable",
+  unreliable: "Unreliable",
+};
+
+export function InformantReliabilityBadge({ reliability }: { reliability: InformantReliability }) {
+  return (
+    <Badge variant="outline" className={INFORMANT_RELIABILITY_STYLES[reliability]}>
+      {INFORMANT_RELIABILITY_LABEL[reliability]}
+    </Badge>
+  );
+}
