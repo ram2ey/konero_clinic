@@ -35,15 +35,20 @@ function growthTrend(rows: { created_at: string }[]) {
 export async function OverviewStats() {
   const supabase = await createClient();
 
-  const [patientsResult, consultationsResult, invoicesResult] = await Promise.all([
-    supabase.from("profiles").select("created_at").eq("role", "patient"),
-    supabase.from("consultations").select("created_at"),
-    supabase.from("invoices").select("amount, status").in("status", ["pending", "overdue"]),
-  ]);
+  const [patientsResult, consultationsResult, invoicesResult, diagnosesResult, prescriptionsResult] =
+    await Promise.all([
+      supabase.from("profiles").select("created_at").eq("role", "patient"),
+      supabase.from("consultations").select("created_at"),
+      supabase.from("invoices").select("amount, status").in("status", ["pending", "overdue"]),
+      supabase.from("diagnoses").select("id", { count: "exact", head: true }).eq("status", "active"),
+      supabase.from("prescriptions").select("id", { count: "exact", head: true }).eq("status", "active"),
+    ]);
 
   const patients = patientsResult.data ?? [];
   const consultations = consultationsResult.data ?? [];
   const invoices = invoicesResult.data ?? [];
+  const activeDiagnoses = diagnosesResult.count ?? 0;
+  const activePrescriptions = prescriptionsResult.count ?? 0;
 
   const pendingAmount = invoices.filter((i) => i.status === "pending").reduce((sum, i) => sum + i.amount, 0);
   const overdueAmount = invoices.filter((i) => i.status === "overdue").reduce((sum, i) => sum + i.amount, 0);
@@ -54,7 +59,7 @@ export async function OverviewStats() {
         <CardTitle>At a glance</CardTitle>
       </CardHeader>
       <CardContent>
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
           <StatTile
             label="Patients on record"
             value={String(patients.length)}
@@ -67,6 +72,8 @@ export async function OverviewStats() {
           />
           <StatTile label="Pending balance" value={formatCurrency(pendingAmount)} />
           <StatTile label="Overdue balance" value={formatCurrency(overdueAmount)} />
+          <StatTile label="Active diagnoses" value={String(activeDiagnoses)} />
+          <StatTile label="Active prescriptions" value={String(activePrescriptions)} />
         </div>
       </CardContent>
     </Card>
@@ -80,8 +87,8 @@ export function OverviewStatsSkeleton() {
         <CardTitle>At a glance</CardTitle>
       </CardHeader>
       <CardContent>
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          {Array.from({ length: 4 }).map((_, i) => (
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {Array.from({ length: 6 }).map((_, i) => (
             <Skeleton key={i} className="h-16 rounded-lg" />
           ))}
         </div>

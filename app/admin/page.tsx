@@ -1,6 +1,7 @@
 import { Suspense } from "react";
 
 import { OverviewStats, OverviewStatsSkeleton } from "@/components/admin/dashboard/overview-stats";
+import { RecentActivity, RecentActivitySkeleton } from "@/components/admin/dashboard/recent-activity";
 
 export default function AdminDashboardPage() {
   return (
@@ -12,6 +13,10 @@ export default function AdminDashboardPage() {
 
       <Suspense fallback={<OverviewStatsSkeleton />}>
         <OverviewStats />
+      </Suspense>
+
+      <Suspense fallback={<RecentActivitySkeleton />}>
+        <RecentActivity />
       </Suspense>
     </main>
   );
