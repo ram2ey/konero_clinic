@@ -9,6 +9,8 @@ import { recordConsultation, type RecordConsultationInput } from "@/actions/reco
 import { Icd11Combobox } from "@/components/admin/icd11-combobox";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { errorInputClass, inputClass, orUndefined, selectClass, textareaClass } from "@/lib/form-ui";
+import { createNestedFieldSetter } from "@/lib/nested-field";
 
 const RECORD_STATUSES = [
   { value: "active", label: "Active" },
@@ -142,21 +144,6 @@ const EMPTY_FORM: FormState = {
   invoiceDescription: "",
 };
 
-const inputClass = "w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground";
-// For a <select> that sits next to a flex-1 growing input: `w-full`
-// alone (no flex-basis override) makes an unconstrained flex child claim
-// 100% of the row as its flex-basis, which starves the actual growing
-// sibling down to near-zero width during flex-shrink. `shrink-0` keeps
-// it sized to its content instead.
-const selectClass = "shrink-0 rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground";
-const textareaClass = `${inputClass} min-h-24`;
-const errorInputClass = "border-destructive focus-visible:ring-destructive/40";
-
-function orUndefined(value: string): string | undefined {
-  const trimmed = value.trim();
-  return trimmed.length > 0 ? trimmed : undefined;
-}
-
 // Every field below is named after the exact Zod path the server
 // returns in fieldErrors (see actions/record-consultation.ts and
 // lib/zod-field-errors.ts) — "field-<path>" is that field's DOM id, so
@@ -284,12 +271,8 @@ export default function RecordConsultationPage() {
   function setMseField<K extends keyof MseState>(key: K, value: MseState[K]) {
     setMse((prev) => ({ ...prev, [key]: value }));
   }
-  function setThought<K extends keyof ThoughtState>(key: K, value: string) {
-    setMse((prev) => ({ ...prev, thought: { ...prev.thought, [key]: value } }));
-  }
-  function setCognition<K extends keyof CognitionState>(key: K, value: string) {
-    setMse((prev) => ({ ...prev, cognition: { ...prev.cognition, [key]: value } }));
-  }
+  const setThought = createNestedFieldSetter(setMse, "thought");
+  const setCognition = createNestedFieldSetter(setMse, "cognition");
 
   function addDiagnosis() {
     setDiagnoses((prev) => [...prev, { condition: "", status: "active" }]);
@@ -664,6 +647,7 @@ export default function RecordConsultationPage() {
               <div key={i} className="flex items-start gap-2">
                 <div className="flex min-w-0 flex-1 items-start gap-2">
                   <Icd11Combobox
+                    ariaLabel="Diagnosis"
                     value={row.condition}
                     onTextChange={(v) => updateDiagnosis(i, { condition: v, icd11Code: undefined, icd11Uri: undefined })}
                     onSelect={(match: Icd11Match) =>

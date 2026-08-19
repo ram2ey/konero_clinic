@@ -155,7 +155,12 @@ export async function registerPatient(
       };
     }
 
-    const { error: profileError } = await supabaseAdmin.from("profiles").insert({
+    // Session client, not supabaseAdmin — profiles_admin_insert (`with
+    // check (public.is_admin())`) already permits this for the caller
+    // requireAdmin() just verified, and routing it through RLS here
+    // keeps that policy a real second checkpoint instead of only ever
+    // being exercised by requests that skip requireAdmin() entirely.
+    const { error: profileError } = await admin.supabase.from("profiles").insert({
       id: newUser.id,
       role: "patient",
       full_name: fullName,

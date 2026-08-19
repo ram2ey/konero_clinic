@@ -1,8 +1,8 @@
-import { FileText, LayoutDashboard, LogOut, Pill, Receipt, Stethoscope } from "lucide-react";
+import { LogOut } from "lucide-react";
 import { redirect } from "next/navigation";
-import type { ComponentType } from "react";
 
 import { signOut } from "@/actions/sign-out";
+import { PortalNav } from "@/components/portal/portal-nav";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import {
@@ -13,21 +13,10 @@ import {
   SidebarGroupContent,
   SidebarHeader,
   SidebarInset,
-  SidebarMenu,
-  SidebarMenuButton,
-  SidebarMenuItem,
   SidebarProvider,
   SidebarTrigger,
 } from "@/components/ui/sidebar";
 import { createClient } from "@/lib/supabase/server";
-
-const NAV_ITEMS: { href: string; label: string; icon: ComponentType<{ className?: string }> }[] = [
-  { href: "#overview", label: "Overview", icon: LayoutDashboard },
-  { href: "#medications", label: "Medications", icon: Pill },
-  { href: "#diagnoses", label: "Diagnoses", icon: Stethoscope },
-  { href: "#financials", label: "Financials", icon: Receipt },
-  { href: "#lab-reports", label: "Lab Reports", icon: FileText },
-];
 
 function initials(name: string | null) {
   if (!name) return "?";
@@ -72,18 +61,7 @@ export default async function PortalLayout({ children }: { children: React.React
         <SidebarContent>
           <SidebarGroup>
             <SidebarGroupContent>
-              <SidebarMenu>
-                {NAV_ITEMS.map((item) => (
-                  <SidebarMenuItem key={item.href}>
-                    <SidebarMenuButton asChild tooltip={item.label}>
-                      <a href={item.href}>
-                        <item.icon />
-                        <span>{item.label}</span>
-                      </a>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                ))}
-              </SidebarMenu>
+              <PortalNav />
             </SidebarGroupContent>
           </SidebarGroup>
         </SidebarContent>

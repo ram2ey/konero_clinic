@@ -15,12 +15,14 @@ export function Icd11Combobox({
   onTextChange,
   disabled,
   placeholder,
+  ariaLabel,
 }: {
   value: string;
   onSelect: (match: Icd11Match) => void;
   onTextChange: (value: string) => void;
   disabled?: boolean;
   placeholder?: string;
+  ariaLabel?: string;
 }) {
   const [results, setResults] = useState<Icd11Match[]>([]);
   const [open, setOpen] = useState(false);
@@ -163,6 +165,7 @@ export function Icd11Combobox({
         <input
           type="text"
           role="combobox"
+          aria-label={ariaLabel}
           aria-expanded={open}
           aria-controls={listboxId}
           aria-autocomplete="list"

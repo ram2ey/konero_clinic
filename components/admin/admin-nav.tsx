@@ -5,7 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { ComponentType } from "react";
 
-import { SidebarMenu, SidebarMenuButton, SidebarMenuItem } from "@/components/ui/sidebar";
+import { SidebarMenu, SidebarMenuButton, SidebarMenuItem, useSidebar } from "@/components/ui/sidebar";
 
 const NAV_ITEMS: { href: string; label: string; icon: ComponentType<{ className?: string }> }[] = [
   { href: "/admin", label: "Dashboard", icon: LayoutDashboard },
@@ -17,6 +17,7 @@ const NAV_ITEMS: { href: string; label: string; icon: ComponentType<{ className?
 
 export function AdminNav() {
   const pathname = usePathname();
+  const { setOpenMobile } = useSidebar();
 
   return (
     <SidebarMenu>
@@ -29,7 +30,9 @@ export function AdminNav() {
         return (
           <SidebarMenuItem key={item.href}>
             <SidebarMenuButton asChild isActive={isActive} tooltip={item.label}>
-              <Link href={item.href}>
+              {/* Closes the mobile drawer on tap — otherwise it stays open
+                  over the destination page until manually dismissed. */}
+              <Link href={item.href} onClick={() => setOpenMobile(false)}>
                 <item.icon />
                 <span>{item.label}</span>
               </Link>

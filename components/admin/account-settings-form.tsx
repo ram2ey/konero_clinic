@@ -4,8 +4,7 @@ import { useState, type FormEvent } from "react";
 
 import { updateAccount } from "@/actions/update-account";
 import { Button } from "@/components/ui/button";
-
-const inputClass = "w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground";
+import { inputClass } from "@/lib/form-ui";
 
 export function AccountSettingsForm({
   initialFullName,

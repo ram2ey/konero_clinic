@@ -8,6 +8,7 @@ import { registerPatient } from "@/actions/register-patient";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { initialActionState } from "@/lib/action-state";
+import { inputClass } from "@/lib/form-ui";
 
 const SEXES = [
   { value: "male", label: "Male" },
@@ -61,8 +62,6 @@ function Field({
     </div>
   );
 }
-
-const inputClass = "w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground";
 
 export default function NewPatientPage() {
   const [state, formAction, pending] = useActionState(registerPatient, initialActionState);

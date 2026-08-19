@@ -6,7 +6,9 @@ import { useState, type FormEvent } from "react";
 import { savePatientHistory } from "@/actions/save-patient-history";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { errorInputClass, orUndefined, textareaClass } from "@/lib/form-ui";
 import { formatDateTime } from "@/lib/format";
+import { createNestedFieldSetter } from "@/lib/nested-field";
 
 type SystemicEnquiryState = {
   general: string;
@@ -236,15 +238,6 @@ function ViewFieldGroup<T extends Record<string, string>>({
   );
 }
 
-const inputClass = "w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground";
-const textareaClass = `${inputClass} min-h-24`;
-const errorInputClass = "border-destructive focus-visible:ring-destructive/40";
-
-function orUndefined(value: string): string | undefined {
-  const trimmed = value.trim();
-  return trimmed.length > 0 ? trimmed : undefined;
-}
-
 // Named after the exact Zod path the server returns in fieldErrors (see
 // actions/save-patient-history.ts) — "field-<path>" is the field's DOM
 // id, so a submit failure can scroll/focus straight to it.
@@ -338,21 +331,11 @@ export function PatientHistoryForm({
   function setHistoryField<K extends keyof HistoryState>(key: K, value: HistoryState[K]) {
     setHistory((prev) => ({ ...prev, [key]: value }));
   }
-  function setSystemicEnquiry<K extends keyof SystemicEnquiryState>(key: K, value: string) {
-    setHistory((prev) => ({ ...prev, systemicEnquiry: { ...prev.systemicEnquiry, [key]: value } }));
-  }
-  function setPastMedicalHistory<K extends keyof PastMedicalHistoryState>(key: K, value: string) {
-    setHistory((prev) => ({ ...prev, pastMedicalHistory: { ...prev.pastMedicalHistory, [key]: value } }));
-  }
-  function setTreatmentHistory<K extends keyof TreatmentHistoryState>(key: K, value: string) {
-    setHistory((prev) => ({ ...prev, treatmentHistory: { ...prev.treatmentHistory, [key]: value } }));
-  }
-  function setFamilyHistory<K extends keyof FamilyHistoryState>(key: K, value: string) {
-    setHistory((prev) => ({ ...prev, familyHistory: { ...prev.familyHistory, [key]: value } }));
-  }
-  function setPersonalHistory<K extends keyof PersonalHistoryState>(key: K, value: string) {
-    setHistory((prev) => ({ ...prev, personalHistory: { ...prev.personalHistory, [key]: value } }));
-  }
+  const setSystemicEnquiry = createNestedFieldSetter(setHistory, "systemicEnquiry");
+  const setPastMedicalHistory = createNestedFieldSetter(setHistory, "pastMedicalHistory");
+  const setTreatmentHistory = createNestedFieldSetter(setHistory, "treatmentHistory");
+  const setFamilyHistory = createNestedFieldSetter(setHistory, "familyHistory");
+  const setPersonalHistory = createNestedFieldSetter(setHistory, "personalHistory");
 
   async function handleSubmit(event: FormEvent) {
     event.preventDefault();
