@@ -33,43 +33,62 @@ export default async function LabReportsPage() {
   const nameById = new Map((patients ?? []).map((p) => [p.id, p.full_name ?? "Unnamed patient"]));
 
   return (
-    <main className="mx-auto max-w-6xl space-y-6 px-4 py-8 sm:px-6 lg:px-8">
-      <header>
-        <h1 className="text-2xl font-semibold tracking-tight text-foreground">Lab Reports</h1>
-        <p className="text-sm text-muted-foreground">
-          {items.length} report{items.length === 1 ? "" : "s"} across all patients, most recent first.
+    <main className="mx-auto max-w-6xl space-y-6 px-4 py-6 sm:px-6 sm:py-8 lg:px-8">
+      {/* Header Banner */}
+      <div>
+        <div className="inline-flex items-center gap-2 rounded-full border border-violet-500/20 bg-violet-500/10 px-2.5 py-0.5 text-xs font-semibold text-violet-700 dark:text-violet-300 mb-1.5">
+          <span>Dr. Alex Vico-Korda Practice</span>
+        </div>
+        <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-foreground">
+          Diagnostic Lab Reports
+        </h1>
+        <p className="text-xs sm:text-sm text-muted-foreground">
+          {items.length} diagnostic test report{items.length === 1 ? "" : "s"} uploaded across all clinical patients.
         </p>
-      </header>
+      </div>
 
-      <Card>
+      <Card className="border-border/80 shadow-xs">
         <CardContent className="pt-6">
           {items.length === 0 ? (
-            <div className="flex flex-col items-center gap-2 py-8 text-center">
-              <FileText className="size-8 text-muted-foreground/50" />
-              <p className="text-sm text-muted-foreground">No lab reports uploaded yet.</p>
+            <div className="flex flex-col items-center gap-2 py-10 text-center">
+              <div className="flex size-12 items-center justify-center rounded-full bg-muted/80 text-muted-foreground">
+                <FileText className="size-6 opacity-60" />
+              </div>
+              <p className="text-sm font-medium text-muted-foreground mt-2">No lab reports uploaded yet.</p>
             </div>
           ) : (
-            <ul className="divide-y divide-border">
+            <div className="divide-y divide-border/60 space-y-1">
               {items.map((item) => (
-                <li key={item.id} className="flex items-center justify-between gap-3 py-3 first:pt-0 last:pb-0">
-                  <div className="flex min-w-0 items-start gap-3">
-                    <FileText className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
+                <div
+                  key={item.id}
+                  className="group flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-xl p-3.5 transition-all duration-150 hover:bg-muted/50"
+                >
+                  <div className="flex min-w-0 items-start gap-3.5">
+                    <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-muted text-muted-foreground group-hover:bg-primary/10 group-hover:text-primary transition-colors mt-0.5">
+                      <FileText className="size-4" />
+                    </div>
                     <div className="min-w-0">
                       <Link
                         href={`/admin/consultations/${item.patient_id}/bio-data`}
-                        className="truncate font-medium text-foreground hover:underline"
+                        className="truncate text-sm sm:text-base font-bold text-foreground hover:text-primary transition-colors inline-block"
                       >
                         {nameById.get(item.patient_id) ?? "Unknown patient"}
                       </Link>
-                      <p className="truncate text-sm text-muted-foreground">{item.test_name}</p>
-                      {item.notes && <p className="truncate text-xs text-muted-foreground">{item.notes}</p>}
-                      <p className="text-xs text-muted-foreground">{formatDate(item.created_at)}</p>
+                      <p className="truncate text-xs sm:text-sm font-semibold text-foreground/80 mt-0.5">{item.test_name}</p>
+                      {item.notes && (
+                        <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">{item.notes}</p>
+                      )}
+                      <p className="text-[11px] text-muted-foreground mt-1 font-medium">
+                        Uploaded {formatDate(item.created_at)}
+                      </p>
                     </div>
                   </div>
-                  <LabReportDownloadButton patientId={item.patient_id} filePath={item.file_path} />
-                </li>
+                  <div className="shrink-0 self-start sm:self-center">
+                    <LabReportDownloadButton patientId={item.patient_id} filePath={item.file_path} />
+                  </div>
+                </div>
               ))}
-            </ul>
+            </div>
           )}
         </CardContent>
       </Card>

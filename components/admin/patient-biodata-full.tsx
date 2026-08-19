@@ -18,7 +18,6 @@ import {
 
 import { FieldRow } from "@/components/field-row";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import { calculateAge, formatDate, formatMedicalId, humanizeEnum } from "@/lib/format";
 import { createClient } from "@/lib/supabase/server";
@@ -81,76 +80,139 @@ export async function PatientBiodataFull({ patientId }: { patientId: string }) {
     .eq("id", patientId)
     .single<Profile>();
 
+  const ageText = profile?.dob ? `${calculateAge(profile.dob)} yrs` : null;
+
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Patient Information</CardTitle>
-      </CardHeader>
-      <CardContent className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-        <FieldRow icon={User} label="Full name" value={profile?.full_name ?? "Not on file"} />
-        <FieldRow
-          icon={CalendarDays}
-          label="Date of birth"
-          value={profile?.dob ? `${formatDate(profile.dob)} (age ${calculateAge(profile.dob)})` : "Not on file"}
-        />
-        <FieldRow icon={VenusAndMars} label="Sex" value={humanizeEnum(profile?.sex)} />
-        <FieldRow icon={UsersRound} label="Gender identity" value={humanizeEnum(profile?.gender_identity)} />
-        <FieldRow icon={Heart} label="Marital status" value={humanizeEnum(profile?.marital_status)} />
-        <FieldRow icon={Phone} label="Phone" value={profile?.phone ?? "Not on file"} />
-        <FieldRow icon={Briefcase} label="Occupation" value={profile?.occupation ?? "Not on file"} />
-        <FieldRow icon={GraduationCap} label="Highest education" value={profile?.education_level ?? "Not on file"} />
-        <FieldRow icon={Church} label="Religion / faith" value={profile?.religion ?? "Not on file"} />
-        <FieldRow icon={Users} label="Ethnicity" value={profile?.ethnicity ?? "Not on file"} />
-        <FieldRow icon={Globe} label="Nationality" value={profile?.nationality ?? "Not on file"} />
-        <FieldRow icon={MapPin} label="Place of residence" value={profile?.residence ?? "Not on file"} />
-        <FieldRow icon={IdCard} label="Medical ID" value={formatMedicalId(patientId)} />
-
-        <div className="sm:col-span-2">
-          <Separator className="mb-4" />
-          <p className="mb-3 text-xs font-medium tracking-wide text-muted-foreground uppercase">Next of kin</p>
-          <FieldRow icon={UsersRound} label="Contact" value={nextOfKinValue(profile)} />
-        </div>
-
-        <div className="sm:col-span-2">
-          <Separator className="mb-4" />
-          <p className="mb-3 text-xs font-medium tracking-wide text-muted-foreground uppercase">Informant</p>
-          <div className="flex items-start justify-between gap-3">
-            <FieldRow icon={User} label="Informant" value={informantValue(profile)} />
-            {profile?.informant_reliability && (
-              <InformantReliabilityBadge reliability={profile.informant_reliability} />
-            )}
+    <div className="space-y-6">
+      <Card className="border-border/80 shadow-xs">
+        <CardHeader className="border-b border-border/60 pb-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <div className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-primary/20 via-violet-500/15 to-primary/5 text-primary ring-1 ring-primary/25">
+                <User className="size-5" />
+              </div>
+              <div>
+                <CardTitle className="text-lg sm:text-xl font-bold text-foreground">
+                  {profile?.full_name ?? "Patient Clinical File"}
+                </CardTitle>
+                <div className="flex flex-wrap items-center gap-2 mt-1">
+                  {ageText && (
+                    <span className="inline-flex items-center rounded-md bg-muted px-2 py-0.5 text-xs font-semibold text-muted-foreground">
+                      {ageText}
+                    </span>
+                  )}
+                  {profile?.sex && (
+                    <span className="inline-flex items-center rounded-md bg-muted px-2 py-0.5 text-xs font-semibold text-muted-foreground">
+                      {humanizeEnum(profile.sex)}
+                    </span>
+                  )}
+                  <span className="inline-flex items-center gap-1.5 rounded-md border border-primary/25 bg-primary/10 px-2 py-0.5 font-mono text-xs font-semibold text-primary">
+                    <IdCard className="size-3" />
+                    {formatMedicalId(patientId)}
+                  </span>
+                </div>
+              </div>
+            </div>
           </div>
-        </div>
+        </CardHeader>
 
-        <div className="sm:col-span-2">
-          <Separator className="mb-4" />
-          <p className="mb-3 text-xs font-medium tracking-wide text-muted-foreground uppercase">Referral</p>
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <FieldRow icon={Send} label="Referral source" value={profile?.referral_source ?? "Not on file"} />
-            <FieldRow icon={FileText} label="Reason for referral" value={profile?.referral_reason ?? "Not on file"} />
+        <CardContent className="pt-6 space-y-6">
+          {/* Demographics */}
+          <div>
+            <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-3">
+              Demographics &amp; Core Identity
+            </h3>
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              <FieldRow icon={User} label="Full name" value={profile?.full_name ?? "Not on file"} />
+              <FieldRow
+                icon={CalendarDays}
+                label="Date of birth"
+                value={profile?.dob ? `${formatDate(profile.dob)} (age ${calculateAge(profile.dob)})` : "Not on file"}
+              />
+              <FieldRow icon={VenusAndMars} label="Sex" value={humanizeEnum(profile?.sex)} />
+              <FieldRow icon={UsersRound} label="Gender identity" value={humanizeEnum(profile?.gender_identity)} />
+              <FieldRow icon={Heart} label="Marital status" value={humanizeEnum(profile?.marital_status)} />
+              <FieldRow icon={Phone} label="Phone" value={profile?.phone ?? "Not on file"} />
+            </div>
           </div>
-        </div>
-      </CardContent>
-    </Card>
+
+          {/* Location & Socioeconomic */}
+          <div className="border-t border-border/60 pt-5">
+            <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-3">
+              Location &amp; Socioeconomic
+            </h3>
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              <FieldRow icon={MapPin} label="Place of residence" value={profile?.residence ?? "Not on file"} />
+              <FieldRow icon={Globe} label="Nationality" value={profile?.nationality ?? "Not on file"} />
+              <FieldRow icon={Users} label="Ethnicity" value={profile?.ethnicity ?? "Not on file"} />
+              <FieldRow icon={Church} label="Religion / Faith" value={profile?.religion ?? "Not on file"} />
+              <FieldRow icon={Briefcase} label="Occupation" value={profile?.occupation ?? "Not on file"} />
+              <FieldRow icon={GraduationCap} label="Highest education" value={profile?.education_level ?? "Not on file"} />
+            </div>
+          </div>
+
+          {/* Next of Kin & Informant */}
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 border-t border-border/60 pt-5">
+            <div className="rounded-xl border border-border/80 bg-muted/30 p-4">
+              <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-3">
+                Next of Kin
+              </h3>
+              <FieldRow icon={UsersRound} label="Contact" value={nextOfKinValue(profile)} />
+            </div>
+
+            <div className="rounded-xl border border-border/80 bg-muted/30 p-4">
+              <div className="flex items-center justify-between gap-2 mb-3">
+                <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                  Informant Details
+                </h3>
+                {profile?.informant_reliability && (
+                  <InformantReliabilityBadge reliability={profile.informant_reliability} />
+                )}
+              </div>
+              <FieldRow icon={User} label="Informant" value={informantValue(profile)} />
+            </div>
+          </div>
+
+          {/* Referral Intake */}
+          <div className="rounded-xl border border-primary/20 bg-primary/5 p-4 dark:border-primary/30 dark:bg-primary/10">
+            <h3 className="text-xs font-bold uppercase tracking-wider text-primary mb-3">
+              Clinical Referral Intake
+            </h3>
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <FieldRow icon={Send} label="Referral source" value={profile?.referral_source ?? "Not on file"} />
+              <FieldRow icon={FileText} label="Reason for referral" value={profile?.referral_reason ?? "Not on file"} />
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
   );
 }
 
 export function PatientBiodataFullSkeleton() {
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Patient Information</CardTitle>
-      </CardHeader>
-      <CardContent className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-        {Array.from({ length: 12 }).map((_, i) => (
-          <div key={i} className="flex items-start gap-3">
-            <Skeleton className="size-4 rounded-full" />
-            <div className="flex-1 space-y-1.5">
-              <Skeleton className="h-3 w-16" />
-              <Skeleton className="h-4 w-28" />
-            </div>
+    <Card className="border-border/80 shadow-xs">
+      <CardHeader className="border-b border-border/60 pb-4">
+        <div className="flex items-center gap-3">
+          <Skeleton className="size-11 rounded-xl" />
+          <div className="space-y-2">
+            <Skeleton className="h-5 w-40" />
+            <Skeleton className="h-3.5 w-60" />
           </div>
-        ))}
+        </div>
+      </CardHeader>
+      <CardContent className="pt-6 space-y-6">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <div key={i} className="flex items-start gap-3">
+              <Skeleton className="size-7 rounded-lg" />
+              <div className="flex-1 space-y-1.5">
+                <Skeleton className="h-3 w-16" />
+                <Skeleton className="h-4 w-28" />
+              </div>
+            </div>
+          ))}
+        </div>
       </CardContent>
     </Card>
   );

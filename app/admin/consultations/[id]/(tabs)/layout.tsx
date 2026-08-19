@@ -1,15 +1,11 @@
+import { IdCard } from "lucide-react";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
 
 import { PatientTabs } from "@/components/admin/patient-tabs";
+import { formatMedicalId } from "@/lib/format";
 import { createClient } from "@/lib/supabase/server";
 
-// Its own Suspense boundary rather than an await at the top of the layout:
-// unsuspended, this query would block React from starting *any* of
-// {children} until the patient's name resolved — including the tab page's
-// own Medications/Diagnoses/Lab-reports/Previous-consultations queries,
-// which have nothing to do with this fetch. Splitting it out lets both run
-// concurrently instead of back-to-back.
 async function PatientHeading({ patientId }: { patientId: string }) {
   const supabase = await createClient();
   const { data: patient } = await supabase
@@ -24,14 +20,20 @@ async function PatientHeading({ patientId }: { patientId: string }) {
   }
 
   return (
-    <h1 className="text-2xl font-semibold tracking-tight text-foreground">
-      {patient.full_name ?? "Unnamed patient"}
-    </h1>
+    <div className="flex flex-wrap items-center gap-3">
+      <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-foreground">
+        {patient.full_name ?? "Unnamed patient"}
+      </h1>
+      <span className="inline-flex items-center gap-1.5 rounded-md border border-primary/25 bg-primary/10 px-2.5 py-0.5 font-mono text-xs font-semibold text-primary">
+        <IdCard className="size-3.5" />
+        {formatMedicalId(patientId)}
+      </span>
+    </div>
   );
 }
 
 function PatientHeadingSkeleton() {
-  return <div className="h-8 w-48 animate-pulse rounded-md bg-muted" />;
+  return <div className="h-9 w-56 animate-pulse rounded-lg bg-muted" />;
 }
 
 export default async function PatientFolderLayout({
@@ -44,13 +46,15 @@ export default async function PatientFolderLayout({
   const { id: patientId } = await params;
 
   return (
-    <main className="mx-auto max-w-6xl space-y-6 px-4 py-8 sm:px-6 lg:px-8">
-      <header>
+    <main className="mx-auto max-w-6xl space-y-6 px-4 py-6 sm:px-6 sm:py-8 lg:px-8">
+      <div>
+        <div className="inline-flex items-center gap-2 rounded-full border border-violet-500/20 bg-violet-500/10 px-2.5 py-0.5 text-xs font-semibold text-violet-700 dark:text-violet-300 mb-1.5">
+          <span>Dr. Alex Vico-Korda Practice &bull; Clinical Record</span>
+        </div>
         <Suspense fallback={<PatientHeadingSkeleton />}>
           <PatientHeading patientId={patientId} />
         </Suspense>
-        <p className="text-sm text-muted-foreground">Patient folder</p>
-      </header>
+      </div>
 
       <PatientTabs patientId={patientId} />
 

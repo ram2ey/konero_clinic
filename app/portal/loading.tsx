@@ -1,27 +1,26 @@
 import { BioDataCardSkeleton } from "@/components/portal/bio-data-card";
-import { DiagnosesHistorySkeleton } from "@/components/portal/diagnoses-history";
-import { InvoicesSummarySkeleton } from "@/components/portal/invoices-summary";
-import { LabReportsSectionSkeleton } from "@/components/portal/lab-reports-section";
-import { MedicationsListSkeleton } from "@/components/portal/medications-list";
 import { Skeleton } from "@/components/ui/skeleton";
 
 export default function PatientPortalLoading() {
   return (
-    <main className="mx-auto max-w-6xl space-y-6 px-4 py-8 sm:px-6 lg:px-8">
-      <header className="space-y-2">
-        <Skeleton className="h-8 w-64" />
-        <Skeleton className="h-4 w-80" />
-      </header>
-
-      <BioDataCardSkeleton />
-      <InvoicesSummarySkeleton />
-
-      <div className="grid gap-6 lg:grid-cols-2">
-        <MedicationsListSkeleton />
-        <DiagnosesHistorySkeleton />
+    <main className="mx-auto max-w-6xl space-y-6 px-4 py-6 sm:px-6 sm:py-8 lg:px-8">
+      {/* Hero Banner Skeleton */}
+      <div className="rounded-2xl border border-border/80 bg-card p-6 sm:p-7 shadow-xs">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="space-y-2">
+            <Skeleton className="h-5 w-36 rounded-full" />
+            <Skeleton className="h-8 w-64 rounded-lg" />
+            <Skeleton className="h-4 w-80 rounded-md" />
+          </div>
+        </div>
       </div>
 
-      <LabReportsSectionSkeleton />
+      {/* Segmented Tab Pill Skeleton */}
+      <div className="overflow-x-auto pb-1">
+        <Skeleton className="h-10 w-full max-w-2xl rounded-xl" />
+      </div>
+
+      <BioDataCardSkeleton />
     </main>
   );
 }

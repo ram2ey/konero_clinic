@@ -1,9 +1,10 @@
-import { LogOut } from "lucide-react";
+import { LogOut, ShieldCheck } from "lucide-react";
 import { redirect } from "next/navigation";
 
 import { signOut } from "@/actions/sign-out";
 import { AdminNav } from "@/components/admin/admin-nav";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { BrandLogo } from "@/components/ui/brand-logo";
 import { Button } from "@/components/ui/button";
 import {
   Sidebar,
@@ -25,18 +26,6 @@ function initials(name: string | null) {
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
   const supabase = await createClient();
 
-  // getSession() (a local cookie decode) rather than getUser() (a network
-  // round-trip that revalidates against Supabase Auth): this belt-and-
-  // suspenders check runs on every single admin navigation, and
-  // middleware.ts already did the authoritative getUser() revalidation
-  // for this exact request — and redirects away anything invalid before
-  // this layout ever runs. Re-deriving user.id from that already-trusted
-  // session costs nothing extra; re-validating it a second time over the
-  // network on every page load did. This safely relies on middleware
-  // being the actual gate — if its matcher ever stops covering /admin,
-  // this check alone wouldn't be enough. RLS is the real data-access
-  // boundary regardless of any of this (see supabase/migrations), so a
-  // misconfigured matcher would show the wrong UI shell, not leak data.
   const {
     data: { session },
   } = await supabase.auth.getSession();
@@ -45,9 +34,6 @@ export default async function AdminLayout({ children }: { children: React.ReactN
     redirect("/login");
   }
 
-  // One query instead of two: `role` replaces the separate is_admin()
-  // RPC call (same check, no second round-trip), alongside the
-  // full_name this layout already needed for the sidebar.
   const { data: profile } = await supabase
     .from("profiles")
     .select("full_name, role")
@@ -62,53 +48,73 @@ export default async function AdminLayout({ children }: { children: React.ReactN
 
   return (
     <SidebarProvider>
-      <Sidebar collapsible="icon">
-        <SidebarHeader>
-          <div className="flex items-center gap-2 px-2 py-1.5">
-            <div className="flex size-7 shrink-0 items-center justify-center rounded-md bg-brand-gold text-sm font-semibold text-brand-gold-foreground">
-              C
-            </div>
-            <span className="truncate text-sm font-semibold text-sidebar-foreground group-data-[collapsible=icon]:hidden">
-              Clinic Admin
-            </span>
+      <Sidebar collapsible="icon" className="border-r border-border/70 bg-sidebar">
+        <SidebarHeader className="border-b border-border/50 py-3">
+          <div className="flex items-center px-1">
+            <BrandLogo
+              size="sm"
+              subtitle="Admin Portal"
+              collapseTextOnSidebar
+              className="w-full"
+            />
           </div>
         </SidebarHeader>
 
-        <SidebarContent>
+        <SidebarContent className="p-2">
           <AdminNav />
         </SidebarContent>
 
-        <SidebarFooter>
-          <div className="flex items-center gap-2 px-2 py-1.5">
-            <Avatar className="size-7 shrink-0">
-              <AvatarFallback className="bg-brand-gold text-xs text-brand-gold-foreground">
+        <SidebarFooter className="border-t border-border/50 p-3 space-y-2">
+          <div className="flex items-center gap-2.5 px-1 py-1">
+            <Avatar className="size-8 shrink-0 ring-1 ring-primary/20 shadow-xs">
+              <AvatarFallback className="bg-gradient-to-br from-primary via-violet-700 to-indigo-800 text-xs font-bold text-white">
                 {initials(fullName)}
               </AvatarFallback>
             </Avatar>
-            <span className="truncate text-sm text-sidebar-foreground group-data-[collapsible=icon]:hidden">
-              {fullName ?? "Admin"}
-            </span>
+            <div className="min-w-0 flex-1 group-data-[collapsible=icon]:hidden">
+              <p className="truncate text-xs font-semibold text-sidebar-foreground">
+                {fullName ?? "Dr. Alex Vico-Korda"}
+              </p>
+              <p className="truncate text-[10px] text-muted-foreground font-medium flex items-center gap-1">
+                <ShieldCheck className="size-3 text-primary inline" />
+                Doctor / Admin
+              </p>
+            </div>
           </div>
           <form action={signOut}>
             <Button
               type="submit"
               variant="ghost"
               size="sm"
-              className="w-full justify-start group-data-[collapsible=icon]:justify-center"
+              className="w-full justify-start text-xs text-muted-foreground hover:text-destructive group-data-[collapsible=icon]:justify-center transition-colors"
             >
-              <LogOut />
+              <LogOut className="size-3.5" />
               <span className="group-data-[collapsible=icon]:hidden">Sign out</span>
             </Button>
           </form>
         </SidebarFooter>
       </Sidebar>
 
-      <SidebarInset>
-        <header className="sticky top-0 z-10 flex h-14 shrink-0 items-center gap-3 border-b border-border bg-background px-4">
-          <SidebarTrigger />
-          <p className="text-sm font-medium text-foreground">Clinic Admin</p>
+      <SidebarInset className="bg-background">
+        <header className="glass-header flex h-14 shrink-0 items-center justify-between gap-3 px-4 sm:px-6">
+          <div className="flex items-center gap-3">
+            <SidebarTrigger className="hover:bg-muted/70 rounded-lg p-1.5" />
+            <div className="h-4 w-px bg-border/80" />
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-semibold text-muted-foreground">Dr. Alex Vico-Korda</span>
+              <span className="text-muted-foreground/40 text-xs">/</span>
+              <span className="text-xs sm:text-sm font-bold text-foreground">Clinical Administration</span>
+            </div>
+          </div>
+
+          <div className="hidden sm:flex items-center gap-2 rounded-full border border-violet-500/20 bg-violet-500/10 px-2.5 py-1 text-[11px] font-medium text-violet-700 dark:text-violet-300">
+            <ShieldCheck className="size-3.5 text-violet-600 dark:text-violet-400" />
+            <span>Doctor Admin Access</span>
+          </div>
         </header>
-        {children}
+        <div className="flex-1 overflow-auto">
+          {children}
+        </div>
       </SidebarInset>
     </SidebarProvider>
   );

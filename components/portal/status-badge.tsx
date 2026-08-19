@@ -1,88 +1,139 @@
 import { Badge } from "@/components/ui/badge";
+import { cn } from "@/lib/utils";
 
 type RecordStatus = "active" | "resolved" | "cancelled";
 type InvoiceStatus = "pending" | "paid" | "overdue" | "cancelled";
 
-const RECORD_STATUS_STYLES: Record<RecordStatus, string> = {
-  active: "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-900 dark:bg-emerald-950 dark:text-emerald-400",
-  resolved: "border-slate-200 bg-slate-100 text-slate-600 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-400",
-  cancelled: "border-red-200 bg-red-50 text-red-700 dark:border-red-900 dark:bg-red-950 dark:text-red-400",
-};
-
-const RECORD_STATUS_LABEL: Record<RecordStatus, string> = {
-  active: "Active",
-  resolved: "Resolved",
-  cancelled: "Cancelled",
+const RECORD_STATUS_CONFIG: Record<
+  RecordStatus,
+  { label: string; dotClass: string; badgeClass: string }
+> = {
+  active: {
+    label: "Active",
+    dotClass: "bg-emerald-500 shadow-xs shadow-emerald-500/50",
+    badgeClass: "border-emerald-500/20 bg-emerald-500/10 text-emerald-700 dark:border-emerald-500/30 dark:bg-emerald-500/15 dark:text-emerald-300",
+  },
+  resolved: {
+    label: "Resolved",
+    dotClass: "bg-slate-400",
+    badgeClass: "border-slate-500/20 bg-slate-500/10 text-slate-700 dark:border-slate-500/30 dark:bg-slate-500/15 dark:text-slate-300",
+  },
+  cancelled: {
+    label: "Cancelled",
+    dotClass: "bg-rose-500",
+    badgeClass: "border-rose-500/20 bg-rose-500/10 text-rose-700 dark:border-rose-500/30 dark:bg-rose-500/15 dark:text-rose-300",
+  },
 };
 
 export function RecordStatusBadge({ status }: { status: RecordStatus }) {
+  const config = RECORD_STATUS_CONFIG[status] ?? RECORD_STATUS_CONFIG.resolved;
   return (
-    <Badge variant="outline" className={RECORD_STATUS_STYLES[status]}>
-      {RECORD_STATUS_LABEL[status]}
+    <Badge
+      variant="outline"
+      className={cn("inline-flex items-center gap-1.5 px-2.5 py-0.5 font-medium shadow-xs text-xs rounded-full", config.badgeClass)}
+    >
+      <span className={cn("size-1.5 rounded-full shrink-0", config.dotClass)} />
+      {config.label}
     </Badge>
   );
 }
 
-const INVOICE_STATUS_STYLES: Record<InvoiceStatus, string> = {
-  pending: "border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-900 dark:bg-amber-950 dark:text-amber-400",
-  paid: "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-900 dark:bg-emerald-950 dark:text-emerald-400",
-  overdue: "border-red-200 bg-red-50 text-red-700 dark:border-red-900 dark:bg-red-950 dark:text-red-400",
-  cancelled: "border-slate-200 bg-slate-100 text-slate-600 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-400",
-};
-
-const INVOICE_STATUS_LABEL: Record<InvoiceStatus, string> = {
-  pending: "Pending",
-  paid: "Paid",
-  overdue: "Overdue",
-  cancelled: "Cancelled",
+const INVOICE_STATUS_CONFIG: Record<
+  InvoiceStatus,
+  { label: string; dotClass: string; badgeClass: string }
+> = {
+  pending: {
+    label: "Pending",
+    dotClass: "bg-amber-500 animate-pulse-subtle",
+    badgeClass: "border-amber-500/25 bg-amber-500/10 text-amber-700 dark:border-amber-500/30 dark:bg-amber-500/15 dark:text-amber-300",
+  },
+  paid: {
+    label: "Paid",
+    dotClass: "bg-emerald-500",
+    badgeClass: "border-emerald-500/25 bg-emerald-500/10 text-emerald-700 dark:border-emerald-500/30 dark:bg-emerald-500/15 dark:text-emerald-300",
+  },
+  overdue: {
+    label: "Overdue",
+    dotClass: "bg-rose-500 animate-pulse-subtle",
+    badgeClass: "border-rose-500/25 bg-rose-500/10 text-rose-700 dark:border-rose-500/30 dark:bg-rose-500/15 dark:text-rose-300",
+  },
+  cancelled: {
+    label: "Cancelled",
+    dotClass: "bg-slate-400",
+    badgeClass: "border-slate-500/20 bg-slate-500/10 text-slate-700 dark:border-slate-500/30 dark:bg-slate-500/15 dark:text-slate-300",
+  },
 };
 
 export function InvoiceStatusBadge({ status }: { status: InvoiceStatus }) {
+  const config = INVOICE_STATUS_CONFIG[status] ?? INVOICE_STATUS_CONFIG.pending;
   return (
-    <Badge variant="outline" className={INVOICE_STATUS_STYLES[status]}>
-      {INVOICE_STATUS_LABEL[status]}
+    <Badge
+      variant="outline"
+      className={cn("inline-flex items-center gap-1.5 px-2.5 py-0.5 font-medium shadow-xs text-xs rounded-full", config.badgeClass)}
+    >
+      <span className={cn("size-1.5 rounded-full shrink-0", config.dotClass)} />
+      {config.label}
     </Badge>
   );
 }
 
 type VisitType = "first_visit" | "review";
 
-const VISIT_TYPE_STYLES: Record<VisitType, string> = {
-  first_visit: "border-violet-200 bg-violet-50 text-violet-700 dark:border-violet-900 dark:bg-violet-950 dark:text-violet-400",
-  review: "border-slate-200 bg-slate-100 text-slate-600 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-400",
-};
-
-const VISIT_TYPE_LABEL: Record<VisitType, string> = {
-  first_visit: "1st Visit",
-  review: "Review",
+const VISIT_TYPE_CONFIG: Record<
+  VisitType,
+  { label: string; badgeClass: string }
+> = {
+  first_visit: {
+    label: "1st Visit",
+    badgeClass: "border-violet-500/25 bg-violet-500/10 text-violet-700 dark:border-violet-500/30 dark:bg-violet-500/15 dark:text-violet-300",
+  },
+  review: {
+    label: "Review",
+    badgeClass: "border-slate-500/20 bg-slate-500/10 text-slate-700 dark:border-slate-500/30 dark:bg-slate-500/15 dark:text-slate-300",
+  },
 };
 
 export function VisitTypeBadge({ visitType }: { visitType: VisitType }) {
+  const config = VISIT_TYPE_CONFIG[visitType] ?? VISIT_TYPE_CONFIG.review;
   return (
-    <Badge variant="outline" className={VISIT_TYPE_STYLES[visitType]}>
-      {VISIT_TYPE_LABEL[visitType]}
+    <Badge variant="outline" className={cn("px-2.5 py-0.5 font-medium shadow-xs text-xs rounded-full", config.badgeClass)}>
+      {config.label}
     </Badge>
   );
 }
 
 type InformantReliability = "reliable" | "partially_reliable" | "unreliable";
 
-const INFORMANT_RELIABILITY_STYLES: Record<InformantReliability, string> = {
-  reliable: "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-900 dark:bg-emerald-950 dark:text-emerald-400",
-  partially_reliable: "border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-900 dark:bg-amber-950 dark:text-amber-400",
-  unreliable: "border-red-200 bg-red-50 text-red-700 dark:border-red-900 dark:bg-red-950 dark:text-red-400",
-};
-
-const INFORMANT_RELIABILITY_LABEL: Record<InformantReliability, string> = {
-  reliable: "Reliable",
-  partially_reliable: "Partially reliable",
-  unreliable: "Unreliable",
+const INFORMANT_RELIABILITY_CONFIG: Record<
+  InformantReliability,
+  { label: string; dotClass: string; badgeClass: string }
+> = {
+  reliable: {
+    label: "Reliable",
+    dotClass: "bg-emerald-500",
+    badgeClass: "border-emerald-500/25 bg-emerald-500/10 text-emerald-700 dark:border-emerald-500/30 dark:bg-emerald-500/15 dark:text-emerald-300",
+  },
+  partially_reliable: {
+    label: "Partially reliable",
+    dotClass: "bg-amber-500",
+    badgeClass: "border-amber-500/25 bg-amber-500/10 text-amber-700 dark:border-amber-500/30 dark:bg-amber-500/15 dark:text-amber-300",
+  },
+  unreliable: {
+    label: "Unreliable",
+    dotClass: "bg-rose-500",
+    badgeClass: "border-rose-500/25 bg-rose-500/10 text-rose-700 dark:border-rose-500/30 dark:bg-rose-500/15 dark:text-rose-300",
+  },
 };
 
 export function InformantReliabilityBadge({ reliability }: { reliability: InformantReliability }) {
+  const config = INFORMANT_RELIABILITY_CONFIG[reliability] ?? INFORMANT_RELIABILITY_CONFIG.reliable;
   return (
-    <Badge variant="outline" className={INFORMANT_RELIABILITY_STYLES[reliability]}>
-      {INFORMANT_RELIABILITY_LABEL[reliability]}
+    <Badge
+      variant="outline"
+      className={cn("inline-flex items-center gap-1.5 px-2.5 py-0.5 font-medium shadow-xs text-xs rounded-full", config.badgeClass)}
+    >
+      <span className={cn("size-1.5 rounded-full shrink-0", config.dotClass)} />
+      {config.label}
     </Badge>
   );
 }

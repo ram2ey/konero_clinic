@@ -1,14 +1,19 @@
 import type { Metadata } from "next";
 import "./globals.css";
-import { Geist } from "next/font/google";
+import { Plus_Jakarta_Sans } from "next/font/google";
 import { cn } from "@/lib/utils";
 import { TooltipProvider } from "@/components/ui/tooltip";
 
-const geist = Geist({subsets:['latin'],variable:'--font-sans'});
+const plusJakartaSans = Plus_Jakarta_Sans({
+  subsets: ["latin"],
+  variable: "--font-sans",
+  weight: ["300", "400", "500", "600", "700", "800"],
+  display: "swap",
+});
 
 export const metadata: Metadata = {
-  title: "Clinic",
-  description: "Clinic patient & admin portal",
+  title: "Dr. Alex Vico-Korda | Medical Clinic & Patient Portal",
+  description: "Dr. Alex Vico-Korda Psychiatry & Medical Practice — Patient Portal and Clinic Administration",
 };
 
 export default function RootLayout({
@@ -17,8 +22,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={cn("font-sans", geist.variable)}>
-      <body className="antialiased">
+    <html lang="en" className={cn("font-sans", plusJakartaSans.variable)}>
+      <body className="min-h-screen bg-background text-foreground antialiased selection:bg-primary/20 selection:text-primary">
         <TooltipProvider>{children}</TooltipProvider>
       </body>
     </html>

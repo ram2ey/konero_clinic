@@ -1,10 +1,18 @@
-import { Search, UserPlus, Users } from "lucide-react";
+import { ArrowRight, IdCard, Phone, Search, UserPlus, Users } from "lucide-react";
 import Link from "next/link";
 
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { calculateAge, formatDate, formatMedicalId } from "@/lib/format";
+import { inputClass } from "@/lib/form-ui";
 import { createClient } from "@/lib/supabase/server";
+
+function initials(name: string | null) {
+  if (!name) return "?";
+  const parts = name.trim().split(/\s+/).filter(Boolean);
+  return parts.slice(0, 2).map((p) => p[0]?.toUpperCase() ?? "").join("") || "?";
+}
 
 type PatientRow = {
   id: string;
@@ -27,17 +35,9 @@ export default async function ConsultationsPage({
     .from("profiles")
     .select("id, full_name, phone, dob")
     .eq("role", "patient")
-    // Most-recently-registered first — no formal "waiting" queue, but this
-    // naturally surfaces newer/active patients ahead of the full history
-    // instead of forcing an alphabetical scroll.
     .order("created_at", { ascending: false });
 
   if (query) {
-    // PostgREST's .or() takes a raw filter string, not a parameterized
-    // value — strip characters that have syntactic meaning there (comma
-    // separates conditions, parens group them) so a search containing
-    // one can't reshape the filter. RLS still fully applies underneath
-    // regardless, so this is a correctness guard, not a security one.
     const safeQuery = query.replace(/[,()%]/g, "");
     request = request.or(`full_name.ilike.%${safeQuery}%,phone.ilike.%${safeQuery}%`);
   }
@@ -46,65 +46,113 @@ export default async function ConsultationsPage({
   const items = patients ?? [];
 
   return (
-    <main className="mx-auto max-w-6xl space-y-6 px-4 py-8 sm:px-6 lg:px-8">
-      <header className="flex flex-wrap items-center justify-between gap-4">
+    <main className="mx-auto max-w-6xl space-y-6 px-4 py-6 sm:px-6 sm:py-8 lg:px-8">
+      {/* Header Banner */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight text-foreground">Consultations</h1>
-          <p className="text-sm text-muted-foreground">
-            {items.length} patients on record. Click one to open their folder.
+          <div className="inline-flex items-center gap-2 rounded-full border border-violet-500/20 bg-violet-500/10 px-2.5 py-0.5 text-xs font-semibold text-violet-700 dark:text-violet-300 mb-1.5">
+            <span>Dr. Alex Vico-Korda Practice</span>
+          </div>
+          <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-foreground">
+            Patient Consultations
+          </h1>
+          <p className="text-xs sm:text-sm text-muted-foreground">
+            {items.length} patient records. Select a patient to record a clinical consultation or review records.
           </p>
         </div>
-        <Button asChild size="sm">
-          <Link href="/admin/consultations/new">
-            <UserPlus className="size-3.5" />
-            Register patient
+        <Button asChild size="default" className="shadow-xs shadow-primary/25">
+          <Link href="/admin/consultations/new" className="flex items-center gap-1.5">
+            <UserPlus className="size-4" />
+            <span>Register Patient</span>
           </Link>
         </Button>
-      </header>
+      </div>
 
+      {/* Search Input */}
       <form className="flex gap-2" action="/admin/consultations">
-        <div className="relative flex-1 max-w-sm">
-          <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+        <div className="relative flex-1 max-w-md">
+          <Search className="pointer-events-none absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
           <input
             type="search"
             name="q"
             defaultValue={query}
-            placeholder="Search by name or phone"
-            className="w-full rounded-md border border-input bg-background py-2 pl-9 pr-3 text-sm text-foreground"
+            placeholder="Search by name, phone, or medical ID…"
+            className={`${inputClass} pl-10`}
           />
         </div>
       </form>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Patients</CardTitle>
+      {/* Patients Card List */}
+      <Card className="border-border/80 shadow-xs">
+        <CardHeader className="border-b border-border/60 pb-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2.5">
+              <div className="flex size-8 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                <Users className="size-4" />
+              </div>
+              <CardTitle className="text-lg font-bold">Registered Patients</CardTitle>
+            </div>
+            <span className="text-xs font-semibold text-muted-foreground">
+              {items.length} Results
+            </span>
+          </div>
         </CardHeader>
-        <CardContent>
+        <CardContent className="pt-4">
           {items.length === 0 ? (
-            <div className="flex flex-col items-center gap-2 py-8 text-center">
-              <Users className="size-8 text-muted-foreground/50" />
-              <p className="text-sm text-muted-foreground">
+            <div className="flex flex-col items-center gap-2 py-10 text-center">
+              <div className="flex size-12 items-center justify-center rounded-full bg-muted/80 text-muted-foreground">
+                <Users className="size-6 opacity-60" />
+              </div>
+              <p className="text-sm font-medium text-muted-foreground mt-2">
                 {query ? `No patients match "${query}".` : "No patients registered yet."}
               </p>
             </div>
           ) : (
-            <ul className="divide-y divide-border">
+            <div className="divide-y divide-border/60 space-y-1">
               {items.map((patient) => {
                 const name = patient.full_name ?? "Unnamed patient";
                 return (
-                  <li key={patient.id} className="py-3 first:pt-0 last:pb-0">
-                    <Link href={`/admin/consultations/${patient.id}`} className="block">
-                      <p className="truncate font-medium text-foreground">{name}</p>
-                      <p className="text-xs text-muted-foreground">
-                        {formatMedicalId(patient.id)}
-                        {patient.phone ? ` · ${patient.phone}` : ""}
-                        {patient.dob ? ` · Age ${calculateAge(patient.dob)} (${formatDate(patient.dob)})` : ""}
-                      </p>
-                    </Link>
-                  </li>
+                  <Link
+                    key={patient.id}
+                    href={`/admin/consultations/${patient.id}`}
+                    className="group flex items-center justify-between gap-3 rounded-xl p-3.5 transition-all duration-150 hover:bg-muted/50"
+                  >
+                    <div className="flex min-w-0 items-center gap-3.5">
+                      <Avatar className="size-10 shrink-0 ring-1 ring-primary/20 shadow-xs">
+                        <AvatarFallback className="bg-gradient-to-br from-primary/20 via-violet-500/10 to-brand-gold/20 text-xs font-bold text-foreground">
+                          {initials(name)}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-sm sm:text-base font-bold text-foreground group-hover:text-primary transition-colors">
+                          {name}
+                        </p>
+                        <div className="flex flex-wrap items-center gap-2 mt-1">
+                          <span className="inline-flex items-center gap-1 font-mono text-[11px] font-semibold text-primary">
+                            <IdCard className="size-3" />
+                            {formatMedicalId(patient.id)}
+                          </span>
+                          {patient.phone && (
+                            <span className="inline-flex items-center gap-1 text-[11px] text-muted-foreground">
+                              <Phone className="size-3" />
+                              {patient.phone}
+                            </span>
+                          )}
+                          {patient.dob && (
+                            <span className="text-[11px] text-muted-foreground">
+                              &bull; Age {calculateAge(patient.dob)} ({formatDate(patient.dob)})
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                    <div className="shrink-0 text-muted-foreground group-hover:text-primary group-hover:translate-x-0.5 transition-all">
+                      <ArrowRight className="size-4" />
+                    </div>
+                  </Link>
                 );
               })}
-            </ul>
+            </div>
           )}
         </CardContent>
       </Card>

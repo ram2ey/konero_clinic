@@ -29,32 +29,53 @@ export async function DiagnosesHistory({ patientId }: { patientId: string }) {
   const items = diagnoses ?? [];
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Diagnoses History</CardTitle>
+    <Card className="border-border/80 shadow-xs">
+      <CardHeader className="border-b border-border/60 pb-4">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2.5">
+            <div className="flex size-8 items-center justify-center rounded-lg bg-primary/10 text-primary">
+              <Stethoscope className="size-4" />
+            </div>
+            <CardTitle className="text-lg font-bold">Diagnoses History</CardTitle>
+          </div>
+          {items.length > 0 && (
+            <span className="rounded-full bg-primary/10 px-2.5 py-0.5 text-xs font-semibold text-primary">
+              {items.length} Recorded
+            </span>
+          )}
+        </div>
       </CardHeader>
-      <CardContent>
+      <CardContent className="pt-5">
         {items.length === 0 ? (
           <EmptyState />
         ) : (
-          <ul className="divide-y divide-border">
+          <div className="space-y-3">
             {items.map((item) => (
-              <li key={item.id} className="flex items-center justify-between gap-3 py-3 first:pt-0 last:pb-0">
+              <div
+                key={item.id}
+                className="group flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-xl border border-border/80 bg-card p-4 shadow-2xs transition-all duration-200 hover:border-primary/30 hover:shadow-xs"
+              >
                 <div className="min-w-0">
-                  <div className="flex items-center gap-2">
-                    <p className="font-medium text-foreground">{item.condition}</p>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <p className="font-bold text-sm sm:text-base text-foreground group-hover:text-primary transition-colors">
+                      {item.condition}
+                    </p>
                     {item.icd11_code && (
-                      <span className="shrink-0 rounded bg-muted px-1.5 py-0.5 font-mono text-xs text-muted-foreground">
-                        {item.icd11_code}
+                      <span className="shrink-0 rounded-md border border-primary/20 bg-primary/10 px-2 py-0.5 font-mono text-xs font-semibold text-primary">
+                        ICD-11: {item.icd11_code}
                       </span>
                     )}
                   </div>
-                  <p className="text-xs text-muted-foreground">{formatDate(item.created_at)}</p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Recorded on {formatDate(item.created_at)}
+                  </p>
                 </div>
-                <RecordStatusBadge status={item.status} />
-              </li>
+                <div className="flex items-center self-start sm:self-center">
+                  <RecordStatusBadge status={item.status} />
+                </div>
+              </div>
             ))}
-          </ul>
+          </div>
         )}
       </CardContent>
     </Card>

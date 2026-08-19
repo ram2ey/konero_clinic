@@ -130,9 +130,11 @@ export async function PreviousConsultations({ patientId }: { patientId: string }
 
   if (items.length === 0) {
     return (
-      <div className="flex flex-col items-center gap-2 rounded-lg border border-dashed border-border py-12 text-center">
-        <ClipboardList className="size-8 text-muted-foreground/50" />
-        <p className="text-sm text-muted-foreground">No consultations recorded yet.</p>
+      <div className="flex flex-col items-center gap-2 rounded-2xl border border-dashed border-border/80 bg-muted/20 py-12 text-center">
+        <div className="flex size-12 items-center justify-center rounded-full bg-muted/80 text-muted-foreground">
+          <ClipboardList className="size-6 opacity-60" />
+        </div>
+        <p className="text-sm font-medium text-muted-foreground mt-2">No clinical consultations recorded yet.</p>
       </div>
     );
   }
@@ -144,33 +146,42 @@ export async function PreviousConsultations({ patientId }: { patientId: string }
         const hasAssessment = hasAnyValue(item.assessment);
 
         return (
-          <Card key={item.id} className="gap-0 overflow-hidden py-0">
+          <Card
+            key={item.id}
+            className="group/card overflow-hidden border-border/80 p-0 shadow-2xs transition-all duration-200 hover:border-primary/30 hover:shadow-xs"
+          >
             <details className="group">
-              <summary className="flex cursor-pointer list-none items-start justify-between gap-2 p-4">
+              <summary className="flex cursor-pointer list-none items-start justify-between gap-2 p-4 transition-colors hover:bg-muted/40">
                 <div className="min-w-0">
-                  <div className="flex items-center gap-2">
-                    <p className="text-sm font-medium text-foreground">{formatDateTime(item.created_at)}</p>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <p className="text-sm font-bold text-foreground group-hover/card:text-primary transition-colors">
+                      {formatDateTime(item.created_at)}
+                    </p>
                     <VisitTypeBadge visitType={item.visit_type} />
                   </div>
-                  {vSummary && <p className="mt-0.5 text-xs text-muted-foreground">{vSummary}</p>}
+                  {vSummary && (
+                    <p className="mt-1.5 inline-flex items-center rounded-md bg-muted/80 px-2 py-0.5 font-mono text-[11px] font-medium text-muted-foreground">
+                      {vSummary}
+                    </p>
+                  )}
                 </div>
                 <ChevronDown className="mt-0.5 size-4 shrink-0 text-muted-foreground transition-transform group-open:rotate-180" />
               </summary>
 
-              <div className="space-y-3 border-t border-border px-4 pt-3 pb-4">
+              <div className="space-y-4 border-t border-border/60 bg-muted/20 p-4">
                 {!hasAssessment && (
-                  <p className="text-sm text-muted-foreground">No assessment notes recorded for this consultation.</p>
+                  <p className="text-xs text-muted-foreground italic">No assessment notes recorded for this consultation.</p>
                 )}
                 {item.assessment?.mse && hasAnyValue(item.assessment.mse) && (
-                  <div>
-                    <p className="text-xs font-medium tracking-wide text-muted-foreground uppercase">MSE</p>
-                    <div className="mt-1 space-y-3">
+                  <div className="rounded-xl border border-border/70 bg-card p-3.5 shadow-2xs">
+                    <p className="text-[11px] font-bold tracking-wider text-primary uppercase mb-2">Mental State Examination (MSE)</p>
+                    <div className="space-y-2">
                       {MSE_DISPLAY_ORDER.map((key) => {
                         const value = item.assessment!.mse![key];
                         if (!value || typeof value !== "string") return null;
                         return (
-                          <p key={key} className="text-sm text-foreground">
-                            <span className="text-muted-foreground">{MSE_FIELD_LABELS[key]}: </span>
+                          <p key={key} className="text-xs text-foreground leading-relaxed">
+                            <span className="font-semibold text-muted-foreground">{MSE_FIELD_LABELS[key]}: </span>
                             <span className="whitespace-pre-wrap">{value}</span>
                           </p>
                         );
@@ -178,8 +189,8 @@ export async function PreviousConsultations({ patientId }: { patientId: string }
                       <FieldGroup title="7. Thought" values={item.assessment.mse.thought} labels={MSE_THOUGHT_LABELS_DB} />
                       <FieldGroup title="8. Cognition" values={item.assessment.mse.cognition} labels={MSE_COGNITION_LABELS_DB} />
                       {item.assessment.mse.insight && (
-                        <p className="text-sm text-foreground">
-                          <span className="text-muted-foreground">{MSE_FIELD_LABELS.insight}: </span>
+                        <p className="text-xs text-foreground">
+                          <span className="font-semibold text-muted-foreground">{MSE_FIELD_LABELS.insight}: </span>
                           <span className="whitespace-pre-wrap">{item.assessment.mse.insight}</span>
                         </p>
                       )}
@@ -191,9 +202,9 @@ export async function PreviousConsultations({ patientId }: { patientId: string }
                   const value = item.assessment?.[key];
                   if (!value || typeof value !== "string") return null;
                   return (
-                    <div key={key}>
-                      <p className="text-xs font-medium tracking-wide text-muted-foreground uppercase">{label}</p>
-                      <p className="mt-0.5 whitespace-pre-wrap text-sm text-foreground">{value}</p>
+                    <div key={key} className="rounded-xl border border-border/70 bg-card p-3.5 shadow-2xs">
+                      <p className="text-[11px] font-bold tracking-wider text-muted-foreground uppercase">{label}</p>
+                      <p className="mt-1 whitespace-pre-wrap text-xs text-foreground leading-relaxed">{value}</p>
                     </div>
                   );
                 })}

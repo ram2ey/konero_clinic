@@ -31,10 +31,10 @@ export function SuccessBanner({ param, message }: { param: string; message: stri
   return (
     <div
       role="status"
-      className="flex items-center gap-2 rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-800 dark:border-emerald-900 dark:bg-emerald-950 dark:text-emerald-300"
+      className="flex items-center gap-2.5 rounded-xl border border-emerald-500/25 bg-emerald-500/10 px-4 py-3 text-xs sm:text-sm font-semibold text-emerald-800 dark:text-emerald-300 shadow-2xs animate-in fade-in slide-in-from-top-2 duration-200"
     >
-      <CheckCircle2 className="size-4 shrink-0" />
-      {message}
+      <CheckCircle2 className="size-4 shrink-0 text-emerald-600 dark:text-emerald-400" />
+      <span>{message}</span>
     </div>
   );
 }

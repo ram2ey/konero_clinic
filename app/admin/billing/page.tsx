@@ -49,14 +49,20 @@ export default async function BillingPage() {
     .reduce((sum, i) => sum + i.amount, 0);
 
   return (
-    <main className="mx-auto max-w-6xl space-y-6 px-4 py-8 sm:px-6 lg:px-8">
-      <header>
-        <h1 className="text-2xl font-semibold tracking-tight text-foreground">Billing</h1>
-        <p className="text-sm text-muted-foreground">
-          {items.length} invoice{items.length === 1 ? "" : "s"}
-          {amountDue > 0 ? ` · ${formatCurrency(amountDue)} due` : ""}
+    <main className="mx-auto max-w-6xl space-y-6 px-4 py-6 sm:px-6 sm:py-8 lg:px-8">
+      {/* Header Banner */}
+      <div>
+        <div className="inline-flex items-center gap-2 rounded-full border border-violet-500/20 bg-violet-500/10 px-2.5 py-0.5 text-xs font-semibold text-violet-700 dark:text-violet-300 mb-1.5">
+          <span>Dr. Alex Vico-Korda Practice</span>
+        </div>
+        <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-foreground">
+          Billing &amp; Financial Ledger
+        </h1>
+        <p className="text-xs sm:text-sm text-muted-foreground">
+          {items.length} invoice{items.length === 1 ? "" : "s"} recorded across all patients
+          {amountDue > 0 ? ` · ${formatCurrency(amountDue)} total outstanding balance` : ""}
         </p>
-      </header>
+      </div>
 
       <BillingList invoices={billingInvoices} />
     </main>

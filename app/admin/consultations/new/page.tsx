@@ -117,19 +117,25 @@ export default function NewPatientPage() {
   }
 
   return (
-    <main className="mx-auto max-w-2xl space-y-6 px-4 py-8 sm:px-6 lg:px-8">
-      <header>
-        <h1 className="text-2xl font-semibold tracking-tight text-foreground">Register a new patient</h1>
-        <p className="text-sm text-muted-foreground">
-          Sends an email invite where the patient sets their own password. Only name, sex, date of
-          birth, phone, and email are required — the rest can be filled in now or added later.
+    <main className="mx-auto max-w-2xl space-y-6 px-4 py-6 sm:px-6 sm:py-8 lg:px-8">
+      {/* Header Banner */}
+      <div>
+        <div className="inline-flex items-center gap-2 rounded-full border border-violet-500/20 bg-violet-500/10 px-2.5 py-0.5 text-xs font-semibold text-violet-700 dark:text-violet-300 mb-1.5">
+          <span>Dr. Alex Vico-Korda Practice &bull; Patient Intake</span>
+        </div>
+        <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-foreground">
+          Register New Patient
+        </h1>
+        <p className="text-xs sm:text-sm text-muted-foreground mt-1">
+          Sends an email invite where the patient sets their own password. Required fields: name, sex, date of
+          birth, phone, and email.
         </p>
-      </header>
+      </div>
 
       <form action={formAction} className="space-y-6">
-        <Card>
-          <CardHeader>
-            <CardTitle>Identity &amp; contact</CardTitle>
+        <Card className="border-border/80 shadow-xs">
+          <CardHeader className="border-b border-border/60 pb-4">
+            <CardTitle className="text-lg font-bold">Identity &amp; Contact Details</CardTitle>
           </CardHeader>
           <CardContent className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <Field id="fullName" label="Full name" required error={errors.fullName?.[0]}>

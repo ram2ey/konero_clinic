@@ -1,4 +1,4 @@
-import { CalendarClock, FileText, Receipt, UserPlus } from "lucide-react";
+import { Activity, CalendarClock, FileText, Receipt, UserPlus } from "lucide-react";
 import Link from "next/link";
 import type { ReactNode } from "react";
 
@@ -31,13 +31,22 @@ function Entry({
   badge?: ReactNode;
 }) {
   return (
-    <Link href={href} className="flex items-start gap-3">
-      <Icon className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
-      <div className="min-w-0 flex-1">
-        <p className="truncate text-sm font-medium text-foreground hover:underline">{label}</p>
-        <p className="text-xs text-muted-foreground">{formatDateTime(createdAt)}</p>
+    <Link
+      href={href}
+      className="group flex items-center justify-between gap-3 rounded-xl p-2.5 transition-all duration-150 hover:bg-muted/60"
+    >
+      <div className="flex min-w-0 items-center gap-3">
+        <div className="flex size-8 shrink-0 items-center justify-center rounded-lg border border-border/60 bg-muted/60 text-muted-foreground group-hover:border-primary/30 group-hover:bg-primary/10 group-hover:text-primary transition-colors">
+          <Icon className="size-3.5" />
+        </div>
+        <div className="min-w-0 flex-1">
+          <p className="truncate text-xs sm:text-sm font-semibold text-foreground group-hover:text-primary transition-colors">
+            {label}
+          </p>
+          <p className="text-[11px] text-muted-foreground mt-0.5">{formatDateTime(createdAt)}</p>
+        </div>
       </div>
-      {badge}
+      {badge && <div className="shrink-0">{badge}</div>}
     </Link>
   );
 }
@@ -144,21 +153,26 @@ export async function RecentActivity() {
     .slice(0, FEED_LIMIT);
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Recent activity</CardTitle>
+    <Card className="border-border/80 shadow-xs">
+      <CardHeader className="border-b border-border/60 pb-4">
+        <div className="flex items-center gap-2.5">
+          <div className="flex size-8 items-center justify-center rounded-lg bg-primary/10 text-primary">
+            <Activity className="size-4" />
+          </div>
+          <CardTitle className="text-lg font-bold">Recent Clinical Activity</CardTitle>
+        </div>
       </CardHeader>
-      <CardContent>
+      <CardContent className="pt-4">
         {rows.length === 0 ? (
-          <p className="py-8 text-center text-sm text-muted-foreground">Nothing recorded yet.</p>
+          <p className="py-8 text-center text-sm text-muted-foreground">No recent practice activity recorded yet.</p>
         ) : (
-          <ul className="divide-y divide-border">
+          <div className="divide-y divide-border/60 space-y-1">
             {rows.map((row) => (
-              <li key={row.key} className="py-3 first:pt-0 last:pb-0">
+              <div key={row.key} className="pt-1.5 first:pt-0">
                 {row.node}
-              </li>
+              </div>
             ))}
-          </ul>
+          </div>
         )}
       </CardContent>
     </Card>

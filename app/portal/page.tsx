@@ -33,25 +33,35 @@ export default async function PatientPortalPage() {
   const patientId = user.id;
 
   return (
-    <main className="mx-auto max-w-6xl space-y-6 px-4 py-8 sm:px-6 lg:px-8">
-      <header>
-        <h1 className="text-2xl font-semibold tracking-tight text-foreground">Your Health Dashboard</h1>
-        <p className="text-sm text-muted-foreground">
-          A summary of your records, medications, and lab results.
-        </p>
-      </header>
+    <main className="mx-auto max-w-6xl space-y-6 px-4 py-6 sm:px-6 sm:py-8 lg:px-8">
+      {/* Patient Welcome Hero Card */}
+      <div className="relative overflow-hidden rounded-2xl border border-border/80 bg-gradient-to-r from-card via-card to-primary/5 p-6 sm:p-7 shadow-xs">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="space-y-1">
+            <div className="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/10 px-2.5 py-0.5 text-xs font-semibold text-primary">
+              <span>Dr. Alex Vico-Korda Practice</span>
+            </div>
+            <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-foreground">
+              Patient Health Portal
+            </h1>
+            <p className="text-xs sm:text-sm text-muted-foreground">
+              Securely access your medical profile, active prescriptions, clinical diagnoses, and diagnostic reports.
+            </p>
+          </div>
+        </div>
+      </div>
 
-      <Tabs defaultValue="overview">
-        <TabsList>
-          {TABS.map((tab) => (
-            <TabsTrigger key={tab.value} value={tab.value}>
-              <span className="flex items-center gap-1.5">
-                <tab.icon className="size-3.5" />
-                {tab.label}
-              </span>
-            </TabsTrigger>
-          ))}
-        </TabsList>
+      <Tabs defaultValue="overview" className="space-y-6">
+        <div className="overflow-x-auto pb-1 scrollbar-none">
+          <TabsList className="w-auto">
+            {TABS.map((tab) => (
+              <TabsTrigger key={tab.value} value={tab.value}>
+                <tab.icon className="size-4 shrink-0 text-muted-foreground group-data-[state=active]:text-primary" />
+                <span>{tab.label}</span>
+              </TabsTrigger>
+            ))}
+          </TabsList>
+        </div>
 
         {/* forceMount + the base TabsContent's data-[state=inactive]:hidden
             (see components/ui/tabs.tsx) — every tab's data streams in once,

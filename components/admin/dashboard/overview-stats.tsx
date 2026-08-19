@@ -1,3 +1,4 @@
+import { AlertCircle, CalendarClock, Pill, Receipt, Stethoscope, TrendingUp, Users } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { StatTile } from "@/components/portal/stat-tile";
@@ -10,10 +11,7 @@ function monthKey(date: Date) {
 
 /**
  * Growth trend for a table's row volume: this calendar month's count vs
- * last month's. Unlike the portal's payment trends (kept neutral-toned —
- * "you paid more" isn't unambiguously good or bad for a patient), more
- * new patients / consultations is unambiguously growth for the clinic, so
- * this one does color the direction.
+ * last month's.
  */
 function growthTrend(rows: { created_at: string }[]) {
   const now = new Date();
@@ -23,8 +21,6 @@ function growthTrend(rows: { created_at: string }[]) {
   const thisMonth = rows.filter((r) => monthKey(new Date(r.created_at)) === thisMonthKey).length;
   const lastMonth = rows.filter((r) => monthKey(new Date(r.created_at)) === lastMonthKey).length;
 
-  // Only show a delta when there's a real prior-month figure to compare
-  // against — a percentage change from zero is undefined, not "0%" or "∞%".
   if (lastMonth === 0) return undefined;
   return {
     changePercent: ((thisMonth - lastMonth) / lastMonth) * 100,
@@ -54,26 +50,51 @@ export async function OverviewStats() {
   const overdueAmount = invoices.filter((i) => i.status === "overdue").reduce((sum, i) => sum + i.amount, 0);
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>At a glance</CardTitle>
+    <Card className="border-border/80 shadow-xs">
+      <CardHeader className="border-b border-border/60 pb-4">
+        <div className="flex items-center gap-2.5">
+          <div className="flex size-8 items-center justify-center rounded-lg bg-primary/10 text-primary">
+            <TrendingUp className="size-4" />
+          </div>
+          <CardTitle className="text-lg font-bold">Key Clinical Metrics</CardTitle>
+        </div>
       </CardHeader>
-      <CardContent>
+      <CardContent className="pt-5">
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
           <StatTile
             label="Patients on record"
             value={String(patients.length)}
             trend={growthTrend(patients)}
+            icon={Users}
           />
           <StatTile
             label="Consultations recorded"
             value={String(consultations.length)}
             trend={growthTrend(consultations)}
+            icon={CalendarClock}
           />
-          <StatTile label="Pending balance" value={formatCurrency(pendingAmount)} />
-          <StatTile label="Overdue balance" value={formatCurrency(overdueAmount)} />
-          <StatTile label="Active diagnoses" value={String(activeDiagnoses)} />
-          <StatTile label="Active prescriptions" value={String(activePrescriptions)} />
+          <StatTile
+            label="Pending balance"
+            value={formatCurrency(pendingAmount)}
+            icon={Receipt}
+            className={pendingAmount > 0 ? "border-amber-500/30 bg-amber-500/5 dark:bg-amber-500/10" : ""}
+          />
+          <StatTile
+            label="Overdue balance"
+            value={formatCurrency(overdueAmount)}
+            icon={AlertCircle}
+            className={overdueAmount > 0 ? "border-rose-500/30 bg-rose-500/5 dark:bg-rose-500/10" : ""}
+          />
+          <StatTile
+            label="Active diagnoses"
+            value={String(activeDiagnoses)}
+            icon={Stethoscope}
+          />
+          <StatTile
+            label="Active prescriptions"
+            value={String(activePrescriptions)}
+            icon={Pill}
+          />
         </div>
       </CardContent>
     </Card>

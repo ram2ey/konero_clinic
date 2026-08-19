@@ -32,35 +32,67 @@ export async function MedicationsList({ patientId }: { patientId: string }) {
   const items = prescriptions ?? [];
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Active Medications</CardTitle>
+    <Card className="border-border/80 shadow-xs">
+      <CardHeader className="border-b border-border/60 pb-4">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2.5">
+            <div className="flex size-8 items-center justify-center rounded-lg bg-primary/10 text-primary">
+              <Pill className="size-4" />
+            </div>
+            <CardTitle className="text-lg font-bold">Active Medications</CardTitle>
+          </div>
+          {items.length > 0 && (
+            <span className="rounded-full bg-primary/10 px-2.5 py-0.5 text-xs font-semibold text-primary">
+              {items.length} Active
+            </span>
+          )}
+        </div>
       </CardHeader>
-      <CardContent>
+      <CardContent className="pt-5">
         {items.length === 0 ? (
           <EmptyState />
         ) : (
-          <ul className="divide-y divide-border">
+          <div className="grid grid-cols-1 gap-3.5 sm:grid-cols-2">
             {items.map((item) => (
-              <li key={item.id} className="py-3 first:pt-0 last:pb-0">
-                <div className="flex items-start justify-between gap-3">
-                  <div className="min-w-0">
-                    <p className="font-medium text-foreground">{item.medication_name}</p>
-                    <p className="text-sm text-muted-foreground">
-                      {[item.dosage, item.frequency].filter(Boolean).join(" · ") || "No dosage on file"}
+              <div
+                key={item.id}
+                className="group relative flex flex-col justify-between rounded-xl border border-border/80 bg-card p-4 shadow-2xs transition-all duration-200 hover:border-primary/30 hover:shadow-xs"
+              >
+                <div>
+                  <div className="flex items-start justify-between gap-2">
+                    <p className="font-bold text-base text-foreground group-hover:text-primary transition-colors">
+                      {item.medication_name}
                     </p>
-                    {item.instructions && (
-                      <p className="mt-1 text-sm text-muted-foreground">{item.instructions}</p>
-                    )}
-                    <p className="mt-1 text-xs text-muted-foreground">
-                      Prescribed {formatDate(item.created_at)}
-                    </p>
+                    <RecordStatusBadge status={item.status} />
                   </div>
-                  <RecordStatusBadge status={item.status} />
+                  
+                  <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
+                    {item.dosage && (
+                      <span className="inline-flex items-center rounded-md bg-muted px-2 py-0.5 text-xs font-semibold text-foreground">
+                        {item.dosage}
+                      </span>
+                    )}
+                    {item.frequency && (
+                      <span className="inline-flex items-center rounded-md border border-border/70 bg-background px-2 py-0.5 text-xs font-medium text-muted-foreground">
+                        {item.frequency}
+                      </span>
+                    )}
+                  </div>
+
+                  {item.instructions && (
+                    <div className="mt-3 rounded-lg border border-border/60 bg-muted/40 p-2.5 text-xs text-muted-foreground leading-relaxed">
+                      <span className="font-semibold text-foreground mr-1">Instructions:</span>
+                      {item.instructions}
+                    </div>
+                  )}
                 </div>
-              </li>
+
+                <p className="mt-3.5 text-[11px] font-medium text-muted-foreground">
+                  Prescribed on {formatDate(item.created_at)}
+                </p>
+              </div>
             ))}
-          </ul>
+          </div>
         )}
       </CardContent>
     </Card>

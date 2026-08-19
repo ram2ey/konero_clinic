@@ -53,35 +53,67 @@ export async function InvoicesSummary({ patientId }: { patientId: string }) {
       : undefined;
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Financials</CardTitle>
+    <Card className="border-border/80 shadow-xs">
+      <CardHeader className="border-b border-border/60 pb-4">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2.5">
+            <div className="flex size-8 items-center justify-center rounded-lg bg-primary/10 text-primary">
+              <Receipt className="size-4" />
+            </div>
+            <CardTitle className="text-lg font-bold">Billing &amp; Invoices</CardTitle>
+          </div>
+          {items.length > 0 && (
+            <span className="rounded-full bg-primary/10 px-2.5 py-0.5 text-xs font-semibold text-primary">
+              {items.length} Total
+            </span>
+          )}
+        </div>
       </CardHeader>
-      <CardContent>
-        <div className="grid grid-cols-2 gap-4">
-          <StatTile label="Amount due" value={formatCurrency(amountDue)} />
-          <StatTile label="Paid this month" value={formatCurrency(paidThisMonth)} trend={paidTrend} />
+      <CardContent className="pt-5 space-y-5">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <StatTile
+            label="Outstanding Balance"
+            value={formatCurrency(amountDue)}
+            icon={Receipt}
+            className={amountDue > 0 ? "border-amber-500/30 bg-amber-500/5 dark:bg-amber-500/10" : ""}
+          />
+          <StatTile
+            label="Paid this month"
+            value={formatCurrency(paidThisMonth)}
+            trend={paidTrend}
+            icon={Receipt}
+          />
         </div>
 
         {items.length === 0 ? (
           <EmptyState />
         ) : (
-          <ul className="mt-4 divide-y divide-border">
-            {items.map((item) => (
-              <li key={item.id} className="flex items-center justify-between gap-3 py-3 first:pt-0 last:pb-0">
-                <div className="min-w-0">
-                  <p className="truncate text-sm font-medium text-foreground">
-                    {item.description ?? "Invoice"}
-                  </p>
-                  <p className="text-xs text-muted-foreground">{formatDate(item.created_at)}</p>
+          <div className="space-y-2.5">
+            <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground pt-2">
+              Recent Transactions
+            </h3>
+            <div className="divide-y divide-border/60 rounded-xl border border-border/80 bg-card overflow-hidden shadow-2xs">
+              {items.map((item) => (
+                <div
+                  key={item.id}
+                  className="flex items-center justify-between gap-3 p-4 transition-colors hover:bg-muted/40"
+                >
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-semibold text-foreground">
+                      {item.description ?? "Medical Consultation & Services"}
+                    </p>
+                    <p className="text-xs text-muted-foreground mt-0.5">{formatDate(item.created_at)}</p>
+                  </div>
+                  <div className="flex shrink-0 items-center gap-3">
+                    <span className="text-sm sm:text-base font-bold tabular-nums text-foreground">
+                      {formatCurrency(item.amount)}
+                    </span>
+                    <InvoiceStatusBadge status={item.status} />
+                  </div>
                 </div>
-                <div className="flex shrink-0 items-center gap-3">
-                  <span className="text-sm font-medium text-foreground">{formatCurrency(item.amount)}</span>
-                  <InvoiceStatusBadge status={item.status} />
-                </div>
-              </li>
-            ))}
-          </ul>
+              ))}
+            </div>
+          </div>
         )}
       </CardContent>
     </Card>

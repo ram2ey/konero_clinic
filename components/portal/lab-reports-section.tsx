@@ -30,30 +30,50 @@ export async function LabReportsSection({ patientId }: { patientId: string }) {
   const items = labReports ?? [];
 
   return (
-    <Card>
-      <CardHeader className="flex flex-row items-center justify-between gap-3">
-        <CardTitle>Lab Reports</CardTitle>
+    <Card className="border-border/80 shadow-xs">
+      <CardHeader className="flex flex-row items-center justify-between gap-3 border-b border-border/60 pb-4">
+        <div className="flex items-center gap-2.5">
+          <div className="flex size-8 items-center justify-center rounded-lg bg-primary/10 text-primary">
+            <FileText className="size-4" />
+          </div>
+          <CardTitle className="text-lg font-bold">Diagnostic Lab Reports</CardTitle>
+        </div>
         <UploadLabDrawer patientId={patientId} />
       </CardHeader>
-      <CardContent>
+      <CardContent className="pt-5">
         {items.length === 0 ? (
           <EmptyState />
         ) : (
-          <ul className="divide-y divide-border">
+          <div className="space-y-3">
             {items.map((item) => (
-              <li key={item.id} className="flex items-center justify-between gap-3 py-3 first:pt-0 last:pb-0">
-                <div className="flex min-w-0 items-start gap-3">
-                  <FileText className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
+              <div
+                key={item.id}
+                className="group flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-xl border border-border/80 bg-card p-4 shadow-2xs transition-all duration-200 hover:border-primary/30 hover:shadow-xs"
+              >
+                <div className="flex min-w-0 items-start gap-3.5">
+                  <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-muted text-muted-foreground group-hover:bg-primary/10 group-hover:text-primary transition-colors mt-0.5">
+                    <FileText className="size-4" />
+                  </div>
                   <div className="min-w-0">
-                    <p className="truncate font-medium text-foreground">{item.test_name}</p>
-                    {item.notes && <p className="truncate text-sm text-muted-foreground">{item.notes}</p>}
-                    <p className="text-xs text-muted-foreground">{formatDate(item.created_at)}</p>
+                    <p className="font-bold text-sm sm:text-base text-foreground group-hover:text-primary transition-colors">
+                      {item.test_name}
+                    </p>
+                    {item.notes && (
+                      <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">
+                        {item.notes}
+                      </p>
+                    )}
+                    <p className="text-xs text-muted-foreground mt-1 font-medium">
+                      Uploaded on {formatDate(item.created_at)}
+                    </p>
                   </div>
                 </div>
-                <LabReportDownloadButton patientId={patientId} filePath={item.file_path} />
-              </li>
+                <div className="shrink-0 self-start sm:self-center">
+                  <LabReportDownloadButton patientId={patientId} filePath={item.file_path} />
+                </div>
+              </div>
             ))}
-          </ul>
+          </div>
         )}
       </CardContent>
     </Card>

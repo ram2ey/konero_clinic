@@ -20,7 +20,7 @@ export function AdminNav() {
   const { setOpenMobile } = useSidebar();
 
   return (
-    <SidebarMenu>
+    <SidebarMenu className="gap-1">
       {NAV_ITEMS.map((item) => {
         // Exact match for "/admin" (else it'd stay "active" on every
         // sub-route); prefix match for the rest so /admin/consultations/[id]
@@ -29,12 +29,20 @@ export function AdminNav() {
 
         return (
           <SidebarMenuItem key={item.href}>
-            <SidebarMenuButton asChild isActive={isActive} tooltip={item.label}>
+            <SidebarMenuButton
+              asChild
+              isActive={isActive}
+              tooltip={item.label}
+              className="relative h-9 rounded-lg px-2.5 transition-all duration-150 data-[active=true]:bg-primary/10 data-[active=true]:text-primary data-[active=true]:font-semibold dark:data-[active=true]:bg-primary/20 hover:bg-muted/70"
+            >
               {/* Closes the mobile drawer on tap — otherwise it stays open
                   over the destination page until manually dismissed. */}
-              <Link href={item.href} onClick={() => setOpenMobile(false)}>
-                <item.icon />
-                <span>{item.label}</span>
+              <Link href={item.href} onClick={() => setOpenMobile(false)} className="flex items-center gap-2.5">
+                <item.icon className="size-4 shrink-0" />
+                <span className="text-xs font-medium">{item.label}</span>
+                {isActive && (
+                  <span className="ml-auto size-1.5 rounded-full bg-primary group-data-[collapsible=icon]:hidden" />
+                )}
               </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
