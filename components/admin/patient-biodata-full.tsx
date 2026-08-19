@@ -7,6 +7,7 @@ import {
   GraduationCap,
   Heart,
   IdCard,
+  KeyRound,
   MapPin,
   Phone,
   Send,
@@ -17,6 +18,7 @@ import {
 } from "lucide-react";
 
 import { FieldRow } from "@/components/field-row";
+import { ReinvitePatientButton } from "@/components/admin/reinvite-patient-button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { calculateAge, formatDate, formatMedicalId, humanizeEnum } from "@/lib/format";
@@ -86,7 +88,7 @@ export async function PatientBiodataFull({ patientId }: { patientId: string }) {
     <div className="space-y-6">
       <Card className="border-border/80 shadow-xs">
         <CardHeader className="border-b border-border/60 pb-4">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div className="flex items-center gap-3">
               <div className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-primary/20 via-violet-500/15 to-primary/5 text-primary ring-1 ring-primary/25">
                 <User className="size-5" />
@@ -113,10 +115,40 @@ export async function PatientBiodataFull({ patientId }: { patientId: string }) {
                 </div>
               </div>
             </div>
+
+            <div className="flex items-center gap-2">
+              <ReinvitePatientButton
+                patientId={patientId}
+                patientName={profile?.full_name}
+                variant="outline"
+                size="sm"
+              />
+            </div>
           </div>
         </CardHeader>
 
         <CardContent className="pt-6 space-y-6">
+          {/* Patient Portal Access Banner */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-xl border border-primary/20 bg-primary/5 p-4 dark:border-primary/30 dark:bg-primary/10">
+            <div className="flex items-center gap-3">
+              <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-primary/15 text-primary">
+                <KeyRound className="size-4" />
+              </div>
+              <div>
+                <p className="text-xs font-bold text-foreground">Patient Portal Access</p>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  Send a new invite or password setup link if the patient&apos;s previous email link expired.
+                </p>
+              </div>
+            </div>
+            <ReinvitePatientButton
+              patientId={patientId}
+              patientName={profile?.full_name}
+              variant="default"
+              size="sm"
+            />
+          </div>
+
           {/* Demographics */}
           <div>
             <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-3">
@@ -174,8 +206,8 @@ export async function PatientBiodataFull({ patientId }: { patientId: string }) {
           </div>
 
           {/* Referral Intake */}
-          <div className="rounded-xl border border-primary/20 bg-primary/5 p-4 dark:border-primary/30 dark:bg-primary/10">
-            <h3 className="text-xs font-bold uppercase tracking-wider text-primary mb-3">
+          <div className="rounded-xl border border-border/80 bg-muted/30 p-4">
+            <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-3">
               Clinical Referral Intake
             </h3>
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">

@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, type FormEvent } from "react";
 
@@ -7,18 +8,8 @@ import { Button } from "@/components/ui/button";
 import { createClient } from "@/lib/supabase/client";
 
 type LinkState = "checking" | "ready" | "invalid";
-// This page now serves two links that both land here the same way (a
-// session encoded in the URL fragment): the initial invite, and a
-// forgot-password reset (see actions/forgot-password.ts). Supabase fires
-// a distinct PASSWORD_RECOVERY auth event for the latter, so the copy
-// below can read correctly for whichever one actually brought them here.
 type Flow = "invite" | "recovery";
 
-// Supabase's invite/recovery emails point back here with the session
-// encoded as a URL fragment (#access_token=...), not a query param —
-// fragments never reach a server, so this session can only be picked up
-// client-side. createBrowserClient's detectSessionInUrl (on by default)
-// parses it automatically; onAuthStateChange is how we know it's done.
 export default function SetPasswordPage() {
   const router = useRouter();
   const [linkState, setLinkState] = useState<LinkState>("checking");
@@ -27,10 +18,33 @@ export default function SetPasswordPage() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
   const resolvedRef = useRef(false);
 
   useEffect(() => {
+    // Check if the URL already arrived with an error in the hash or search params
+    if (typeof window !== "undefined") {
+      const hashParams = new URLSearchParams(window.location.hash.replace(/^#/, ""));
+      const searchParams = new URLSearchParams(window.location.search);
+
+      const hasError =
+        hashParams.get("error") ||
+        hashParams.get("error_code") ||
+        searchParams.get("error");
+
+      if (hasError) {
+        resolvedRef.current = true;
+        const description =
+          hashParams.get("error_description") ||
+          searchParams.get("error_description") ||
+          "This email link is invalid or has expired.";
+        setErrorMessage(decodeURIComponent(description.replace(/\+/g, " ")));
+        setLinkState("invalid");
+        return;
+      }
+    }
+
     const supabase = createClient();
 
     const {
@@ -48,7 +62,7 @@ export default function SetPasswordPage() {
     // parse — give it a few seconds before concluding the link is bad.
     const timeout = setTimeout(() => {
       if (!resolvedRef.current) setLinkState("invalid");
-    }, 5000);
+    }, 4000);
 
     return () => {
       subscription.unsubscribe();
@@ -85,7 +99,7 @@ export default function SetPasswordPage() {
 
   return (
     <main className="flex min-h-screen items-center justify-center bg-background px-4">
-      <div className="w-full max-w-sm rounded-lg border border-border bg-card p-6">
+      <div className="w-full max-w-sm rounded-lg border border-border bg-card p-6 shadow-sm">
         <h1 className="text-lg font-semibold text-foreground">
           {flow === "recovery" ? "Reset your password" : "Set your password"}
         </h1>
@@ -96,14 +110,34 @@ export default function SetPasswordPage() {
         </p>
 
         {linkState === "checking" && (
-          <p className="mt-6 text-sm text-muted-foreground">Verifying your link…</p>
+          <div className="mt-6 flex items-center gap-2 text-sm text-muted-foreground">
+            <div className="size-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+            <span>Verifying your link…</span>
+          </div>
         )}
 
         {linkState === "invalid" && (
-          <p role="alert" className="mt-6 text-sm text-destructive">
-            This link is invalid or has expired. Ask your clinic to send a new invite, or request a new
-            password reset.
-          </p>
+          <div className="mt-6 space-y-4">
+            <div
+              role="alert"
+              className="rounded-lg border border-destructive/30 bg-destructive/10 p-3.5 text-xs leading-relaxed text-destructive"
+            >
+              <p className="font-semibold">Link Expired or Invalid</p>
+              <p className="mt-1">
+                {errorMessage ||
+                  "This link is invalid or has expired. Ask your clinic to resend an invite, or request a new password reset."}
+              </p>
+            </div>
+
+            <div className="flex flex-col gap-2">
+              <Button asChild variant="default" size="sm" className="w-full">
+                <Link href="/forgot-password">Request New Reset Link</Link>
+              </Button>
+              <Button asChild variant="outline" size="sm" className="w-full">
+                <Link href="/login">Return to Sign In</Link>
+              </Button>
+            </div>
+          </div>
         )}
 
         {linkState === "ready" && !success && (
