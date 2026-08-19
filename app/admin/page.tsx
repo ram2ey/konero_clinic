@@ -23,7 +23,7 @@ export default function AdminDashboardPage() {
               </CardTitle>
             </CardHeader>
             <CardContent className="text-sm text-muted-foreground">
-              Register a new patient, search the roster, or open a patient's folder.
+              Register a new patient, search the roster, or open a patient&apos;s folder.
             </CardContent>
           </Card>
         </Link>

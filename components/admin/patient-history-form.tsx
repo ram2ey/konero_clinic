@@ -238,34 +238,38 @@ function ViewFieldGroup<T extends Record<string, string>>({
 
 const inputClass = "w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground";
 const textareaClass = `${inputClass} min-h-24`;
+const errorInputClass = "border-destructive focus-visible:ring-destructive/40";
 
 function orUndefined(value: string): string | undefined {
   const trimmed = value.trim();
   return trimmed.length > 0 ? trimmed : undefined;
 }
 
-function TextField({
-  label,
-  value,
-  onChange,
-  disabled,
-}: {
-  label: string;
-  value: string;
-  onChange: (value: string) => void;
-  disabled: boolean;
-}) {
-  return (
-    <div>
-      <label className="block text-sm font-medium text-foreground">{label}</label>
-      <textarea
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        disabled={disabled}
-        className={`${textareaClass} mt-1`}
-      />
-    </div>
-  );
+// Named after the exact Zod path the server returns in fieldErrors (see
+// actions/save-patient-history.ts) — "field-<path>" is the field's DOM
+// id, so a submit failure can scroll/focus straight to it.
+const SECTION_LABELS: Record<string, string> = {
+  history: "",
+  systemicEnquiry: "Systemic Enquiry",
+  pastMedicalHistory: "Past Medical History",
+  treatmentHistory: "Treatment History",
+  familyHistory: "Family History",
+  personalHistory: "Personal History",
+};
+
+function humanizeSegment(segment: string): string {
+  if (segment in SECTION_LABELS) return SECTION_LABELS[segment];
+  const spaced = segment.replace(/([a-z])([A-Z])/g, "$1 $2");
+  return spaced.charAt(0).toUpperCase() + spaced.slice(1);
+}
+
+function humanizePath(path: string): string {
+  if (path === "_root") return "Form";
+  return path.split(".").map(humanizeSegment).filter(Boolean).join(" → ");
+}
+
+function fieldId(name: string): string {
+  return `field-${name}`;
 }
 
 export function PatientHistoryForm({
@@ -284,6 +288,38 @@ export function PatientHistoryForm({
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string[]> | null>(null);
+
+  function fieldMessage(name: string): string | undefined {
+    return fieldErrors?.[name]?.[0];
+  }
+
+  // Nested so it closes over `pending`/`fieldErrors` instead of needing
+  // them re-passed at every one of the ~44 call sites below.
+  function TextField({ name, label, value, onChange }: { name: string; label: string; value: string; onChange: (value: string) => void }) {
+    const id = fieldId(name);
+    const message = fieldMessage(name);
+    return (
+      <div>
+        <label htmlFor={id} className="block text-sm font-medium text-foreground">
+          {label}
+        </label>
+        <textarea
+          id={id}
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          disabled={pending}
+          aria-invalid={message ? true : undefined}
+          aria-describedby={message ? `${id}-error` : undefined}
+          className={`${textareaClass} mt-1 ${message ? errorInputClass : ""}`}
+        />
+        {message && (
+          <p id={`${id}-error`} className="mt-1 text-xs text-destructive">
+            {message}
+          </p>
+        )}
+      </div>
+    );
+  }
 
   function startEdit() {
     setError(null);
@@ -389,7 +425,17 @@ export function PatientHistoryForm({
 
     if (result.status !== "success") {
       setError(result.message ?? "Failed to save history.");
-      setFieldErrors(result.fieldErrors ?? null);
+      const errors = result.fieldErrors ?? null;
+      setFieldErrors(errors);
+
+      const firstKey = errors ? Object.keys(errors)[0] : undefined;
+      requestAnimationFrame(() => {
+        const target = firstKey ? document.getElementById(fieldId(firstKey)) : null;
+        const fallback = document.getElementById("form-error-summary");
+        const el = target ?? fallback;
+        el?.scrollIntoView({ behavior: "smooth", block: "center" });
+        if (target) target.focus();
+      });
       return;
     }
 
@@ -469,172 +515,172 @@ export function PatientHistoryForm({
         </CardHeader>
         <CardContent className="space-y-6">
           <TextField
+            name="history.presentingComplaints"
             label="1. Presenting Complaint(s)"
             value={history.presentingComplaints}
             onChange={(v) => setHistoryField("presentingComplaints", v)}
-            disabled={pending}
           />
           <TextField
+            name="history.historyOfPresentingComplaints"
             label="2. History of Presenting Complaint(s)"
             value={history.historyOfPresentingComplaints}
             onChange={(v) => setHistoryField("historyOfPresentingComplaints", v)}
-            disabled={pending}
           />
           <TextField
+            name="history.onDirectQuestion"
             label="3. On Direct Question (ODQ)"
             value={history.onDirectQuestion}
             onChange={(v) => setHistoryField("onDirectQuestion", v)}
-            disabled={pending}
           />
 
           <div>
             <p className="text-sm font-medium text-foreground">4. Systemic Enquiry</p>
             <div className="mt-2 grid grid-cols-1 gap-4 sm:grid-cols-2">
               <TextField
+                name="history.systemicEnquiry.general"
                 label="General"
                 value={history.systemicEnquiry.general}
                 onChange={(v) => setSystemicEnquiry("general", v)}
-                disabled={pending}
               />
               <TextField
+                name="history.systemicEnquiry.respiratory"
                 label="Respiratory"
                 value={history.systemicEnquiry.respiratory}
                 onChange={(v) => setSystemicEnquiry("respiratory", v)}
-                disabled={pending}
               />
               <TextField
+                name="history.systemicEnquiry.cardiovascular"
                 label="Cardiovascular"
                 value={history.systemicEnquiry.cardiovascular}
                 onChange={(v) => setSystemicEnquiry("cardiovascular", v)}
-                disabled={pending}
               />
               <TextField
+                name="history.systemicEnquiry.abdominal"
                 label="Abdominal"
                 value={history.systemicEnquiry.abdominal}
                 onChange={(v) => setSystemicEnquiry("abdominal", v)}
-                disabled={pending}
               />
               <TextField
+                name="history.systemicEnquiry.genitourinary"
                 label="Genitourinary"
                 value={history.systemicEnquiry.genitourinary}
                 onChange={(v) => setSystemicEnquiry("genitourinary", v)}
-                disabled={pending}
               />
               <TextField
+                name="history.systemicEnquiry.centralNervous"
                 label="Central Nervous"
                 value={history.systemicEnquiry.centralNervous}
                 onChange={(v) => setSystemicEnquiry("centralNervous", v)}
-                disabled={pending}
               />
             </div>
           </div>
 
           <TextField
+            name="history.pastPsychiatricHistory"
             label="5. Past Psychiatric History"
             value={history.pastPsychiatricHistory}
             onChange={(v) => setHistoryField("pastPsychiatricHistory", v)}
-            disabled={pending}
           />
 
           <div>
             <p className="text-sm font-medium text-foreground">6. Past Medical History</p>
             <div className="mt-2 grid grid-cols-1 gap-4 sm:grid-cols-2">
               <TextField
+                name="history.pastMedicalHistory.seizureDisorder"
                 label="Seizure Disorder"
                 value={history.pastMedicalHistory.seizureDisorder}
                 onChange={(v) => setPastMedicalHistory("seizureDisorder", v)}
-                disabled={pending}
               />
               <TextField
+                name="history.pastMedicalHistory.sickleCellDisease"
                 label="Sickle Cell Disease"
                 value={history.pastMedicalHistory.sickleCellDisease}
                 onChange={(v) => setPastMedicalHistory("sickleCellDisease", v)}
-                disabled={pending}
               />
               <TextField
+                name="history.pastMedicalHistory.asthma"
                 label="Asthma"
                 value={history.pastMedicalHistory.asthma}
                 onChange={(v) => setPastMedicalHistory("asthma", v)}
-                disabled={pending}
               />
               <TextField
+                name="history.pastMedicalHistory.hypertension"
                 label="Hypertension"
                 value={history.pastMedicalHistory.hypertension}
                 onChange={(v) => setPastMedicalHistory("hypertension", v)}
-                disabled={pending}
               />
               <TextField
+                name="history.pastMedicalHistory.diabetes"
                 label="Diabetes"
                 value={history.pastMedicalHistory.diabetes}
                 onChange={(v) => setPastMedicalHistory("diabetes", v)}
-                disabled={pending}
               />
               <TextField
+                name="history.pastMedicalHistory.tuberculosis"
                 label="Tuberculosis"
                 value={history.pastMedicalHistory.tuberculosis}
                 onChange={(v) => setPastMedicalHistory("tuberculosis", v)}
-                disabled={pending}
               />
               <TextField
+                name="history.pastMedicalHistory.headInjury"
                 label="Head Injury"
                 value={history.pastMedicalHistory.headInjury}
                 onChange={(v) => setPastMedicalHistory("headInjury", v)}
-                disabled={pending}
               />
               <TextField
+                name="history.pastMedicalHistory.roadTrafficAccident"
                 label="Road Traffic Accident"
                 value={history.pastMedicalHistory.roadTrafficAccident}
                 onChange={(v) => setPastMedicalHistory("roadTrafficAccident", v)}
-                disabled={pending}
               />
               <TextField
+                name="history.pastMedicalHistory.other"
                 label="Other"
                 value={history.pastMedicalHistory.other}
                 onChange={(v) => setPastMedicalHistory("other", v)}
-                disabled={pending}
               />
             </div>
           </div>
 
           <TextField
+            name="history.pastSurgicalHistory"
             label="7. Past Surgical History"
             value={history.pastSurgicalHistory}
             onChange={(v) => setHistoryField("pastSurgicalHistory", v)}
-            disabled={pending}
           />
 
           <div>
             <p className="text-sm font-medium text-foreground">8. Treatment History</p>
             <div className="mt-2 grid grid-cols-1 gap-4 sm:grid-cols-2">
               <TextField
+                name="history.treatmentHistory.orthodoxMedications"
                 label="Orthodox Medications"
                 value={history.treatmentHistory.orthodoxMedications}
                 onChange={(v) => setTreatmentHistory("orthodoxMedications", v)}
-                disabled={pending}
               />
               <TextField
+                name="history.treatmentHistory.herbalMedications"
                 label="Herbal Medications"
                 value={history.treatmentHistory.herbalMedications}
                 onChange={(v) => setTreatmentHistory("herbalMedications", v)}
-                disabled={pending}
               />
               <TextField
+                name="history.treatmentHistory.allergies"
                 label="Allergies"
                 value={history.treatmentHistory.allergies}
                 onChange={(v) => setTreatmentHistory("allergies", v)}
-                disabled={pending}
               />
               <TextField
+                name="history.treatmentHistory.churchPrayerCamps"
                 label="Church/Prayer Camps"
                 value={history.treatmentHistory.churchPrayerCamps}
                 onChange={(v) => setTreatmentHistory("churchPrayerCamps", v)}
-                disabled={pending}
               />
               <TextField
+                name="history.treatmentHistory.other"
                 label="Other"
                 value={history.treatmentHistory.other}
                 onChange={(v) => setTreatmentHistory("other", v)}
-                disabled={pending}
               />
             </div>
           </div>
@@ -643,70 +689,70 @@ export function PatientHistoryForm({
             <p className="text-sm font-medium text-foreground">9. Family History</p>
             <div className="mt-2 grid grid-cols-1 gap-4 sm:grid-cols-2">
               <TextField
+                name="history.familyHistory.father"
                 label="Father"
                 value={history.familyHistory.father}
                 onChange={(v) => setFamilyHistory("father", v)}
-                disabled={pending}
               />
               <TextField
+                name="history.familyHistory.mother"
                 label="Mother"
                 value={history.familyHistory.mother}
                 onChange={(v) => setFamilyHistory("mother", v)}
-                disabled={pending}
               />
               <TextField
+                name="history.familyHistory.siblings"
                 label="Siblings"
                 value={history.familyHistory.siblings}
                 onChange={(v) => setFamilyHistory("siblings", v)}
-                disabled={pending}
               />
               <TextField
+                name="history.familyHistory.seizureDisorder"
                 label="Seizure Disorder"
                 value={history.familyHistory.seizureDisorder}
                 onChange={(v) => setFamilyHistory("seizureDisorder", v)}
-                disabled={pending}
               />
               <TextField
+                name="history.familyHistory.mentalIllness"
                 label="Mental Illness"
                 value={history.familyHistory.mentalIllness}
                 onChange={(v) => setFamilyHistory("mentalIllness", v)}
-                disabled={pending}
               />
               <TextField
+                name="history.familyHistory.suicide"
                 label="Suicide"
                 value={history.familyHistory.suicide}
                 onChange={(v) => setFamilyHistory("suicide", v)}
-                disabled={pending}
               />
               <TextField
+                name="history.familyHistory.addiction"
                 label="Addiction"
                 value={history.familyHistory.addiction}
                 onChange={(v) => setFamilyHistory("addiction", v)}
-                disabled={pending}
               />
               <TextField
+                name="history.familyHistory.hypertension"
                 label="Hypertension"
                 value={history.familyHistory.hypertension}
                 onChange={(v) => setFamilyHistory("hypertension", v)}
-                disabled={pending}
               />
               <TextField
+                name="history.familyHistory.diabetes"
                 label="Diabetes"
                 value={history.familyHistory.diabetes}
                 onChange={(v) => setFamilyHistory("diabetes", v)}
-                disabled={pending}
               />
               <TextField
+                name="history.familyHistory.asthma"
                 label="Asthma"
                 value={history.familyHistory.asthma}
                 onChange={(v) => setFamilyHistory("asthma", v)}
-                disabled={pending}
               />
               <TextField
+                name="history.familyHistory.sickleCellDisease"
                 label="Sickle Cell Disease"
                 value={history.familyHistory.sickleCellDisease}
                 onChange={(v) => setFamilyHistory("sickleCellDisease", v)}
-                disabled={pending}
               />
             </div>
           </div>
@@ -715,80 +761,80 @@ export function PatientHistoryForm({
             <p className="text-sm font-medium text-foreground">10. Personal History</p>
             <div className="mt-2 grid grid-cols-1 gap-4 sm:grid-cols-2">
               <TextField
+                name="history.personalHistory.pregnancyAndBirth"
                 label="Pregnancy & Birth"
                 value={history.personalHistory.pregnancyAndBirth}
                 onChange={(v) => setPersonalHistory("pregnancyAndBirth", v)}
-                disabled={pending}
               />
               <TextField
+                name="history.personalHistory.earlyChildhoodAndDevelopment"
                 label="Early Childhood & Development"
                 value={history.personalHistory.earlyChildhoodAndDevelopment}
                 onChange={(v) => setPersonalHistory("earlyChildhoodAndDevelopment", v)}
-                disabled={pending}
               />
               <TextField
+                name="history.personalHistory.education"
                 label="Education"
                 value={history.personalHistory.education}
                 onChange={(v) => setPersonalHistory("education", v)}
-                disabled={pending}
               />
               <TextField
+                name="history.personalHistory.occupation"
                 label="Occupation"
                 value={history.personalHistory.occupation}
                 onChange={(v) => setPersonalHistory("occupation", v)}
-                disabled={pending}
               />
               <TextField
+                name="history.personalHistory.psychosexualRelationship"
                 label="Psychosexual / Relationship"
                 value={history.personalHistory.psychosexualRelationship}
                 onChange={(v) => setPersonalHistory("psychosexualRelationship", v)}
-                disabled={pending}
               />
               <TextField
+                name="history.personalHistory.maritalHistory"
                 label="Marital History"
                 value={history.personalHistory.maritalHistory}
                 onChange={(v) => setPersonalHistory("maritalHistory", v)}
-                disabled={pending}
               />
               <TextField
+                name="history.personalHistory.socialHistory"
                 label="Social History"
                 value={history.personalHistory.socialHistory}
                 onChange={(v) => setPersonalHistory("socialHistory", v)}
-                disabled={pending}
               />
               <TextField
+                name="history.personalHistory.forensicHistory"
                 label="Forensic History"
                 value={history.personalHistory.forensicHistory}
                 onChange={(v) => setPersonalHistory("forensicHistory", v)}
-                disabled={pending}
               />
             </div>
           </div>
 
           <TextField
+            name="history.substanceUseAddictionHistory"
             label="11. Substance Use / Addiction History"
             value={history.substanceUseAddictionHistory}
             onChange={(v) => setHistoryField("substanceUseAddictionHistory", v)}
-            disabled={pending}
           />
 
           <TextField
+            name="history.premorbidPersonality"
             label="12. Premorbid Personality"
             value={history.premorbidPersonality}
             onChange={(v) => setHistoryField("premorbidPersonality", v)}
-            disabled={pending}
           />
         </CardContent>
       </Card>
 
       {error && (
-        <div role="alert" className="space-y-1 rounded-md border border-destructive/30 bg-destructive/5 p-3">
+        <div id="form-error-summary" role="alert" tabIndex={-1} className="space-y-1 rounded-md border border-destructive/30 bg-destructive/5 p-3">
           <p className="text-sm font-medium text-destructive">{error}</p>
           {fieldErrors && (
             <ul className="list-inside list-disc text-xs text-destructive">
               {Object.entries(fieldErrors).map(([field, messages]) => (
                 <li key={field}>
-                  {field}: {messages.join(", ")}
+                  {humanizePath(field)}: {messages.join(", ")}
                 </li>
               ))}
             </ul>

@@ -6,6 +6,7 @@ import { DiagnosesHistory, DiagnosesHistorySkeleton } from "@/components/portal/
 import { LabReportsSection, LabReportsSectionSkeleton } from "@/components/portal/lab-reports-section";
 import { MedicationsList, MedicationsListSkeleton } from "@/components/portal/medications-list";
 import { PreviousConsultations, PreviousConsultationsSkeleton } from "@/components/admin/previous-consultations";
+import { SuccessBanner } from "@/components/admin/success-banner";
 import { Button } from "@/components/ui/button";
 
 export default async function ConsultationTabPage({ params }: { params: Promise<{ id: string }> }) {
@@ -13,6 +14,10 @@ export default async function ConsultationTabPage({ params }: { params: Promise<
 
   return (
     <div className="space-y-6">
+      <Suspense fallback={null}>
+        <SuccessBanner param="recorded" message="Consultation recorded." />
+      </Suspense>
+
       <div className="grid gap-6 lg:grid-cols-2">
         <Suspense fallback={<MedicationsListSkeleton />}>
           <MedicationsList patientId={patientId} />
