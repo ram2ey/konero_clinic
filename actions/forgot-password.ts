@@ -4,6 +4,7 @@ import { z } from "zod";
 
 import type { ActionState } from "@/lib/action-state";
 import { logAndSanitize } from "@/lib/errors";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { zodFieldErrors } from "@/lib/zod-field-errors";
 
@@ -12,6 +13,8 @@ const forgotPasswordSchema = z.object({
 });
 
 const GENERIC_MESSAGE = "If an account exists for that email, a password reset link has been sent.";
+const MAX_RESET_ATTEMPTS = 3;
+const WINDOW_MINUTES = 15;
 
 /**
  * Sends a password-reset email via Supabase Auth. Always returns the
@@ -19,11 +22,8 @@ const GENERIC_MESSAGE = "If an account exists for that email, a password reset l
  * registered — same reasoning as sign-in's generic error message: don't
  * let this become a way to enumerate which emails have accounts.
  *
- * This is the escape hatch for the sign-in lockout in actions/sign-in.ts
- * too: resetPasswordForEmail doesn't touch sign_in_attempts at all, so
- * it works as an immediate way back in even while that lockout is
- * active — waiting out the 15-minute window is never the only option
- * for someone who genuinely doesn't remember their password.
+ * Includes application-level rate limiting (max 3 requests per 15 minutes)
+ * to prevent automated email flooding / denial of service.
  */
 export async function forgotPassword(_prevState: ActionState, formData: FormData): Promise<ActionState> {
   const parsed = forgotPasswordSchema.safeParse({ email: formData.get("email") });
@@ -36,6 +36,30 @@ export async function forgotPassword(_prevState: ActionState, formData: FormData
     };
   }
 
+  const { email } = parsed.data;
+
+  // Rate limiting check via service-role client (best effort)
+  try {
+    const supabaseAdmin = createAdminClient();
+    const windowStart = new Date(Date.now() - WINDOW_MINUTES * 60 * 1000).toISOString();
+
+    const { count } = await supabaseAdmin
+      .from("password_reset_requests")
+      .select("id", { count: "exact", head: true })
+      .eq("email", email)
+      .gte("created_at", windowStart);
+
+    if ((count ?? 0) >= MAX_RESET_ATTEMPTS) {
+      // Silently return generic message without triggering additional emails
+      return { status: "success", message: GENERIC_MESSAGE };
+    }
+
+    await supabaseAdmin.from("password_reset_requests").insert({ email });
+    await supabaseAdmin.from("password_reset_requests").delete().eq("email", email).lt("created_at", windowStart);
+  } catch {
+    // If rate-limiting table is unavailable, continue gracefully
+  }
+
   try {
     const supabase = await createClient();
     const siteUrl = process.env.NEXT_PUBLIC_SITE_URL;
@@ -45,12 +69,8 @@ export async function forgotPassword(_prevState: ActionState, formData: FormData
     // to pick it up and call updateUser({ password }).
     const redirectTo = siteUrl ? new URL("/auth/set-password", siteUrl).toString() : undefined;
 
-    const { error } = await supabase.auth.resetPasswordForEmail(parsed.data.email, { redirectTo });
+    const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo });
 
-    // Logged server-side either way (cheap, and useful if it turns out
-    // to be a real infra failure) — but the client-facing message stays
-    // generic regardless, same as Supabase's own recover endpoint never
-    // distinguishing "no such email" from "email sent".
     if (error) {
       logAndSanitize("forgotPassword", error, GENERIC_MESSAGE);
     }
@@ -61,3 +81,4 @@ export async function forgotPassword(_prevState: ActionState, formData: FormData
     return { status: "success", message: GENERIC_MESSAGE };
   }
 }
+

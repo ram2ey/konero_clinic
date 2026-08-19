@@ -79,7 +79,7 @@ export async function getLabDownloadUrl(input: GetLabDownloadUrlInput): Promise<
 
     const { data: signed, error: signError } = await access.supabase.storage
       .from("lab-documents")
-      .createSignedUrl(filePath, SIGNED_URL_TTL_SECONDS);
+      .createSignedUrl(filePath, SIGNED_URL_TTL_SECONDS, { download: true });
 
     if (signError || !signed) {
       return {

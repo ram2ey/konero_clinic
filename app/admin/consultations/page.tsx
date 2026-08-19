@@ -38,8 +38,12 @@ export default async function ConsultationsPage({
     .order("created_at", { ascending: false });
 
   if (query) {
-    const safeQuery = query.replace(/[,()%]/g, "");
-    request = request.or(`full_name.ilike.%${safeQuery}%,phone.ilike.%${safeQuery}%`);
+    // Strip PostgREST syntax delimiters and ILIKE wildcards so arbitrary
+    // search input cannot trigger a 400 Bad Request or malformed filter.
+    const safeQuery = query.replace(/[.,():%\\_]/g, "").trim();
+    if (safeQuery) {
+      request = request.or(`full_name.ilike.%${safeQuery}%,phone.ilike.%${safeQuery}%`);
+    }
   }
 
   const { data: patients } = await request.returns<PatientRow[]>();
