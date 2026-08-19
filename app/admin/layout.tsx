@@ -15,7 +15,7 @@ import {
   SidebarProvider,
   SidebarTrigger,
 } from "@/components/ui/sidebar";
-import { createClient } from "@/lib/supabase/server";
+import { getCachedAuthUser, getCachedProfile } from "@/lib/auth-cache";
 
 function initials(name: string | null) {
   if (!name) return "?";
@@ -24,27 +24,19 @@ function initials(name: string | null) {
 }
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
-  const supabase = await createClient();
+  const user = await getCachedAuthUser();
 
-  const {
-    data: { session },
-  } = await supabase.auth.getSession();
-
-  if (!session) {
+  if (!user) {
     redirect("/login");
   }
 
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("full_name, role")
-    .eq("id", session.user.id)
-    .single<{ full_name: string | null; role: string }>();
+  const profile = await getCachedProfile(user.id);
 
   if (profile?.role !== "doctor_admin") {
     redirect("/portal");
   }
 
-  const fullName = profile.full_name ?? null;
+  const fullName = profile.fullName ?? null;
 
   return (
     <SidebarProvider>

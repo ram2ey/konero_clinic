@@ -2,7 +2,6 @@ import { IdCard } from "lucide-react";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
 
-import { PatientTabs } from "@/components/admin/patient-tabs";
 import { formatMedicalId } from "@/lib/format";
 import { createClient } from "@/lib/supabase/server";
 
@@ -52,8 +51,6 @@ export default async function PatientFolderLayout({
           <PatientHeading patientId={patientId} />
         </Suspense>
       </div>
-
-      <PatientTabs patientId={patientId} />
 
       {children}
     </main>

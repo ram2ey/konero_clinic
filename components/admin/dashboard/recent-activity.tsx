@@ -33,6 +33,7 @@ function Entry({
   return (
     <Link
       href={href}
+      prefetch={true}
       className="group flex items-center justify-between gap-3 rounded-xl p-2.5 transition-all duration-150 hover:bg-muted/60"
     >
       <div className="flex min-w-0 items-center gap-3">

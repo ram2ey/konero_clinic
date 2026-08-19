@@ -14,7 +14,7 @@ import {
   SidebarProvider,
   SidebarTrigger,
 } from "@/components/ui/sidebar";
-import { createClient } from "@/lib/supabase/server";
+import { getCachedAuthUser, getCachedProfile } from "@/lib/auth-cache";
 
 function initials(name: string | null) {
   if (!name) return "?";
@@ -23,44 +23,19 @@ function initials(name: string | null) {
 }
 
 export default async function PortalLayout({ children }: { children: React.ReactNode }) {
-  const supabase = await createClient();
+  const user = await getCachedAuthUser();
 
-  // getSession() (a local cookie decode) rather than getUser() (a network
-  // round-trip that revalidates against Supabase Auth): this belt-and-
-  // suspenders check runs on every single portal navigation, and
-  // middleware.ts already did the authoritative getUser() revalidation
-  // for this exact request — and redirects away anything invalid before
-  // this layout ever runs. Re-deriving user.id from that already-trusted
-  // session costs nothing extra; re-validating it a second time over the
-  // network on every page load did. This safely relies on middleware
-  // being the actual gate — if its matcher ever stops covering /portal,
-  // this check alone wouldn't be enough. RLS is the real data-access
-  // boundary regardless of any of this (see supabase/migrations), so a
-  // misconfigured matcher would show the wrong UI shell, not leak data.
-  const {
-    data: { session },
-  } = await supabase.auth.getSession();
-
-  if (!session) {
+  if (!user) {
     redirect("/login");
   }
 
-  // `role` alongside `full_name` in the same query (no extra round trip):
-  // middleware no longer redirects an admin away from /portal on every
-  // request (see middleware.ts), so this layout is now the one place that
-  // still has to catch it — same role check app/admin/layout.tsx already
-  // does in the other direction.
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("full_name, role")
-    .eq("id", session.user.id)
-    .single<{ full_name: string | null; role: string }>();
+  const profile = await getCachedProfile(user.id);
 
   if (profile?.role === "doctor_admin") {
     redirect("/admin");
   }
 
-  const fullName = profile?.full_name ?? null;
+  const fullName = profile?.fullName ?? null;
 
   return (
     <SidebarProvider>

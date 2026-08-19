@@ -37,7 +37,7 @@ export function AdminNav() {
             >
               {/* Closes the mobile drawer on tap — otherwise it stays open
                   over the destination page until manually dismissed. */}
-              <Link href={item.href} onClick={() => setOpenMobile(false)} className="flex items-center gap-2.5">
+              <Link href={item.href} prefetch={true} onClick={() => setOpenMobile(false)} className="flex items-center gap-2.5">
                 <item.icon className={`size-4 shrink-0 transition-colors ${isActive ? "text-primary font-bold" : "text-muted-foreground"}`} />
                 <span className="text-xs">{item.label}</span>
                 {isActive && (

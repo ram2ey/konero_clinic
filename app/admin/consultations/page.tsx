@@ -58,7 +58,7 @@ export default async function ConsultationsPage({
           </p>
         </div>
         <Button asChild size="default" className="shadow-xs shadow-primary/25">
-          <Link href="/admin/consultations/new" className="flex items-center gap-1.5">
+          <Link href="/admin/consultations/new" prefetch={true} className="flex items-center gap-1.5">
             <UserPlus className="size-4" />
             <span>Register Patient</span>
           </Link>
@@ -73,13 +73,17 @@ export default async function ConsultationsPage({
             type="search"
             name="q"
             defaultValue={query}
-            placeholder="Search by name, phone, or medical ID…"
+            placeholder="Search by patient name..."
+            aria-label="Search patients"
             className={`${inputClass} pl-10`}
           />
         </div>
+        <Button type="submit" variant="secondary" size="default">
+          Search
+        </Button>
       </form>
 
-      {/* Patients Card List */}
+      {/* Patient List */}
       <Card className="border-border/80 shadow-xs">
         <CardHeader className="border-b border-border/60 pb-4">
           <div className="flex items-center justify-between">
@@ -87,10 +91,10 @@ export default async function ConsultationsPage({
               <div className="flex size-8 items-center justify-center rounded-lg bg-primary/10 text-primary">
                 <Users className="size-4" />
               </div>
-              <CardTitle className="text-lg font-bold">Registered Patients</CardTitle>
+              <CardTitle className="text-lg font-bold">Patient Directory</CardTitle>
             </div>
-            <span className="text-xs font-semibold text-muted-foreground">
-              {items.length} Results
+            <span className="text-xs font-medium text-muted-foreground">
+              {items.length} record{items.length === 1 ? "" : "s"}
             </span>
           </div>
         </CardHeader>
@@ -112,6 +116,7 @@ export default async function ConsultationsPage({
                   <Link
                     key={patient.id}
                     href={`/admin/consultations/${patient.id}`}
+                    prefetch={true}
                     className="group flex items-center justify-between gap-3 rounded-xl p-3.5 transition-all duration-150 hover:bg-muted/50"
                   >
                     <div className="flex min-w-0 items-center gap-3.5">

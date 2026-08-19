@@ -1,13 +1,6 @@
-import { Suspense } from "react";
-
-import { InvoicesSummary, InvoicesSummarySkeleton } from "@/components/portal/invoices-summary";
+import { redirect } from "next/navigation";
 
 export default async function FinancialsTabPage({ params }: { params: Promise<{ id: string }> }) {
   const { id: patientId } = await params;
-
-  return (
-    <Suspense fallback={<InvoicesSummarySkeleton />}>
-      <InvoicesSummary patientId={patientId} isAdmin />
-    </Suspense>
-  );
+  redirect(`/admin/consultations/${patientId}?tab=financials`);
 }

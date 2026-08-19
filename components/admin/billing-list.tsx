@@ -121,7 +121,8 @@ export function BillingList({ invoices }: { invoices: BillingInvoice[] }) {
                   className="group flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-xl p-3.5 transition-all duration-150 hover:bg-muted/50"
                 >
                   <Link
-                    href={`/admin/consultations/${item.patient_id}/financials`}
+                    href={`/admin/consultations/${item.patient_id}?tab=financials`}
+                    prefetch={true}
                     className="min-w-0 flex-1"
                   >
                     <p className="truncate text-sm font-bold text-foreground group-hover:text-primary transition-colors">
