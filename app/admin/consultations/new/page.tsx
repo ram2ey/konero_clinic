@@ -1,8 +1,8 @@
 "use client";
 
-import { CheckCircle2 } from "lucide-react";
+import { CheckCircle2, ChevronDown } from "lucide-react";
 import Link from "next/link";
-import { useActionState } from "react";
+import { useActionState, useEffect, useState } from "react";
 
 import { registerPatient } from "@/actions/register-patient";
 import { Button } from "@/components/ui/button";
@@ -38,6 +38,26 @@ const INFORMANT_RELIABILITIES = [
   { value: "unreliable", label: "Unreliable" },
 ];
 
+// Fields that live behind the "Add more details" disclosure — if a submit
+// comes back with an error on any of these, the disclosure needs to open
+// automatically or the error would be invisible.
+const MORE_DETAILS_FIELD_IDS = [
+  "occupation",
+  "educationLevel",
+  "religion",
+  "ethnicity",
+  "nationality",
+  "residence",
+  "nextOfKinName",
+  "nextOfKinRelationship",
+  "nextOfKinContact",
+  "informantName",
+  "informantRelationship",
+  "informantReliability",
+  "referralSource",
+  "referralReason",
+];
+
 function Field({
   id,
   label,
@@ -66,6 +86,16 @@ function Field({
 export default function NewPatientPage() {
   const [state, formAction, pending] = useActionState(registerPatient, initialActionState);
   const errors = state.fieldErrors ?? {};
+  const [showMoreDetails, setShowMoreDetails] = useState(false);
+
+  // A validation error on a field behind the disclosure must not be
+  // silently hidden — open it automatically the moment one shows up.
+  useEffect(() => {
+    if (Object.keys(errors).some((key) => MORE_DETAILS_FIELD_IDS.includes(key))) {
+      setShowMoreDetails(true);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [state]);
 
   if (state.status === "success") {
     return (
@@ -99,7 +129,7 @@ export default function NewPatientPage() {
       <form action={formAction} className="space-y-6">
         <Card>
           <CardHeader>
-            <CardTitle>Identity</CardTitle>
+            <CardTitle>Identity &amp; contact</CardTitle>
           </CardHeader>
           <CardContent className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <Field id="fullName" label="Full name" required error={errors.fullName?.[0]}>
@@ -119,6 +149,12 @@ export default function NewPatientPage() {
                   </option>
                 ))}
               </select>
+            </Field>
+            <Field id="email" label="Email" required error={errors.email?.[0]}>
+              <input id="email" name="email" type="email" required disabled={pending} className={inputClass} />
+            </Field>
+            <Field id="phone" label="Phone" required error={errors.phone?.[0]}>
+              <input id="phone" name="phone" type="tel" required disabled={pending} className={inputClass} />
             </Field>
             <Field id="genderIdentity" label="Gender identity" error={errors.genderIdentity?.[0]}>
               <select id="genderIdentity" name="genderIdentity" disabled={pending} defaultValue="" className={inputClass}>
@@ -143,120 +179,131 @@ export default function NewPatientPage() {
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Contact &amp; background</CardTitle>
-          </CardHeader>
-          <CardContent className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <Field id="email" label="Email" required error={errors.email?.[0]}>
-              <input id="email" name="email" type="email" required disabled={pending} className={inputClass} />
-            </Field>
-            <Field id="phone" label="Phone" required error={errors.phone?.[0]}>
-              <input id="phone" name="phone" type="tel" required disabled={pending} className={inputClass} />
-            </Field>
-            <Field id="occupation" label="Occupation" error={errors.occupation?.[0]}>
-              <input id="occupation" name="occupation" type="text" disabled={pending} className={inputClass} />
-            </Field>
-            <Field id="educationLevel" label="Highest level of education" error={errors.educationLevel?.[0]}>
-              <input id="educationLevel" name="educationLevel" type="text" disabled={pending} className={inputClass} />
-            </Field>
-            <Field id="religion" label="Religion / faith" error={errors.religion?.[0]}>
-              <input id="religion" name="religion" type="text" disabled={pending} className={inputClass} />
-            </Field>
-            <Field id="ethnicity" label="Ethnicity" error={errors.ethnicity?.[0]}>
-              <input id="ethnicity" name="ethnicity" type="text" disabled={pending} className={inputClass} />
-            </Field>
-            <Field id="nationality" label="Nationality" error={errors.nationality?.[0]}>
-              <input id="nationality" name="nationality" type="text" disabled={pending} className={inputClass} />
-            </Field>
-            <Field id="residence" label="Place of residence" error={errors.residence?.[0]}>
-              <input id="residence" name="residence" type="text" disabled={pending} className={inputClass} />
-            </Field>
-          </CardContent>
-        </Card>
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          onClick={() => setShowMoreDetails((v) => !v)}
+          aria-expanded={showMoreDetails}
+        >
+          <ChevronDown className={`size-3.5 transition-transform ${showMoreDetails ? "rotate-180" : ""}`} />
+          {showMoreDetails ? "Hide additional details" : "Add more details"}
+        </Button>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Next of kin / primary caregiver</CardTitle>
-          </CardHeader>
-          <CardContent className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <Field id="nextOfKinName" label="Name" error={errors.nextOfKinName?.[0]}>
-              <input id="nextOfKinName" name="nextOfKinName" type="text" disabled={pending} className={inputClass} />
-            </Field>
-            <Field id="nextOfKinRelationship" label="Relationship" error={errors.nextOfKinRelationship?.[0]}>
-              <input
-                id="nextOfKinRelationship"
-                name="nextOfKinRelationship"
-                type="text"
-                disabled={pending}
-                className={inputClass}
-              />
-            </Field>
-            <Field id="nextOfKinContact" label="Contact" error={errors.nextOfKinContact?.[0]}>
-              <input id="nextOfKinContact" name="nextOfKinContact" type="text" disabled={pending} className={inputClass} />
-            </Field>
-          </CardContent>
-        </Card>
+        {/* Inputs here stay mounted (just visually hidden) rather than
+            conditionally rendered, so anything already typed survives
+            toggling this open and closed — a real risk for uncontrolled
+            native inputs, which lose their value the moment they unmount. */}
+        <div className={`space-y-6 ${showMoreDetails ? "" : "hidden"}`}>
+          <Card>
+            <CardHeader>
+              <CardTitle>Contact &amp; background</CardTitle>
+            </CardHeader>
+            <CardContent className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <Field id="occupation" label="Occupation" error={errors.occupation?.[0]}>
+                <input id="occupation" name="occupation" type="text" disabled={pending} className={inputClass} />
+              </Field>
+              <Field id="educationLevel" label="Highest level of education" error={errors.educationLevel?.[0]}>
+                <input id="educationLevel" name="educationLevel" type="text" disabled={pending} className={inputClass} />
+              </Field>
+              <Field id="religion" label="Religion / faith" error={errors.religion?.[0]}>
+                <input id="religion" name="religion" type="text" disabled={pending} className={inputClass} />
+              </Field>
+              <Field id="ethnicity" label="Ethnicity" error={errors.ethnicity?.[0]}>
+                <input id="ethnicity" name="ethnicity" type="text" disabled={pending} className={inputClass} />
+              </Field>
+              <Field id="nationality" label="Nationality" error={errors.nationality?.[0]}>
+                <input id="nationality" name="nationality" type="text" disabled={pending} className={inputClass} />
+              </Field>
+              <Field id="residence" label="Place of residence" error={errors.residence?.[0]}>
+                <input id="residence" name="residence" type="text" disabled={pending} className={inputClass} />
+              </Field>
+            </CardContent>
+          </Card>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Informant</CardTitle>
-          </CardHeader>
-          <CardContent className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <Field id="informantName" label="Name" error={errors.informantName?.[0]}>
-              <input id="informantName" name="informantName" type="text" disabled={pending} className={inputClass} />
-            </Field>
-            <Field
-              id="informantRelationship"
-              label="Relationship to patient"
-              error={errors.informantRelationship?.[0]}
-            >
-              <input
+          <Card>
+            <CardHeader>
+              <CardTitle>Next of kin / primary caregiver</CardTitle>
+            </CardHeader>
+            <CardContent className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <Field id="nextOfKinName" label="Name" error={errors.nextOfKinName?.[0]}>
+                <input id="nextOfKinName" name="nextOfKinName" type="text" disabled={pending} className={inputClass} />
+              </Field>
+              <Field id="nextOfKinRelationship" label="Relationship" error={errors.nextOfKinRelationship?.[0]}>
+                <input
+                  id="nextOfKinRelationship"
+                  name="nextOfKinRelationship"
+                  type="text"
+                  disabled={pending}
+                  className={inputClass}
+                />
+              </Field>
+              <Field id="nextOfKinContact" label="Contact" error={errors.nextOfKinContact?.[0]}>
+                <input id="nextOfKinContact" name="nextOfKinContact" type="text" disabled={pending} className={inputClass} />
+              </Field>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Informant</CardTitle>
+            </CardHeader>
+            <CardContent className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <Field id="informantName" label="Name" error={errors.informantName?.[0]}>
+                <input id="informantName" name="informantName" type="text" disabled={pending} className={inputClass} />
+              </Field>
+              <Field
                 id="informantRelationship"
-                name="informantRelationship"
-                type="text"
-                disabled={pending}
-                className={inputClass}
-              />
-            </Field>
-            <Field id="informantReliability" label="Reliability" error={errors.informantReliability?.[0]}>
-              <select
-                id="informantReliability"
-                name="informantReliability"
-                disabled={pending}
-                defaultValue=""
-                className={inputClass}
+                label="Relationship to patient"
+                error={errors.informantRelationship?.[0]}
               >
-                <option value="">Not specified</option>
-                {INFORMANT_RELIABILITIES.map((r) => (
-                  <option key={r.value} value={r.value}>
-                    {r.label}
-                  </option>
-                ))}
-              </select>
-            </Field>
-          </CardContent>
-        </Card>
+                <input
+                  id="informantRelationship"
+                  name="informantRelationship"
+                  type="text"
+                  disabled={pending}
+                  className={inputClass}
+                />
+              </Field>
+              <Field id="informantReliability" label="Reliability" error={errors.informantReliability?.[0]}>
+                <select
+                  id="informantReliability"
+                  name="informantReliability"
+                  disabled={pending}
+                  defaultValue=""
+                  className={inputClass}
+                >
+                  <option value="">Not specified</option>
+                  {INFORMANT_RELIABILITIES.map((r) => (
+                    <option key={r.value} value={r.value}>
+                      {r.label}
+                    </option>
+                  ))}
+                </select>
+              </Field>
+            </CardContent>
+          </Card>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Referral</CardTitle>
-          </CardHeader>
-          <CardContent className="grid grid-cols-1 gap-4">
-            <Field id="referralSource" label="Referral source" error={errors.referralSource?.[0]}>
-              <input id="referralSource" name="referralSource" type="text" disabled={pending} className={inputClass} />
-            </Field>
-            <Field id="referralReason" label="Reason for referral" error={errors.referralReason?.[0]}>
-              <textarea
-                id="referralReason"
-                name="referralReason"
-                rows={3}
-                disabled={pending}
-                className={inputClass}
-              />
-            </Field>
-          </CardContent>
-        </Card>
+          <Card>
+            <CardHeader>
+              <CardTitle>Referral</CardTitle>
+            </CardHeader>
+            <CardContent className="grid grid-cols-1 gap-4">
+              <Field id="referralSource" label="Referral source" error={errors.referralSource?.[0]}>
+                <input id="referralSource" name="referralSource" type="text" disabled={pending} className={inputClass} />
+              </Field>
+              <Field id="referralReason" label="Reason for referral" error={errors.referralReason?.[0]}>
+                <textarea
+                  id="referralReason"
+                  name="referralReason"
+                  rows={3}
+                  disabled={pending}
+                  className={inputClass}
+                />
+              </Field>
+            </CardContent>
+          </Card>
+        </div>
 
         {state.status === "error" && !state.fieldErrors && (
           <p role="alert" className="text-sm text-destructive">
