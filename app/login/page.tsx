@@ -29,18 +29,16 @@ export default function LoginPage() {
         <div className="flex flex-col items-center text-center">
           <BrandLogo
             size="lg"
-            subtitle="Psychiatry & Medical Practice"
             className="items-center text-center"
           />
         </div>
 
         {/* Elevated Login Card */}
         <div className="rounded-2xl border border-border/80 bg-card p-7 sm:p-8 shadow-[0_4px_20px_0_rgba(0,0,0,0.05),0_1px_3px_0_rgba(0,0,0,0.03)] backdrop-blur-sm dark:shadow-[0_4px_20px_0_rgba(0,0,0,0.4)]">
-          <div className="mb-6">
-            <h1 className="text-xl font-bold tracking-tight text-foreground">Welcome back</h1>
-            <p className="mt-1 text-xs sm:text-sm text-muted-foreground">
-              Sign in to access your patient records or administrative portal.
-            </p>
+          <div className="mb-6 text-center">
+            <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-foreground">
+              Welcome back
+            </h1>
           </div>
 
           <form action={formAction} className="flex flex-col gap-4">
@@ -67,17 +65,9 @@ export default function LoginPage() {
             </div>
 
             <div>
-              <div className="flex items-baseline justify-between mb-1.5">
-                <label htmlFor="password" className="block text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                  Password
-                </label>
-                <Link
-                  href="/forgot-password"
-                  className="text-xs text-primary font-medium hover:underline underline-offset-4 transition-colors"
-                >
-                  Forgot password?
-                </Link>
-              </div>
+              <label htmlFor="password" className="block text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1.5">
+                Password
+              </label>
               <div className="relative">
                 <Lock className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
                 <input
@@ -90,6 +80,14 @@ export default function LoginPage() {
                   disabled={pending}
                   className={cn(inputClass, "pl-10")}
                 />
+              </div>
+              <div className="mt-2 flex justify-end">
+                <Link
+                  href="/forgot-password"
+                  className="text-xs text-primary font-medium hover:underline underline-offset-4 transition-colors"
+                >
+                  Forgot password?
+                </Link>
               </div>
               {state.fieldErrors?.password && (
                 <p className="mt-1.5 text-xs text-destructive font-medium">{state.fieldErrors.password[0]}</p>
@@ -105,7 +103,7 @@ export default function LoginPage() {
               </div>
             )}
 
-            <Button type="submit" size="lg" disabled={pending} className="mt-2 w-full font-semibold shadow-sm shadow-primary/25">
+            <Button type="submit" size="lg" disabled={pending} className="mt-2 w-full font-semibold shadow-sm shadow-primary/25 cursor-pointer">
               {pending ? (
                 <span className="flex items-center gap-2">
                   <span className="size-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
@@ -117,11 +115,6 @@ export default function LoginPage() {
             </Button>
           </form>
         </div>
-
-        {/* Footer Subtext */}
-        <p className="text-center text-xs text-muted-foreground">
-          Dr. Alex Vico-Korda Medical Practice &bull; Secure Clinical System
-        </p>
       </div>
     </main>
   );

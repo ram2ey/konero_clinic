@@ -29,16 +29,15 @@ export default function ForgotPasswordPage() {
         <div className="flex flex-col items-center text-center">
           <BrandLogo
             size="lg"
-            subtitle="Psychiatry & Medical Practice"
             className="items-center text-center"
           />
         </div>
 
         {/* Elevated Card */}
         <div className="rounded-2xl border border-border/80 bg-card p-7 sm:p-8 shadow-[0_4px_20px_0_rgba(0,0,0,0.05),0_1px_3px_0_rgba(0,0,0,0.03)] backdrop-blur-sm dark:shadow-[0_4px_20px_0_rgba(0,0,0,0.4)]">
-          <div className="mb-6">
-            <h1 className="text-xl font-bold tracking-tight text-foreground">Reset password</h1>
-            <p className="mt-1 text-xs sm:text-sm text-muted-foreground">
+          <div className="mb-6 text-center">
+            <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-foreground">Reset password</h1>
+            <p className="mt-1.5 text-xs sm:text-sm text-muted-foreground">
               Enter your email address and we will send you a secure link to reset your account password.
             </p>
           </div>
@@ -83,7 +82,7 @@ export default function ForgotPasswordPage() {
                 </div>
               )}
 
-              <Button type="submit" size="lg" disabled={pending} className="mt-2 w-full font-semibold shadow-sm shadow-primary/25">
+              <Button type="submit" size="lg" disabled={pending} className="mt-2 w-full font-semibold shadow-sm shadow-primary/25 cursor-pointer">
                 {pending ? "Sending link…" : "Send reset link"}
               </Button>
             </form>
@@ -99,11 +98,6 @@ export default function ForgotPasswordPage() {
             </Link>
           </div>
         </div>
-
-        {/* Footer Subtext */}
-        <p className="text-center text-xs text-muted-foreground">
-          Dr. Alex Vico-Korda Medical Practice &bull; Secure Clinical System
-        </p>
       </div>
     </main>
   );
