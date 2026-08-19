@@ -4,6 +4,7 @@ import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { formatDateTime } from "@/lib/format";
 import { createClient } from "@/lib/supabase/server";
+import { hasAnyValue } from "@/lib/utils";
 
 type Vitals = {
   blood_pressure?: { systolic: number | null; diastolic: number | null } | null;
@@ -104,13 +105,6 @@ const COGNITION_LABELS: Record<string, string> = {
   judgement: "Judgement",
 };
 
-function hasAnyValue(value: unknown): boolean {
-  if (!value) return false;
-  if (typeof value === "string") return value.trim().length > 0;
-  if (typeof value === "object") return Object.values(value as Record<string, unknown>).some(hasAnyValue);
-  return false;
-}
-
 function FieldGroup({ title, values, labels }: { title: string; values: Record<string, string | null> | null | undefined; labels: Record<string, string> }) {
   if (!hasAnyValue(values)) return null;
   return (
@@ -182,7 +176,7 @@ export async function PreviousConsultations({ patientId }: { patientId: string }
 
               <div className="space-y-3 border-t border-border px-4 pt-3 pb-4">
                 {!hasAssessment && (
-                  <p className="text-sm text-muted-foreground">No assessment notes recorded for this visit.</p>
+                  <p className="text-sm text-muted-foreground">No assessment notes recorded for this consultation.</p>
                 )}
                 {item.assessment?.mse && hasAnyValue(item.assessment.mse) && (
                   <div>

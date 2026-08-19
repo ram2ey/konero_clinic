@@ -644,7 +644,7 @@ export default function RecordConsultationPage() {
           <CardContent className="space-y-3">
             {diagnoses.length === 0 && <p className="text-sm text-muted-foreground">None added.</p>}
             {diagnoses.map((row, i) => (
-              <div key={i} className="flex items-start gap-2">
+              <div key={i} className="flex flex-col gap-2 sm:flex-row sm:items-start">
                 <div className="flex min-w-0 flex-1 items-start gap-2">
                   <Icd11Combobox
                     ariaLabel="Diagnosis"
@@ -665,22 +665,24 @@ export default function RecordConsultationPage() {
                     </span>
                   )}
                 </div>
-                <select
-                  aria-label="Status"
-                  value={row.status}
-                  onChange={(e) => updateDiagnosis(i, { status: e.target.value as RecordStatus })}
-                  disabled={pending}
-                  className={selectClass}
-                >
-                  {RECORD_STATUSES.map((s) => (
-                    <option key={s.value} value={s.value}>
-                      {s.label}
-                    </option>
-                  ))}
-                </select>
-                <Button type="button" variant="ghost" size="icon" onClick={() => removeDiagnosis(i)} disabled={pending} aria-label="Remove diagnosis">
-                  <Trash2 className="size-3.5" />
-                </Button>
+                <div className="flex items-center gap-2">
+                  <select
+                    aria-label="Status"
+                    value={row.status}
+                    onChange={(e) => updateDiagnosis(i, { status: e.target.value as RecordStatus })}
+                    disabled={pending}
+                    className={selectClass}
+                  >
+                    {RECORD_STATUSES.map((s) => (
+                      <option key={s.value} value={s.value}>
+                        {s.label}
+                      </option>
+                    ))}
+                  </select>
+                  <Button type="button" variant="ghost" size="icon" onClick={() => removeDiagnosis(i)} disabled={pending} aria-label="Remove diagnosis">
+                    <Trash2 className="size-3.5" />
+                  </Button>
+                </div>
               </div>
             ))}
           </CardContent>
@@ -744,7 +746,7 @@ export default function RecordConsultationPage() {
                     <Trash2 className="size-3.5" />
                   </Button>
                 </div>
-                <div className="grid grid-cols-2 gap-2">
+                <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
                   <input
                     type="text"
                     aria-label="Dosage"

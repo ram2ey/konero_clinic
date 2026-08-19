@@ -16,7 +16,8 @@ const searchIcd11Schema = z.object({
 export type SearchIcd11Input = z.input<typeof searchIcd11Schema>;
 
 export type Icd11Match = {
-  code: string | null;
+  // Sourced from icd11_codes.code, the table's primary key — never null.
+  code: string;
   title: string;
   uri: string;
 };

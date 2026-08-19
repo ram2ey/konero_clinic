@@ -9,6 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { errorInputClass, orUndefined, textareaClass } from "@/lib/form-ui";
 import { formatDateTime } from "@/lib/format";
 import { createNestedFieldSetter } from "@/lib/nested-field";
+import { hasAnyValue } from "@/lib/utils";
 
 type SystemicEnquiryState = {
   general: string;
@@ -191,13 +192,6 @@ const PERSONAL_HISTORY_LABELS: Record<keyof PersonalHistoryState, string> = {
   socialHistory: "Social History",
   forensicHistory: "Forensic History",
 };
-
-function hasAnyValue(value: unknown): boolean {
-  if (!value) return false;
-  if (typeof value === "string") return value.trim().length > 0;
-  if (typeof value === "object") return Object.values(value as Record<string, unknown>).some(hasAnyValue);
-  return false;
-}
 
 function ViewField({ label, value }: { label: string; value: string }) {
   if (!value.trim()) return null;

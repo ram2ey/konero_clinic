@@ -100,7 +100,7 @@ export default async function BillingPage({
           {items.length === 0 ? (
             <div className="flex flex-col items-center gap-2 py-8 text-center">
               <Receipt className="size-8 text-muted-foreground/50" />
-              <p className="text-sm text-muted-foreground">No invoices found.</p>
+              <p className="text-sm text-muted-foreground">No invoices on file.</p>
             </div>
           ) : (
             <ul className="divide-y divide-border">

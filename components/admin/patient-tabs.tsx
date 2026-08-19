@@ -18,6 +18,9 @@ export function PatientTabs({ patientId }: { patientId: string }) {
     <nav className="flex gap-1 overflow-x-auto border-b border-border">
       {TABS.map((tab) => {
         const href = tab.segment ? `${base}/${tab.segment}` : base;
+        // Exact match, not startsWith — Consultation's own segment is ""
+        // (the bare patient URL), which is a prefix of every other tab's
+        // href, so a prefix check would keep it highlighted everywhere.
         const isActive = pathname === href;
 
         return (
