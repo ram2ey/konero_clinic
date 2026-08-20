@@ -34,11 +34,14 @@ export function formatDateTime(value: string): string {
   });
 }
 
-// Adjust to the clinic's actual billing currency.
-const CURRENCY = "USD";
+// The clinic bills in Ghanaian cedis. Pinned separately from LOCALE (used
+// for dates) so this renders as "GH₵" instead of the generic "GHS" prefix
+// en-US would produce.
+const CURRENCY = "GHS";
+const CURRENCY_LOCALE = "en-GH";
 
 export function formatCurrency(amount: number): string {
-  return new Intl.NumberFormat(LOCALE, { style: "currency", currency: CURRENCY }).format(amount);
+  return new Intl.NumberFormat(CURRENCY_LOCALE, { style: "currency", currency: CURRENCY }).format(amount);
 }
 
 /**
