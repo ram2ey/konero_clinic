@@ -72,13 +72,13 @@ export async function approveAndOnboardRequest(
 
       return {
         status: "error",
-        message: alreadyRegistered
-          ? "A patient account with this email address already exists."
-          : logAndSanitize(
-              "approveAndOnboardRequest.createUser",
-              createError,
-              "Failed to create patient account."
-            ),
+        message: logAndSanitize(
+          "approveAndOnboardRequest.createUser",
+          createError,
+          alreadyRegistered
+            ? "A patient account with this email address already exists."
+            : "Failed to create patient account."
+        ),
       };
     }
 
