@@ -4,29 +4,50 @@ import { Loader2, Search } from "lucide-react";
 import { useEffect, useId, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 
-import { searchIcd11, type Icd11Match } from "@/actions/search-icd11";
-
+import type { CatalogMatch } from "@/lib/catalog-search";
 import { inputClass } from "@/lib/form-ui";
 
 const MIN_QUERY_LENGTH = 3;
 const DEBOUNCE_MS = 300;
 
-export function Icd11Combobox({
+type CatalogSearchResult = {
+  status: "idle" | "success" | "error";
+  message?: string;
+  results?: CatalogMatch[];
+};
+
+/**
+ * Type-ahead over one of the reference catalogues (ICD-11 diagnoses,
+ * medications, lab tests). The `search` prop is the Server Action to call
+ * — passing a Server Action down as a prop is fine, it is a reference the
+ * client can invoke.
+ *
+ * Free text is always preserved: `onTextChange` fires on every keystroke
+ * and picking from the list is optional, so a diagnosis, medicine or test
+ * that isn't in the catalogue can still simply be typed.
+ *
+ * The dropdown renders through a portal because this control sits inside
+ * accordion sections with their own overflow/stacking contexts, which
+ * would otherwise clip it.
+ */
+export function CatalogCombobox({
   value,
   onSelect,
   onTextChange,
+  search,
   disabled,
   placeholder,
   ariaLabel,
 }: {
   value: string;
-  onSelect: (match: Icd11Match) => void;
+  onSelect: (match: CatalogMatch) => void;
   onTextChange: (value: string) => void;
+  search: (input: { query: string }) => Promise<CatalogSearchResult>;
   disabled?: boolean;
   placeholder?: string;
   ariaLabel?: string;
 }) {
-  const [results, setResults] = useState<Icd11Match[]>([]);
+  const [results, setResults] = useState<CatalogMatch[]>([]);
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -98,7 +119,7 @@ export function Icd11Combobox({
 
     debounceRef.current = setTimeout(async () => {
       setLoading(true);
-      const result = await searchIcd11({ query: next.trim() });
+      const result = await search({ query: next.trim() });
       setLoading(false);
 
       if (result.status !== "success") {
@@ -115,7 +136,7 @@ export function Icd11Combobox({
     }, DEBOUNCE_MS);
   }
 
-  function selectMatch(match: Icd11Match) {
+  function selectMatch(match: CatalogMatch) {
     onSelect(match);
     setOpen(false);
     setHighlightedIndex(-1);
@@ -159,7 +180,7 @@ export function Icd11Combobox({
           aria-controls={listboxId}
           aria-autocomplete="list"
           aria-activedescendant={highlightedIndex >= 0 ? `${listboxId}-option-${highlightedIndex}` : undefined}
-          placeholder={placeholder ?? "Search ICD-11 or type a condition…"}
+          placeholder={placeholder ?? "Search…"}
           value={value}
           onChange={(e) => handleChange(e.target.value)}
           onFocus={() => (results.length > 0 || error) && setOpen(true)}
@@ -187,7 +208,7 @@ export function Icd11Combobox({
             {error && <p className="px-3 py-2 text-xs font-semibold text-destructive">{error}</p>}
             {results.map((match, index) => (
               <button
-                key={match.uri}
+                key={match.id}
                 id={`${listboxId}-option-${index}`}
                 role="option"
                 aria-selected={index === highlightedIndex}
@@ -199,10 +220,17 @@ export function Icd11Combobox({
                   index === highlightedIndex ? "bg-accent text-accent-foreground" : "text-foreground hover:bg-accent/60"
                 }`}
               >
-                <span className="truncate">{match.title}</span>
-                {match.code && (
+                <span className="min-w-0 flex-1">
+                  <span className="block truncate">{match.label}</span>
+                  {match.sublabel && (
+                    <span className="block truncate text-[11px] font-normal text-muted-foreground">
+                      {match.sublabel}
+                    </span>
+                  )}
+                </span>
+                {match.badge && (
                   <span className="shrink-0 rounded-md border border-primary/25 bg-primary/10 px-1.5 py-0.5 font-mono text-[11px] font-bold text-primary">
-                    {match.code}
+                    {match.badge}
                   </span>
                 )}
               </button>

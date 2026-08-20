@@ -2,11 +2,14 @@
 
 import { Plus, Trash2 } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { createContext, useContext, useState, type FormEvent, type ReactNode } from "react";
+import { createContext, useContext, useId, useState, type FormEvent, type ReactNode } from "react";
 
-import type { Icd11Match } from "@/actions/search-icd11";
 import { recordConsultation, type RecordConsultationInput } from "@/actions/record-consultation";
-import { Icd11Combobox } from "@/components/admin/icd11-combobox";
+import { searchIcd11 } from "@/actions/search-icd11";
+import { searchLabTests } from "@/actions/search-lab-tests";
+import { searchMedications } from "@/actions/search-medications";
+import { CatalogCombobox } from "@/components/catalog-combobox";
+import type { CatalogMatch } from "@/lib/catalog-search";
 import { type HistoryState, mapDbHistoryToState } from "@/lib/patient-history";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Button } from "@/components/ui/button";
@@ -43,7 +46,33 @@ type PrescriptionRow = {
   frequency: string;
   instructions: string;
   status: RecordStatus;
+  // Set only when the medication came from the catalogue; free-typed
+  // medications leave it undefined. `strengths` is UI-only — the chips
+  // offered as one-tap dosages for the selected medicine.
+  medicationId?: string;
+  strengths?: string[];
 };
+
+type LabOrderRow = {
+  testName: string;
+  note: string;
+  labTestId?: string;
+};
+
+// Shorthand a doctor writes on a prescription, offered as a datalist so
+// frequency stays free text but stops being retyped every time.
+const FREQUENCY_SUGGESTIONS = [
+  "OD (once daily)",
+  "BD (twice daily)",
+  "TDS (three times daily)",
+  "QDS (four times daily)",
+  "Nocte (at night)",
+  "Mane (in the morning)",
+  "PRN (as needed)",
+  "Stat (immediately)",
+  "Weekly",
+  "Monthly",
+];
 
 type ThoughtState = {
   streamFlow: string;
@@ -170,6 +199,7 @@ const SECTION_LABELS: Record<string, string> = {
   invoice: "Invoice",
   diagnoses: "Diagnosis",
   prescriptions: "Medication",
+  labOrders: "Lab test",
 };
 
 function humanizeSegment(segment: string): string {
@@ -202,6 +232,7 @@ function sectionForField(path: string): string | undefined {
   if (path.startsWith("assessment.phenomenology")) return "phenomenology";
   if (path.startsWith("assessment.managementPlan")) return "managementPlan";
   if (path.startsWith("assessment.investigations")) return "investigations";
+  if (path.startsWith("assessment.labOrders")) return "investigations";
   if (path.startsWith("assessment.riskAssessment")) return "riskAssessment";
   if (path.startsWith("assessment.prognosis")) return "prognosis";
   if (path.startsWith("diagnoses")) return "diagnoses";
@@ -347,10 +378,12 @@ export function RecordConsultationForm({
   const [mse, setMse] = useState<MseState>(EMPTY_MSE);
   const [diagnoses, setDiagnoses] = useState<DiagnosisRow[]>([]);
   const [prescriptions, setPrescriptions] = useState<PrescriptionRow[]>([]);
+  const [labOrders, setLabOrders] = useState<LabOrderRow[]>([]);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string[]> | null>(null);
   const [openSections, setOpenSections] = useState<string[]>([]);
+  const frequencyListId = useId();
 
   function set<K extends keyof FormState>(key: K, value: FormState[K]) {
     setForm((prev) => ({ ...prev, [key]: value }));
@@ -394,6 +427,36 @@ export function RecordConsultationForm({
     setPrescriptions((prev) => prev.filter((_, i) => i !== index));
   }
 
+  // Picking from the catalogue fills the name and offers that medicine's
+  // strengths, but only prefills dosage/frequency when the doctor hasn't
+  // typed anything there yet — a selection must never overwrite what they
+  // already wrote.
+  function selectMedication(index: number, match: CatalogMatch) {
+    setPrescriptions((prev) =>
+      prev.map((row, i) => {
+        if (i !== index) return row;
+        const strengths = match.strengths ?? [];
+        return {
+          ...row,
+          medicationName: match.label,
+          medicationId: match.id,
+          strengths,
+          dosage: row.dosage.trim().length > 0 ? row.dosage : (strengths.length === 1 ? strengths[0] : ""),
+        };
+      }),
+    );
+  }
+
+  function addLabOrder() {
+    setLabOrders((prev) => [...prev, { testName: "", note: "" }]);
+  }
+  function updateLabOrder(index: number, patch: Partial<LabOrderRow>) {
+    setLabOrders((prev) => prev.map((row, i) => (i === index ? { ...row, ...patch } : row)));
+  }
+  function removeLabOrder(index: number) {
+    setLabOrders((prev) => prev.filter((_, i) => i !== index));
+  }
+
   // Whether each section already has something in it — shown as a dot on
   // the (possibly collapsed) trigger so nothing filled-in reads as empty.
   const sectionHasContent: Record<string, boolean> = {
@@ -433,7 +496,7 @@ export function RecordConsultationForm({
     phenomenology: hasValue(form.phenomenology),
     diagnoses: diagnoses.length > 0,
     managementPlan: hasValue(form.managementPlan),
-    investigations: hasValue(form.investigations),
+    investigations: hasValue(form.investigations) || labOrders.length > 0,
     prescriptions: prescriptions.length > 0,
     riskAssessment: hasValue(form.riskAssessment),
     prognosis: hasValue(form.prognosis),
@@ -512,6 +575,13 @@ export function RecordConsultationForm({
         phenomenology: orUndefined(form.phenomenology),
         managementPlan: orUndefined(form.managementPlan),
         investigations: orUndefined(form.investigations),
+        labOrders: labOrders
+          .filter((l) => l.testName.trim().length > 0)
+          .map((l) => ({
+            testName: l.testName,
+            labTestId: l.labTestId,
+            note: orUndefined(l.note),
+          })),
         riskAssessment: orUndefined(form.riskAssessment),
         prognosis: orUndefined(form.prognosis),
       },
@@ -531,6 +601,7 @@ export function RecordConsultationForm({
           frequency: p.frequency,
           instructions: orUndefined(p.instructions),
           status: p.status,
+          medicationId: p.medicationId,
         })),
       invoice: orUndefined(form.invoiceAmount)
         ? { amount: form.invoiceAmount, description: orUndefined(form.invoiceDescription) }
@@ -1133,15 +1204,17 @@ export function RecordConsultationForm({
               {diagnoses.map((row, i) => (
                 <div key={i} className="flex flex-col gap-2 sm:flex-row sm:items-start">
                   <div className="flex min-w-0 flex-1 items-start gap-2">
-                    <Icd11Combobox
+                    <CatalogCombobox
                       ariaLabel="Diagnosis"
+                      placeholder="Search ICD-11 or type a condition…"
+                      search={searchIcd11}
                       value={row.condition}
                       onTextChange={(v) => updateDiagnosis(i, { condition: v, icd11Code: undefined, icd11Uri: undefined })}
-                      onSelect={(match: Icd11Match) =>
+                      onSelect={(match) =>
                         updateDiagnosis(i, {
-                          condition: match.title,
-                          icd11Code: match.code ?? undefined,
-                          icd11Uri: match.uri,
+                          condition: match.label,
+                          icd11Code: match.badge ?? undefined,
+                          icd11Uri: match.uri ?? undefined,
                         })
                       }
                       disabled={pending}
@@ -1179,10 +1252,71 @@ export function RecordConsultationForm({
             </Section>
 
             <Section value="investigations" title="Investigations" filled={sectionHasContent.investigations}>
-              <TextField name="assessment.investigations" label="Investigations" value={form.investigations} onChange={(v) => set("investigations", v)} />
+              <div>
+                <div className="flex items-center justify-between gap-2">
+                  <p className="text-sm font-medium text-foreground">Tests ordered</p>
+                  <Button type="button" size="sm" variant="outline" onClick={addLabOrder} disabled={pending}>
+                    <Plus className="size-3.5" />
+                    Add
+                  </Button>
+                </div>
+                {labOrders.length === 0 && (
+                  <p className="mt-2 text-sm text-muted-foreground">None added.</p>
+                )}
+                <div className="mt-2 space-y-2">
+                  {labOrders.map((row, i) => (
+                    <div key={i} className="flex flex-col gap-2 sm:flex-row sm:items-start">
+                      <CatalogCombobox
+                        ariaLabel="Lab test"
+                        placeholder="Search lab tests or type one…"
+                        search={searchLabTests}
+                        value={row.testName}
+                        onTextChange={(v) => updateLabOrder(i, { testName: v, labTestId: undefined })}
+                        onSelect={(match) =>
+                          updateLabOrder(i, { testName: match.label, labTestId: match.id })
+                        }
+                        disabled={pending}
+                      />
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="text"
+                          aria-label="Note"
+                          placeholder="Note (optional)"
+                          value={row.note}
+                          onChange={(e) => updateLabOrder(i, { note: e.target.value })}
+                          disabled={pending}
+                          className={`${inputClass} sm:w-48`}
+                        />
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => removeLabOrder(i)}
+                          disabled={pending}
+                          aria-label="Remove lab test"
+                        >
+                          <Trash2 className="size-3.5" />
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <TextField
+                name="assessment.investigations"
+                label="Other investigations / notes"
+                value={form.investigations}
+                onChange={(v) => set("investigations", v)}
+              />
             </Section>
 
             <Section value="prescriptions" title="Medications" filled={sectionHasContent.prescriptions}>
+              <datalist id={frequencyListId}>
+                {FREQUENCY_SUGGESTIONS.map((f) => (
+                  <option key={f} value={f} />
+                ))}
+              </datalist>
               <div className="flex justify-end">
                 <Button type="button" size="sm" variant="outline" onClick={addPrescription} disabled={pending}>
                   <Plus className="size-3.5" />
@@ -1193,14 +1327,20 @@ export function RecordConsultationForm({
               {prescriptions.map((row, i) => (
                 <div key={i} className="space-y-2 rounded-md border border-border p-3">
                   <div className="flex items-start gap-2">
-                    <input
-                      type="text"
-                      aria-label="Medication name"
-                      placeholder="Medication name"
+                    <CatalogCombobox
+                      ariaLabel="Medication name"
+                      placeholder="Search medications or type a name…"
+                      search={searchMedications}
                       value={row.medicationName}
-                      onChange={(e) => updatePrescription(i, { medicationName: e.target.value })}
+                      onTextChange={(v) =>
+                        updatePrescription(i, {
+                          medicationName: v,
+                          medicationId: undefined,
+                          strengths: undefined,
+                        })
+                      }
+                      onSelect={(match) => selectMedication(i, match)}
                       disabled={pending}
-                      className={`${inputClass} min-w-0 flex-1`}
                     />
                     <select
                       aria-label="Status"
@@ -1226,6 +1366,27 @@ export function RecordConsultationForm({
                       <Trash2 className="size-3.5" />
                     </Button>
                   </div>
+                  {row.strengths && row.strengths.length > 0 && (
+                    <div className="flex flex-wrap items-center gap-1.5">
+                      <span className="text-xs text-muted-foreground">Strengths:</span>
+                      {row.strengths.map((strength) => (
+                        <button
+                          key={strength}
+                          type="button"
+                          onClick={() => updatePrescription(i, { dosage: strength })}
+                          disabled={pending}
+                          aria-pressed={row.dosage === strength}
+                          className={`rounded-md border px-1.5 py-0.5 text-[11px] font-medium transition-colors disabled:pointer-events-none disabled:opacity-50 ${
+                            row.dosage === strength
+                              ? "border-primary bg-primary/10 text-primary"
+                              : "border-border text-muted-foreground hover:border-primary/40 hover:text-foreground"
+                          }`}
+                        >
+                          {strength}
+                        </button>
+                      ))}
+                    </div>
+                  )}
                   <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
                     <input
                       type="text"
@@ -1240,6 +1401,7 @@ export function RecordConsultationForm({
                       type="text"
                       aria-label="Frequency"
                       placeholder="Frequency"
+                      list={frequencyListId}
                       value={row.frequency}
                       onChange={(e) => updatePrescription(i, { frequency: e.target.value })}
                       disabled={pending}

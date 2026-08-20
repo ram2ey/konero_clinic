@@ -85,6 +85,16 @@ const mseSchema = z
   })
   .optional();
 
+// A test ordered at this consultation. `testName` is the label shown
+// everywhere; `labTestId` is supplementary and set only when the test was
+// picked from the lab_tests catalogue rather than typed — same
+// relationship diagnoses have with their ICD-11 code.
+const labOrderSchema = z.object({
+  testName: z.string().trim().min(2).max(200),
+  labTestId: z.string().uuid().optional(),
+  note: z.string().trim().max(500).optional(),
+});
+
 const assessmentSchema = z
   .object({
     mse: mseSchema,
@@ -92,7 +102,12 @@ const assessmentSchema = z
     summary: longText(5000),
     phenomenology: longText(5000),
     managementPlan: longText(5000),
+    // Free-text investigations notes. Kept alongside the structured
+    // labOrders list below rather than replaced by it: every consultation
+    // recorded before lab ordering existed stores its investigations
+    // here, and there is still plenty worth writing that isn't a test.
     investigations: longText(5000),
+    labOrders: z.array(labOrderSchema).max(30).default([]),
     riskAssessment: longText(5000),
     prognosis: longText(5000),
   })
@@ -113,6 +128,9 @@ const prescriptionSchema = z.object({
   frequency: z.string().trim().min(1).max(100),
   instructions: z.string().trim().max(1000).optional(),
   status: z.enum(RECORD_STATUSES).default("active"),
+  // Populated when the medication was picked from the local catalogue
+  // rather than typed as plain text — see actions/search-medications.ts.
+  medicationId: z.string().uuid().optional(),
 });
 
 const systemicEnquirySchema = z
@@ -325,6 +343,11 @@ export async function recordConsultation(
           phenomenology: assessment.phenomenology ?? null,
           management_plan: assessment.managementPlan ?? null,
           investigations: assessment.investigations ?? null,
+          lab_orders: (assessment.labOrders ?? []).map((order) => ({
+            test_name: order.testName,
+            lab_test_id: order.labTestId ?? null,
+            note: order.note ?? null,
+          })),
           risk_assessment: assessment.riskAssessment ?? null,
           prognosis: assessment.prognosis ?? null,
         }
@@ -347,6 +370,7 @@ export async function recordConsultation(
         frequency: p.frequency,
         instructions: p.instructions ?? null,
         status: p.status,
+        medication_id: p.medicationId ?? null,
       })),
       p_invoice: invoice ? { amount: invoice.amount, description: invoice.description ?? null } : null,
       p_visit_type: visitType,

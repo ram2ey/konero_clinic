@@ -4,6 +4,8 @@ import imageCompression from "browser-image-compression";
 import { useRef, useState, type ChangeEvent, type FormEvent } from "react";
 
 import { recordLabReport } from "@/actions/record-lab-report";
+import { searchLabTests } from "@/actions/search-lab-tests";
+import { CatalogCombobox } from "@/components/catalog-combobox";
 import { ALLOWED_MIME_TYPES, MAX_FILE_SIZE_BYTES, type AllowedMimeType } from "@/lib/lab-upload-constraints";
 import { sanitizeFileName } from "@/lib/sanitize-filename";
 import { createClient } from "@/lib/supabase/client";
@@ -150,18 +152,21 @@ export function LabUploader({ patientId, onUploaded }: LabUploaderProps) {
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-3 rounded-lg border border-neutral-200 p-4">
       <div>
-        <label htmlFor="lab-test-name" className="block text-sm font-medium text-neutral-700">
-          Test name
-        </label>
-        <input
-          id="lab-test-name"
-          type="text"
-          value={testName}
-          onChange={(e) => setTestName(e.target.value)}
-          disabled={busy}
-          className="mt-1 w-full rounded border border-neutral-300 px-3 py-2 text-sm"
-          placeholder="e.g. Complete Blood Count"
-        />
+        <span className="block text-sm font-medium text-neutral-700">Test name</span>
+        {/* The same picker the doctor orders from, so a result gets filed
+            under the name it was ordered under instead of a near-miss
+            ("FBC" vs "Full blood count"). Free text still works. */}
+        <div className="mt-1 flex">
+          <CatalogCombobox
+            ariaLabel="Test name"
+            placeholder="e.g. Full blood count"
+            search={searchLabTests}
+            value={testName}
+            onTextChange={setTestName}
+            onSelect={(match) => setTestName(match.label)}
+            disabled={busy}
+          />
+        </div>
       </div>
 
       <div>

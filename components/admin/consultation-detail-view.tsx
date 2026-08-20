@@ -69,6 +69,12 @@ export type Mse = {
   insight?: string | null;
 } | null;
 
+export type LabOrder = {
+  test_name: string;
+  lab_test_id?: string | null;
+  note?: string | null;
+};
+
 export type Assessment = {
   mse?: Mse;
   physical_exam?: PhysicalExam;
@@ -76,6 +82,9 @@ export type Assessment = {
   phenomenology?: string | null;
   management_plan?: string | null;
   investigations?: string | null;
+  // Absent on consultations recorded before lab ordering was structured —
+  // those carry everything in `investigations` instead.
+  lab_orders?: LabOrder[] | null;
   risk_assessment?: string | null;
   prognosis?: string | null;
 } | null;
@@ -496,12 +505,27 @@ export function ConsultationDetailView({
               <Lightbulb className="size-3.5 text-primary" />
               Investigations Ordered
             </h5>
+            {assessment?.lab_orders && assessment.lab_orders.length > 0 && (
+              <ul className="mb-2 flex flex-wrap gap-1.5">
+                {assessment.lab_orders.map((order, idx) => (
+                  <li
+                    key={order.lab_test_id ?? `${order.test_name}-${idx}`}
+                    className="rounded-md border border-primary/25 bg-primary/10 px-2 py-0.5 text-[11px] font-medium text-primary"
+                  >
+                    {order.test_name}
+                    {order.note && (
+                      <span className="ml-1 font-normal text-muted-foreground">— {order.note}</span>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            )}
             {assessment?.investigations ? (
               <p className="whitespace-pre-wrap text-xs text-foreground leading-relaxed">
                 {assessment.investigations}
               </p>
             ) : (
-              <NotRecorded text="No investigations requested" />
+              !assessment?.lab_orders?.length && <NotRecorded text="No investigations requested" />
             )}
           </div>
 
