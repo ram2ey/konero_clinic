@@ -7,11 +7,16 @@ import { useState } from "react";
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
+// "history" is deliberately not a nav button: the full clerking history
+// lives inside the Consultation form's own History section for a first
+// visit. This entry stays here only so a review visit's "History tab"
+// link (record-consultation-form.tsx) still lands on real content instead
+// of falling back to the default tab.
 const TABS = [
   { value: "overview", label: "Overview", icon: LayoutDashboard },
   { value: "consultation", label: "Consultation", icon: Stethoscope },
   { value: "bio-data", label: "Bio Data", icon: User },
-  { value: "history", label: "History", icon: History },
+  { value: "history", label: "History", icon: History, hidden: true },
   { value: "financials", label: "Financials", icon: Receipt },
 ];
 
@@ -51,7 +56,7 @@ export function PatientFolderView({
     <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-6">
       <div className="overflow-x-auto pb-1 scrollbar-none">
         <TabsList className="w-auto">
-          {TABS.map((tab) => (
+          {TABS.filter((tab) => !tab.hidden).map((tab) => (
             <TabsTrigger key={tab.value} value={tab.value} className="gap-1.5">
               <tab.icon className="size-3.5" />
               <span>{tab.label}</span>
