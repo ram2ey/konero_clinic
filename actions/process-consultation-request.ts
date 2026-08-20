@@ -113,13 +113,7 @@ export async function approveAndOnboardRequest(
       };
     }
 
-    // 4. Create initial patient_biodata
-    await admin.supabase.from("patient_biodata").insert({
-      patient_id: newUser.id,
-      updated_by: admin.userId,
-    });
-
-    // 5. Update consultation_requests record
+    // 4. Update consultation_requests record
     await admin.supabase
       .from("consultation_requests")
       .update({

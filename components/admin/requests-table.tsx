@@ -265,10 +265,12 @@ export function RequestsTable({
                             clientName={item.full_name}
                             clientEmail={item.email}
                             clientPhone={item.phone}
-                            onApproved={() =>
+                            onApproved={(convertedPatientId) =>
                               setRequests((prev) =>
                                 prev.map((r) =>
-                                  r.id === item.id ? { ...r, status: "approved" } : r
+                                  r.id === item.id
+                                    ? { ...r, status: "approved", converted_patient_id: convertedPatientId }
+                                    : r
                                 )
                               )
                             }

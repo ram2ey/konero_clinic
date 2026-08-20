@@ -1,5 +1,6 @@
 "use server";
 
+import { randomUUID } from "crypto";
 import { z } from "zod";
 
 import type { ActionState } from "@/lib/action-state";
@@ -94,21 +95,28 @@ export async function submitConsultationRequest(
 
     const supabase = await createClient();
 
-    const { data: inserted, error: insertError } = await supabase
-      .from("consultation_requests")
-      .insert({
-        full_name: fullName,
-        email,
-        phone,
-        dob: dob || null,
-        sex: sex || null,
-        preferred_mode: preferredMode,
-        preferred_time: preferredTime || null,
-        reason: reason || null,
-        status: "pending",
-      })
-      .select("id")
-      .single();
+    // Generated here rather than left to the column default and read back
+    // via `.select().single()`: PostgREST turns that into an INSERT ...
+    // RETURNING, which requires a SELECT policy to hand the row back —
+    // and this table deliberately grants anon INSERT only, not SELECT (it
+    // holds phone/email/DOB/reason-for-visit; a SELECT policy permissive
+    // enough for an anonymous submitter to read back their own row would
+    // let anyone read every pending request via the API). Supplying the id
+    // ourselves avoids needing RETURNING at all.
+    const requestId = randomUUID();
+
+    const { error: insertError } = await supabase.from("consultation_requests").insert({
+      id: requestId,
+      full_name: fullName,
+      email,
+      phone,
+      dob: dob || null,
+      sex: sex || null,
+      preferred_mode: preferredMode,
+      preferred_time: preferredTime || null,
+      reason: reason || null,
+      status: "pending",
+    });
 
     if (insertError) {
       return {
@@ -125,7 +133,7 @@ export async function submitConsultationRequest(
       status: "success",
       message: "Your consultation request has been received.",
       data: {
-        requestId: inserted.id,
+        requestId,
         fullName,
       },
     };

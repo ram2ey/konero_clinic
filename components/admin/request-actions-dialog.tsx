@@ -31,7 +31,7 @@ export function ApproveRequestButton({
   clientName: string;
   clientEmail: string;
   clientPhone: string;
-  onApproved?: () => void;
+  onApproved?: (patientId: string) => void;
 }) {
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -52,7 +52,14 @@ export function ApproveRequestButton({
       const res = await approveAndOnboardRequest(requestId);
       if (res.status === "success" && res.data) {
         setCreatedData(res.data);
-        if (onApproved) onApproved();
+        // onApproved is deliberately not called here. It flips the
+        // request's status in the parent table's state to "approved",
+        // which swaps this button out for a plain "View Patient Chart"
+        // link (see RequestsTable) — React batches that with the
+        // setCreatedData above into a single commit, so calling it now
+        // would unmount this dialog in the same render pass that was
+        // supposed to show it, before the admin ever sees the generated
+        // temp password. It fires instead once the dialog is closed.
       } else {
         setError(res.message || "Failed to onboard patient.");
       }
@@ -107,7 +114,15 @@ export function ApproveRequestButton({
       )}
 
       {/* Success Dialog Modal */}
-      <Dialog open={!!createdData} onOpenChange={(open) => !open && setCreatedData(null)}>
+      <Dialog
+        open={!!createdData}
+        onOpenChange={(open) => {
+          if (!open) {
+            if (createdData && onApproved) onApproved(createdData.patientId);
+            setCreatedData(null);
+          }
+        }}
+      >
         <DialogContent className="max-w-md p-6 bg-card border-border shadow-2xl rounded-2xl">
           <DialogHeader className="text-center sm:text-left space-y-1.5 pb-2 border-b border-border/70">
             <div className="flex items-center gap-2 text-emerald-600 dark:text-emerald-400">

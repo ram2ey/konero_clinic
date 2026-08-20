@@ -9,8 +9,15 @@ export function calculateAge(dob: string): number {
   return age;
 }
 
+// Pinned rather than the runtime default (`undefined`): these run during
+// SSR too, and the server's locale doesn't necessarily match the
+// browser's, which produces a same-content-different-text mismatch
+// between the server-rendered and client-rendered output — React discards
+// and re-renders the whole tree client-side when that happens.
+const LOCALE = "en-US";
+
 export function formatDate(value: string): string {
-  return new Date(value).toLocaleDateString(undefined, {
+  return new Date(value).toLocaleDateString(LOCALE, {
     year: "numeric",
     month: "short",
     day: "numeric",
@@ -18,7 +25,7 @@ export function formatDate(value: string): string {
 }
 
 export function formatDateTime(value: string): string {
-  return new Date(value).toLocaleString(undefined, {
+  return new Date(value).toLocaleString(LOCALE, {
     year: "numeric",
     month: "short",
     day: "numeric",
@@ -31,7 +38,7 @@ export function formatDateTime(value: string): string {
 const CURRENCY = "USD";
 
 export function formatCurrency(amount: number): string {
-  return new Intl.NumberFormat(undefined, { style: "currency", currency: CURRENCY }).format(amount);
+  return new Intl.NumberFormat(LOCALE, { style: "currency", currency: CURRENCY }).format(amount);
 }
 
 /**

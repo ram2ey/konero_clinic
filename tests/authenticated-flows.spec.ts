@@ -42,6 +42,8 @@ test.describe("Authenticated flows", () => {
   let registrationTempPassword = "";
   let resetTempPassword = "";
   let patientNewPassword = "";
+  let approvalRequestEmail = "";
+  let approvalPatientId = "";
 
   test.beforeAll(async ({ browser }) => {
     context = await browser.newContext();
@@ -83,6 +85,65 @@ test.describe("Authenticated flows", () => {
       expect(errors, `Console errors on ${item.href}:\n${errors.join("\n")}`).toEqual([]);
       expect(failed, `Failed requests on ${item.href}:\n${failed.join("\n")}`).toEqual([]);
     }
+  });
+
+  test("a public consultation request can be approved and onboarded from /admin/requests", async ({ browser }) => {
+    // Submitted from a separate, unauthenticated context — /request-consultation
+    // is the public intake form a prospective client fills in, not something
+    // the already-signed-in admin `page` this suite reuses elsewhere would
+    // ever hit.
+    const publicContext = await browser.newContext();
+    const publicPage = await publicContext.newPage();
+
+    const requestFullName = `Playwright Approval Test ${runId}`;
+    const requestEmail = testEmail(`approval-${runId}`);
+
+    await publicPage.goto("/request-consultation");
+    await publicPage.locator('input[name="fullName"]').fill(requestFullName);
+    await publicPage.locator('input[name="email"]').fill(requestEmail);
+    await publicPage.locator('input[name="phone"]').fill("+15555550199");
+    await publicPage.getByRole("button", { name: "Submit Consultation Request" }).click();
+    await expect(publicPage.getByRole("heading", { name: "Request Received!" })).toBeVisible({
+      timeout: 15000,
+    });
+    await publicContext.close();
+    approvalRequestEmail = requestEmail;
+
+    // Now switch to the admin session and approve it. This is the
+    // regression check for the dead `patient_biodata` insert removed from
+    // actions/process-consultation-request.ts — that table was never
+    // created by any migration, so every approval silently failed a step
+    // (the insert's result was never checked) without anything surfacing
+    // it. Tracking console/network errors here would have caught it if
+    // removing that insert had broken anything else in the same action.
+    const errors = trackJsErrors(page);
+    const failed = trackFailedRequests(page);
+
+    await page.goto("/admin/requests");
+    await page.getByPlaceholder("Search requests…").fill(requestEmail);
+
+    const requestCard = page.locator('[data-slot="card"]').filter({ hasText: requestFullName });
+    await expect(requestCard).toBeVisible({ timeout: 10000 });
+    await requestCard.getByRole("button", { name: "Approve & Onboard" }).click();
+
+    const dialog = page.getByRole("dialog");
+    await expect(dialog.getByText("Patient Account Created!")).toBeVisible({ timeout: 15000 });
+
+    const passwordEl = dialog.locator("span.select-all.tracking-wider");
+    const approvalTempPassword = (await passwordEl.textContent())?.trim() ?? "";
+    expect(approvalTempPassword.length).toBeGreaterThanOrEqual(10);
+
+    const viewPatientLink = dialog.getByRole("link", { name: "View Patient Record" });
+    const href = await viewPatientLink.getAttribute("href");
+    approvalPatientId = href?.split("/").pop() ?? "";
+    expect(approvalPatientId).toMatch(/^[0-9a-f-]{36}$/);
+
+    expect(errors, `Console errors:\n${errors.join("\n")}`).toEqual([]);
+    expect(failed, `Failed requests:\n${failed.join("\n")}`).toEqual([]);
+
+    // Close the dialog so it doesn't linger over the next test's navigation.
+    await page.keyboard.press("Escape");
+    await expect(dialog).toBeHidden();
   });
 
   test("admin can register a disposable test patient and receives a temp password", async () => {
@@ -379,6 +440,15 @@ test.describe("Authenticated flows", () => {
           `  delete from public.patient_history where patient_id = '${patientId}';\n` +
           `  delete from public.consultations where patient_id = '${patientId}';\n` +
           `  delete from auth.users where id = '${patientId}';\n`,
+      );
+    }
+    if (approvalPatientId) {
+      console.log(
+        `\n[cleanup] Disposable approved-request patient created — id: ${approvalPatientId}, ` +
+          `email: ${approvalRequestEmail}. No consultations recorded on it, so a plain ` +
+          `\`delete from auth.users where id = '${approvalPatientId}';\` clears it (cascades to ` +
+          "profiles). Its email matches the playwright-%@example.invalid pattern, so it's also " +
+          "swept by the general test-data cleanup query if that's run instead.",
       );
     }
   });
