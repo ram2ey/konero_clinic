@@ -1,6 +1,6 @@
 "use client";
 
-import { LayoutDashboard, Receipt, Stethoscope, User } from "lucide-react";
+import { History, LayoutDashboard, Receipt, Stethoscope, User } from "lucide-react";
 import { useSearchParams } from "next/navigation";
 import type { ReactNode } from "react";
 import { useState } from "react";
@@ -11,6 +11,7 @@ const TABS = [
   { value: "overview", label: "Overview", icon: LayoutDashboard },
   { value: "consultation", label: "Consultation", icon: Stethoscope },
   { value: "bio-data", label: "Bio Data", icon: User },
+  { value: "history", label: "History", icon: History },
   { value: "financials", label: "Financials", icon: Receipt },
 ];
 
@@ -18,6 +19,7 @@ export function PatientFolderView({
   overviewNode,
   consultationsNode,
   bioDataNode,
+  historyNode,
   financialsNode,
   defaultTab = "overview",
 }: {
@@ -25,6 +27,7 @@ export function PatientFolderView({
   overviewNode: ReactNode;
   consultationsNode: ReactNode;
   bioDataNode: ReactNode;
+  historyNode: ReactNode;
   financialsNode: ReactNode;
   defaultTab?: string;
 }) {
@@ -67,6 +70,10 @@ export function PatientFolderView({
 
       <TabsContent value="bio-data" forceMount>
         {bioDataNode}
+      </TabsContent>
+
+      <TabsContent value="history" forceMount>
+        {historyNode}
       </TabsContent>
 
       <TabsContent value="financials" forceMount>

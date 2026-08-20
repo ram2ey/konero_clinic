@@ -326,7 +326,7 @@ export default function NewPatientPage() {
             <Link href="/admin/consultations">Cancel</Link>
           </Button>
           <Button type="submit" disabled={pending}>
-            {pending ? "Sending invite…" : "Send invite"}
+            {pending ? "Registering…" : "Register patient"}
           </Button>
         </div>
       </form>

@@ -5,6 +5,7 @@ import { Suspense } from "react";
 import { ConsultationSnippets, ConsultationSnippetsSkeleton } from "@/components/admin/consultation-snippets";
 import { PatientBiodataFull, PatientBiodataFullSkeleton } from "@/components/admin/patient-biodata-full";
 import { PatientFolderView } from "@/components/admin/patient-folder-view";
+import { PatientHistorySection, PatientHistorySectionSkeleton } from "@/components/admin/patient-history-section";
 import { PreviousConsultations, PreviousConsultationsSkeleton } from "@/components/admin/previous-consultations";
 import { SuccessBanner } from "@/components/admin/success-banner";
 import { DiagnosesHistory, DiagnosesHistorySkeleton } from "@/components/portal/diagnoses-history";
@@ -80,6 +81,11 @@ export default async function ConsultationFolderPage({
       bioDataNode={
         <Suspense fallback={<PatientBiodataFullSkeleton />}>
           <PatientBiodataFull patientId={patientId} />
+        </Suspense>
+      }
+      historyNode={
+        <Suspense fallback={<PatientHistorySectionSkeleton />}>
+          <PatientHistorySection patientId={patientId} />
         </Suspense>
       }
       financialsNode={

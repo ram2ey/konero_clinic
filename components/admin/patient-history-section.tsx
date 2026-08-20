@@ -1,4 +1,5 @@
 import { EMPTY_HISTORY, PatientHistoryForm, type HistoryState } from "@/components/admin/patient-history-form";
+import { Skeleton } from "@/components/ui/skeleton";
 import { createClient } from "@/lib/supabase/server";
 
 type PatientHistoryRow = {
@@ -93,5 +94,15 @@ export async function PatientHistorySection({ patientId }: { patientId: string }
       initialHistory={toHistoryState(data?.history ?? null)}
       initialUpdatedAt={data?.updated_at ?? null}
     />
+  );
+}
+
+export function PatientHistorySectionSkeleton() {
+  return (
+    <div className="space-y-4 rounded-xl border border-border/80 bg-card p-4">
+      <Skeleton className="h-5 w-40" />
+      <Skeleton className="h-24 w-full" />
+      <Skeleton className="h-24 w-full" />
+    </div>
   );
 }

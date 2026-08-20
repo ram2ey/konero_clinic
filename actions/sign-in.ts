@@ -25,6 +25,17 @@ const WINDOW_MINUTES = 15;
  * role here — middleware already owns that decision (it bounces a
  * non-admin session straight to /portal), so this avoids a second,
  * potentially-drifting copy of the same routing rule.
+ *
+ * The one exception is must_change_password: a Server Action's own
+ * redirect() communicates its target to the client via the action's
+ * response payload, which wins over a redirect middleware issues for that
+ * same fetch — middleware's identical must-change-password check (see
+ * middleware.ts) never gets a chance to override it for this specific
+ * request. So this checks it directly, using data already returned by
+ * signInWithPassword — no extra round trip. Middleware still enforces the
+ * same rule as a backstop for every other kind of navigation (a bookmark,
+ * a direct URL, a page refresh), which is what actually matters for a
+ * flag that must hold even if this one call site is ever wrong.
  */
 export async function signIn(_prevState: ActionState, formData: FormData): Promise<ActionState> {
   const parsed = signInSchema.safeParse({
@@ -62,7 +73,7 @@ export async function signIn(_prevState: ActionState, formData: FormData): Promi
   }
 
   const supabase = await createClient();
-  const { error } = await supabase.auth.signInWithPassword({ email, password });
+  const { data, error } = await supabase.auth.signInWithPassword({ email, password });
 
   // Record the attempt and drop this email's rows outside the window in
   // the same round-trip — self-pruning, no separate cleanup job needed.
@@ -77,6 +88,10 @@ export async function signIn(_prevState: ActionState, formData: FormData): Promi
   if (error) {
     // Deliberately generic — doesn't reveal whether the email exists.
     return { status: "error", message: "Invalid email or password." };
+  }
+
+  if (data.user.app_metadata?.must_change_password === true) {
+    redirect("/auth/set-password");
   }
 
   redirect("/admin");
