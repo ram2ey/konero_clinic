@@ -152,14 +152,15 @@ export function LabUploader({ patientId, onUploaded }: LabUploaderProps) {
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-3 rounded-lg border border-neutral-200 p-4">
       <div>
-        <span className="block text-sm font-medium text-neutral-700">Test name</span>
+        <span className="block text-sm font-medium text-neutral-700">Test / scan name</span>
         {/* The same picker the doctor orders from, so a result gets filed
             under the name it was ordered under instead of a near-miss
-            ("FBC" vs "Full blood count"). Free text still works. */}
+            ("FBC" vs "Full blood count"). Covers labs, imaging, and
+            procedures alike. Free text still works. */}
         <div className="mt-1 flex">
           <CatalogCombobox
-            ariaLabel="Test name"
-            placeholder="e.g. Full blood count"
+            ariaLabel="Test / scan name"
+            placeholder="e.g. Full blood count, Chest X-ray"
             search={searchLabTests}
             value={testName}
             onTextChange={setTestName}

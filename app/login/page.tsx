@@ -114,6 +114,23 @@ export default function LoginPage() {
               )}
             </Button>
           </form>
+
+          {/* New Patient CTA */}
+          <div className="mt-6 border-t border-border/60 pt-4 text-center">
+            <p className="text-xs text-muted-foreground mb-2">
+              Looking to schedule a new appointment?
+            </p>
+            <Button
+              asChild
+              variant="outline"
+              size="sm"
+              className="w-full font-semibold border-primary/30 text-primary hover:bg-primary/10"
+            >
+              <Link href="/request-consultation">
+                Request a Consultation
+              </Link>
+            </Button>
+          </div>
         </div>
       </div>
     </main>

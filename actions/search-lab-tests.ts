@@ -20,10 +20,12 @@ type LabTestRow = {
 type SearchLabTestsResult = ActionState & { results?: CatalogMatch[] };
 
 /**
- * Searches the local `lab_tests` catalogue (WHO Model List of Essential
- * In Vitro Diagnostics plus locally-added panels — see
- * supabase/migrations) for ordering investigations and for naming an
- * uploaded result.
+ * Searches the local `lab_tests` catalogue — despite the table name, this
+ * covers every kind of investigation: the WHO Model List of Essential In
+ * Vitro Diagnostics plus locally-added panels for biological/laboratory
+ * tests, and separately-seeded imaging/radiology and endoscopic/invasive
+ * procedures (see supabase/migrations) — for ordering investigations and
+ * for naming an uploaded result.
  *
  * Signed-in rather than admin-only, unlike the other two catalogues: the
  * patient portal's uploader (components/LabUploader.tsx) uses the same
@@ -68,7 +70,7 @@ export async function searchLabTests(input: { query: string }): Promise<SearchLa
     if (!result.ok) {
       return {
         status: "error",
-        message: logAndSanitize("searchLabTests", result.error, "Lab test lookup failed. Please try again."),
+        message: logAndSanitize("searchLabTests", result.error, "Investigation lookup failed. Please try again."),
       };
     }
 
@@ -76,7 +78,7 @@ export async function searchLabTests(input: { query: string }): Promise<SearchLa
   } catch (error) {
     return {
       status: "error",
-      message: logAndSanitize("searchLabTests", error, "Lab test lookup failed. Please try again."),
+      message: logAndSanitize("searchLabTests", error, "Investigation lookup failed. Please try again."),
     };
   }
 }

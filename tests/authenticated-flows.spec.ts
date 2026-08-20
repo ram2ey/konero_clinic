@@ -166,16 +166,26 @@ test.describe("Authenticated flows", () => {
     await expect(medsSection.locator('input[aria-label="Dosage"]')).toHaveValue("10 mg in vial");
     await medsSection.locator('input[aria-label="Frequency"]').fill("Nocte (at night)");
 
-    // Investigations — the new lab-test catalogue, matched by alias.
+    // Investigations — one catalogue covering labs, imaging, and
+    // procedures alike (see the seed migrations under supabase/migrations),
+    // matched by alias. Two rows here: one lab test, one imaging study, to
+    // prove both categories are actually searchable and selectable, not
+    // just the lab side that existed before.
     const investigationsSection = await openAccordionSection(page, "Investigations");
     await investigationsSection.getByRole("button", { name: "Add" }).click();
-    await fillCombobox(investigationsSection.getByRole("combobox", { name: "Lab test" }), "fbc");
+    const investigationInputs = investigationsSection.getByRole("combobox", { name: "Investigation" });
+    await fillCombobox(investigationInputs.nth(0), "fbc");
     const labOption = page.getByRole("option").filter({ hasText: "Full blood count" });
     await expect(labOption).toBeVisible({ timeout: 8000 });
     await labOption.click();
-    await expect(investigationsSection.getByRole("combobox", { name: "Lab test" })).toHaveValue(
-      "Full blood count",
-    );
+    await expect(investigationInputs.nth(0)).toHaveValue("Full blood count");
+
+    await investigationsSection.getByRole("button", { name: "Add" }).click();
+    await fillCombobox(investigationInputs.nth(1), "MRI brain");
+    const mriOption = page.getByRole("option").filter({ hasText: "MRI Brain" });
+    await expect(mriOption).toBeVisible({ timeout: 8000 });
+    await mriOption.click();
+    await expect(investigationInputs.nth(1)).toHaveValue("MRI Brain");
 
     // Summary — enough to make the saved record legible when reviewed
     // below. Same region-name collision as above: the Summary section's
@@ -213,6 +223,7 @@ test.describe("Authenticated flows", () => {
     await expect(consultationTab.getByText("Depressive disorders, unspecified")).toBeVisible();
     await expect(consultationTab.getByText("Olanzapine")).toBeVisible();
     await expect(consultationTab.getByText("Full blood count")).toBeVisible();
+    await expect(consultationTab.getByText("MRI Brain")).toBeVisible();
   });
 
   test("review visit shows a single interval-history field, not the full template", async () => {

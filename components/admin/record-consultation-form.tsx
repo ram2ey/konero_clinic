@@ -202,7 +202,7 @@ const SECTION_LABELS: Record<string, string> = {
   invoice: "Invoice",
   diagnoses: "Diagnosis",
   prescriptions: "Medication",
-  labOrders: "Lab test",
+  labOrders: "Investigation",
 };
 
 function humanizeSegment(segment: string): string {
@@ -1316,8 +1316,8 @@ export function RecordConsultationForm({
                   {labOrders.map((row, i) => (
                     <div key={i} className="flex flex-col gap-2 sm:flex-row sm:items-start">
                       <CatalogCombobox
-                        ariaLabel="Lab test"
-                        placeholder="Search lab tests or type one…"
+                        ariaLabel="Investigation"
+                        placeholder="Search labs, imaging, or procedures…"
                         search={searchLabTests}
                         value={row.testName}
                         onTextChange={(v) => updateLabOrder(i, { testName: v, labTestId: undefined })}
@@ -1342,7 +1342,7 @@ export function RecordConsultationForm({
                           size="icon"
                           onClick={() => removeLabOrder(i)}
                           disabled={pending}
-                          aria-label="Remove lab test"
+                          aria-label="Remove investigation"
                         >
                           <Trash2 className="size-3.5" />
                         </Button>
