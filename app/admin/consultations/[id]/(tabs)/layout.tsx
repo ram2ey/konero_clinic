@@ -2,7 +2,7 @@ import { IdCard } from "lucide-react";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
 
-import { ReinvitePatientButton } from "@/components/admin/reinvite-patient-button";
+import { ResetPasswordButton } from "@/components/admin/reset-password-button";
 import { formatMedicalId } from "@/lib/format";
 import { createClient } from "@/lib/supabase/server";
 
@@ -32,7 +32,7 @@ async function PatientHeading({ patientId }: { patientId: string }) {
       </div>
 
       <div className="flex items-center gap-2">
-        <ReinvitePatientButton
+        <ResetPasswordButton
           patientId={patientId}
           patientName={patient.full_name}
           variant="outline"

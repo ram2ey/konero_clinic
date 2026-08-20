@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, type FormEvent } from "react";
 
+import { completePasswordChange } from "@/actions/complete-password-change";
 import { Button } from "@/components/ui/button";
 import { createClient } from "@/lib/supabase/client";
 
@@ -86,10 +87,25 @@ export default function SetPasswordPage() {
     setSubmitting(true);
     const supabase = createClient();
     const { error: updateError } = await supabase.auth.updateUser({ password });
-    setSubmitting(false);
 
     if (updateError) {
+      setSubmitting(false);
       setError(updateError.message || "Failed to set your password. Please try again.");
+      return;
+    }
+
+    // Clears app_metadata.must_change_password for patients onboarded with
+    // a temporary password. It has to happen server-side — the flag is
+    // service-role-only by design — and it has to happen before we
+    // navigate, or middleware will bounce us straight back here.
+    //
+    // Harmless no-op for the password-recovery flow, where the flag was
+    // never set in the first place.
+    const result = await completePasswordChange();
+    setSubmitting(false);
+
+    if (result.status === "error") {
+      setError(result.message ?? "Failed to finish setting up your account.");
       return;
     }
 

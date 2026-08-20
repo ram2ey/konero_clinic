@@ -4,7 +4,8 @@ import { CheckCircle2, ChevronDown } from "lucide-react";
 import Link from "next/link";
 import { useActionState, useEffect, useState } from "react";
 
-import { registerPatient } from "@/actions/register-patient";
+import { registerPatient, type RegisterPatientResult } from "@/actions/register-patient";
+import { TempPasswordPanel } from "@/components/admin/temp-password-panel";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { initialActionState } from "@/lib/action-state";
@@ -84,7 +85,10 @@ function Field({
 }
 
 export default function NewPatientPage() {
-  const [state, formAction, pending] = useActionState(registerPatient, initialActionState);
+  const [state, formAction, pending] = useActionState<RegisterPatientResult, FormData>(
+    registerPatient,
+    initialActionState,
+  );
   const errors = state.fieldErrors ?? {};
   const [showMoreDetails, setShowMoreDetails] = useState(false);
 
@@ -104,6 +108,9 @@ export default function NewPatientPage() {
           <CardContent className="flex flex-col items-center gap-3 py-12 text-center">
             <CheckCircle2 className="size-10 text-emerald-600" />
             <p className="text-lg font-medium text-foreground">{state.message}</p>
+            {state.tempPassword && (
+              <TempPasswordPanel email={state.email} tempPassword={state.tempPassword} />
+            )}
             <div className="flex gap-3 pt-2">
               <Button asChild variant="outline">
                 <Link href="/admin/consultations">Back to patients</Link>
@@ -124,8 +131,8 @@ export default function NewPatientPage() {
           Register New Patient
         </h1>
         <p className="text-xs sm:text-sm text-muted-foreground mt-1">
-          Sends an email invite where the patient sets their own password. Required fields: name, sex, date of
-          birth, phone, and email.
+          Creates the portal account and issues a temporary password to hand to the patient — they choose
+          their own at first sign-in. Required fields: name, sex, date of birth, phone, and email.
         </p>
       </div>
 

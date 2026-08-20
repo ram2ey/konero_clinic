@@ -18,7 +18,7 @@ import {
 } from "lucide-react";
 
 import { FieldRow } from "@/components/field-row";
-import { ReinvitePatientButton } from "@/components/admin/reinvite-patient-button";
+import { ResetPasswordButton } from "@/components/admin/reset-password-button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { calculateAge, formatDate, formatMedicalId, humanizeEnum } from "@/lib/format";
@@ -117,7 +117,7 @@ export async function PatientBiodataFull({ patientId }: { patientId: string }) {
             </div>
 
             <div className="flex items-center gap-2">
-              <ReinvitePatientButton
+              <ResetPasswordButton
                 patientId={patientId}
                 patientName={profile?.full_name}
                 variant="outline"
@@ -137,11 +137,12 @@ export async function PatientBiodataFull({ patientId }: { patientId: string }) {
               <div>
                 <p className="text-xs font-bold text-foreground">Patient Portal Access</p>
                 <p className="text-xs text-muted-foreground mt-0.5">
-                  Send a new invite or password setup link if the patient&apos;s previous email link expired.
+                  Issue a new temporary password if the patient can&apos;t sign in. They&apos;ll choose
+                  their own the next time they log in.
                 </p>
               </div>
             </div>
-            <ReinvitePatientButton
+            <ResetPasswordButton
               patientId={patientId}
               patientName={profile?.full_name}
               variant="default"

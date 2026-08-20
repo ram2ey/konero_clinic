@@ -4,6 +4,7 @@ import { NextResponse, type NextRequest } from "next/server";
 const LOGIN_PATH = "/login";
 const ADMIN_HOME = "/admin";
 const PATIENT_HOME = "/portal";
+const SET_PASSWORD_PATH = "/auth/set-password";
 
 export async function middleware(request: NextRequest) {
   // Mutated inside `setAll` below and returned at the end — this is the
@@ -55,6 +56,19 @@ export async function middleware(request: NextRequest) {
       return NextResponse.redirect(url);
     }
     return response;
+  }
+
+  // Patients registered by the clinic get a generated temporary password
+  // and must replace it before using the portal (see
+  // actions/register-patient.ts). The flag lives in app_metadata, which
+  // is already on the `user` object above — so this guard costs no extra
+  // round trip, unlike a profiles lookup would.
+  //
+  // Everything under /auth is exempt, or setting the password would
+  // redirect to itself forever. The flag is cleared by
+  // actions/complete-password-change.ts once the new password is saved.
+  if (user.app_metadata?.must_change_password === true && !pathname.startsWith("/auth")) {
+    return NextResponse.redirect(new URL(SET_PASSWORD_PATH, request.url));
   }
 
   // Only fetch role here for /login — a signed-in user landing there needs
