@@ -691,7 +691,7 @@ export function RecordConsultationForm({
         <form onSubmit={handleSubmit} className="space-y-6">
         <Card className="py-0">
           <Accordion type="multiple" value={openSections} onValueChange={setOpenSections}>
-            <Section value="vitals" title="Vitals" optional filled={sectionHasContent.vitals}>
+            <Section value="vitals" title="Vitals" filled={sectionHasContent.vitals}>
               <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
                 <InputField
                   name="vitals.bloodPressureSystolic"
@@ -748,7 +748,6 @@ export function RecordConsultationForm({
             <Section
               value="history"
               title={visitType === "first_visit" ? "History" : "Interval History"}
-              optional
               filled={sectionHasContent.history}
             >
               {/* The clerking history is taken once per patient, not per
@@ -1478,7 +1477,7 @@ export function RecordConsultationForm({
               <TextField name="assessment.prognosis" label="Prognosis" value={form.prognosis} onChange={(v) => set("prognosis", v)} />
             </Section>
 
-            <Section value="invoice" title="Invoice" optional filled={sectionHasContent.invoice}>
+            <Section value="invoice" title="Invoice" filled={sectionHasContent.invoice}>
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <InputField
                   name="invoice.amount"

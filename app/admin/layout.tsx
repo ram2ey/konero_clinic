@@ -2,6 +2,7 @@ import { LogOut, ShieldCheck } from "lucide-react";
 import { redirect } from "next/navigation";
 
 import { signOut } from "@/actions/sign-out";
+import { AdminHeaderLabel } from "@/components/admin/admin-header-label";
 import { AdminNav } from "@/components/admin/admin-nav";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { BrandLogo } from "@/components/ui/brand-logo";
@@ -90,10 +91,10 @@ export default async function AdminLayout({ children }: { children: React.ReactN
           <div className="flex items-center gap-3">
             <SidebarTrigger className="hover:bg-muted/70 rounded-lg p-1.5" />
             <div className="h-4 w-px bg-border/80" />
-            <div className="flex items-center gap-2">
-              <span className="text-xs font-semibold text-muted-foreground">Dr. Alex Vico-Korda</span>
-              <span className="text-muted-foreground/40 text-xs">/</span>
-              <span className="text-xs sm:text-sm font-bold text-foreground">Clinical Administration</span>
+            <div className="flex min-w-0 items-center gap-2">
+              <span className="hidden sm:inline text-xs font-semibold text-muted-foreground">Dr. Alex Vico-Korda</span>
+              <span className="hidden sm:inline text-muted-foreground/40 text-xs">/</span>
+              <AdminHeaderLabel />
             </div>
           </div>
 

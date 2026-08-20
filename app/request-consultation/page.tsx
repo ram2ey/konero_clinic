@@ -25,7 +25,7 @@ export default function RequestConsultationPage() {
         className="pointer-events-none absolute inset-0 flex items-center justify-center overflow-hidden"
         aria-hidden="true"
       >
-        <div className="size-[650px] rounded-full bg-gradient-to-tr from-primary/10 via-brand-navy/5 to-brand-gold/10 blur-3xl opacity-60" />
+        <div className="size-[650px] rounded-full bg-gradient-to-tr from-primary/10 via-violet-500/5 to-brand-gold/10 blur-3xl opacity-60" />
       </div>
 
       <div className="relative mx-auto max-w-2xl space-y-6">

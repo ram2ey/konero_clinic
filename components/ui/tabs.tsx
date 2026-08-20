@@ -5,6 +5,38 @@ import { Tabs as TabsPrimitive } from "radix-ui"
 
 import { cn } from "@/lib/utils"
 
+// Detects which edge(s) of a horizontally-scrollable element currently
+// have hidden content, so TabsList can hint "there's more here" instead
+// of just cutting off with no affordance.
+function useScrollEdges<T extends HTMLElement>() {
+  const ref = React.useRef<T>(null)
+  const [edges, setEdges] = React.useState({ left: false, right: false })
+
+  const update = React.useCallback(() => {
+    const el = ref.current
+    if (!el) return
+    setEdges({
+      left: el.scrollLeft > 1,
+      right: el.scrollLeft + el.clientWidth < el.scrollWidth - 1,
+    })
+  }, [])
+
+  React.useEffect(() => {
+    const el = ref.current
+    if (!el) return
+    update()
+    const resizeObserver = new ResizeObserver(update)
+    resizeObserver.observe(el)
+    el.addEventListener("scroll", update, { passive: true })
+    return () => {
+      resizeObserver.disconnect()
+      el.removeEventListener("scroll", update)
+    }
+  }, [update])
+
+  return { ref, edges }
+}
+
 function Tabs({
   className,
   ...props
@@ -22,15 +54,32 @@ function TabsList({
   className,
   ...props
 }: React.ComponentProps<typeof TabsPrimitive.List>) {
+  const { ref, edges } = useScrollEdges<HTMLDivElement>()
+
   return (
-    <TabsPrimitive.List
-      data-slot="tabs-list"
-      className={cn(
-        "inline-flex w-full sm:w-auto items-center gap-1 overflow-x-auto rounded-xl border border-border/70 bg-muted/60 p-1 text-muted-foreground shadow-xs scrollbar-none",
-        className
+    <div className="relative min-w-0">
+      <TabsPrimitive.List
+        ref={ref}
+        data-slot="tabs-list"
+        className={cn(
+          "inline-flex w-full sm:w-auto items-center gap-1 overflow-x-auto rounded-xl border border-border/70 bg-muted/60 p-1 text-muted-foreground shadow-xs scrollbar-none",
+          className
+        )}
+        {...props}
+      />
+      {edges.left && (
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-y-0 left-0 w-6 rounded-l-xl bg-gradient-to-r from-muted/90 to-transparent"
+        />
       )}
-      {...props}
-    />
+      {edges.right && (
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-y-0 right-0 w-6 rounded-r-xl bg-gradient-to-l from-muted/90 to-transparent"
+        />
+      )}
+    </div>
   )
 }
 

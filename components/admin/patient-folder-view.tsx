@@ -54,16 +54,14 @@ export function PatientFolderView({
 
   return (
     <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-6">
-      <div className="overflow-x-auto pb-1 scrollbar-none">
-        <TabsList className="w-auto">
-          {TABS.filter((tab) => !tab.hidden).map((tab) => (
-            <TabsTrigger key={tab.value} value={tab.value} className="gap-1.5">
-              <tab.icon className="size-3.5" />
-              <span>{tab.label}</span>
-            </TabsTrigger>
-          ))}
-        </TabsList>
-      </div>
+      <TabsList className="w-auto">
+        {TABS.filter((tab) => !tab.hidden).map((tab) => (
+          <TabsTrigger key={tab.value} value={tab.value} className="gap-1.5">
+            <tab.icon className="size-3.5" />
+            <span>{tab.label}</span>
+          </TabsTrigger>
+        ))}
+      </TabsList>
 
       <TabsContent value="overview" forceMount>
         {overviewNode}

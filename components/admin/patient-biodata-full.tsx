@@ -18,7 +18,6 @@ import {
 } from "lucide-react";
 
 import { FieldRow } from "@/components/field-row";
-import { ResetPasswordButton } from "@/components/admin/reset-password-button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { calculateAge, formatDate, formatMedicalId, humanizeEnum } from "@/lib/format";
@@ -65,6 +64,13 @@ function informantValue(profile: Profile | null): string {
   return profile.informant_relationship
     ? `${profile.informant_name} (${profile.informant_relationship})`
     : profile.informant_name;
+}
+
+// True when every given value is empty — used to collapse a whole
+// subsection to one line instead of a repeated wall of "Not on file"
+// rows when none of it has been captured yet.
+function isBlank(...values: (string | null | undefined)[]): boolean {
+  return values.every((v) => !v);
 }
 
 /**
@@ -115,39 +121,24 @@ export async function PatientBiodataFull({ patientId }: { patientId: string }) {
                 </div>
               </div>
             </div>
-
-            <div className="flex items-center gap-2">
-              <ResetPasswordButton
-                patientId={patientId}
-                patientName={profile?.full_name}
-                variant="outline"
-                size="sm"
-              />
-            </div>
           </div>
         </CardHeader>
 
         <CardContent className="pt-6 space-y-6">
-          {/* Patient Portal Access Banner */}
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-xl border border-primary/20 bg-primary/5 p-4 dark:border-primary/30 dark:bg-primary/10">
-            <div className="flex items-center gap-3">
-              <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-primary/15 text-primary">
-                <KeyRound className="size-4" />
-              </div>
-              <div>
-                <p className="text-xs font-bold text-foreground">Patient Portal Access</p>
-                <p className="text-xs text-muted-foreground mt-0.5">
-                  Issue a new temporary password if the patient can&apos;t sign in. They&apos;ll choose
-                  their own the next time they log in.
-                </p>
-              </div>
+          {/* Patient Portal Access note — the actual Reset Password action
+              lives once, at the top of the patient folder page (visible on
+              every tab), rather than being repeated here. */}
+          <div className="flex items-center gap-3 rounded-xl border border-primary/20 bg-primary/5 p-4 dark:border-primary/30 dark:bg-primary/10">
+            <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-primary/15 text-primary">
+              <KeyRound className="size-4" />
             </div>
-            <ResetPasswordButton
-              patientId={patientId}
-              patientName={profile?.full_name}
-              variant="default"
-              size="sm"
-            />
+            <div>
+              <p className="text-xs font-bold text-foreground">Patient Portal Access</p>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                If the patient can&apos;t sign in, use Reset Password above to issue a new
+                temporary password. They&apos;ll choose their own the next time they log in.
+              </p>
+            </div>
           </div>
 
           {/* Demographics */}
@@ -174,14 +165,25 @@ export async function PatientBiodataFull({ patientId }: { patientId: string }) {
             <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-3">
               Location &amp; Socioeconomic
             </h3>
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              <FieldRow icon={MapPin} label="Place of residence" value={profile?.residence ?? "Not on file"} />
-              <FieldRow icon={Globe} label="Nationality" value={profile?.nationality ?? "Not on file"} />
-              <FieldRow icon={Users} label="Ethnicity" value={profile?.ethnicity ?? "Not on file"} />
-              <FieldRow icon={Church} label="Religion / Faith" value={profile?.religion ?? "Not on file"} />
-              <FieldRow icon={Briefcase} label="Occupation" value={profile?.occupation ?? "Not on file"} />
-              <FieldRow icon={GraduationCap} label="Highest education" value={profile?.education_level ?? "Not on file"} />
-            </div>
+            {isBlank(
+              profile?.residence,
+              profile?.nationality,
+              profile?.ethnicity,
+              profile?.religion,
+              profile?.occupation,
+              profile?.education_level
+            ) ? (
+              <p className="text-sm text-muted-foreground">No location or socioeconomic details on file.</p>
+            ) : (
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                <FieldRow icon={MapPin} label="Place of residence" value={profile?.residence ?? "Not on file"} />
+                <FieldRow icon={Globe} label="Nationality" value={profile?.nationality ?? "Not on file"} />
+                <FieldRow icon={Users} label="Ethnicity" value={profile?.ethnicity ?? "Not on file"} />
+                <FieldRow icon={Church} label="Religion / Faith" value={profile?.religion ?? "Not on file"} />
+                <FieldRow icon={Briefcase} label="Occupation" value={profile?.occupation ?? "Not on file"} />
+                <FieldRow icon={GraduationCap} label="Highest education" value={profile?.education_level ?? "Not on file"} />
+              </div>
+            )}
           </div>
 
           {/* Next of Kin & Informant */}
@@ -190,7 +192,11 @@ export async function PatientBiodataFull({ patientId }: { patientId: string }) {
               <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-3">
                 Next of Kin
               </h3>
-              <FieldRow icon={UsersRound} label="Contact" value={nextOfKinValue(profile)} />
+              {profile?.next_of_kin_name ? (
+                <FieldRow icon={UsersRound} label="Contact" value={nextOfKinValue(profile)} />
+              ) : (
+                <p className="text-sm text-muted-foreground">No next of kin on file.</p>
+              )}
             </div>
 
             <div className="rounded-xl border border-border/80 bg-muted/30 p-4">
@@ -202,7 +208,11 @@ export async function PatientBiodataFull({ patientId }: { patientId: string }) {
                   <InformantReliabilityBadge reliability={profile.informant_reliability} />
                 )}
               </div>
-              <FieldRow icon={User} label="Informant" value={informantValue(profile)} />
+              {profile?.informant_name ? (
+                <FieldRow icon={User} label="Informant" value={informantValue(profile)} />
+              ) : (
+                <p className="text-sm text-muted-foreground">No informant on file.</p>
+              )}
             </div>
           </div>
 
@@ -211,10 +221,14 @@ export async function PatientBiodataFull({ patientId }: { patientId: string }) {
             <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-3">
               Clinical Referral Intake
             </h3>
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              <FieldRow icon={Send} label="Referral source" value={profile?.referral_source ?? "Not on file"} />
-              <FieldRow icon={FileText} label="Reason for referral" value={profile?.referral_reason ?? "Not on file"} />
-            </div>
+            {isBlank(profile?.referral_source, profile?.referral_reason) ? (
+              <p className="text-sm text-muted-foreground">No referral details on file.</p>
+            ) : (
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <FieldRow icon={Send} label="Referral source" value={profile?.referral_source ?? "Not on file"} />
+                <FieldRow icon={FileText} label="Reason for referral" value={profile?.referral_reason ?? "Not on file"} />
+              </div>
+            )}
           </div>
         </CardContent>
       </Card>

@@ -49,16 +49,14 @@ export default async function PatientPortalPage() {
       </div>
 
       <Tabs defaultValue="overview" className="space-y-6">
-        <div className="overflow-x-auto pb-1 scrollbar-none">
-          <TabsList className="w-auto">
-            {TABS.map((tab) => (
-              <TabsTrigger key={tab.value} value={tab.value}>
-                <tab.icon className="size-4 shrink-0 text-muted-foreground group-data-[state=active]:text-primary" />
-                <span>{tab.label}</span>
-              </TabsTrigger>
-            ))}
-          </TabsList>
-        </div>
+        <TabsList className="w-auto">
+          {TABS.map((tab) => (
+            <TabsTrigger key={tab.value} value={tab.value}>
+              <tab.icon className="size-4 shrink-0 text-muted-foreground group-data-[state=active]:text-primary" />
+              <span>{tab.label}</span>
+            </TabsTrigger>
+          ))}
+        </TabsList>
 
         {/* forceMount + the base TabsContent's data-[state=inactive]:hidden
             (see components/ui/tabs.tsx) — every tab's data streams in once,

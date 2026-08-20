@@ -7,7 +7,7 @@ import type { ComponentType } from "react";
 
 import { SidebarMenu, SidebarMenuButton, SidebarMenuItem, useSidebar } from "@/components/ui/sidebar";
 
-const NAV_ITEMS: { href: string; label: string; icon: ComponentType<{ className?: string }> }[] = [
+export const NAV_ITEMS: { href: string; label: string; icon: ComponentType<{ className?: string }> }[] = [
   { href: "/admin", label: "Dashboard", icon: LayoutDashboard },
   { href: "/admin/requests", label: "Requests", icon: Inbox },
   { href: "/admin/consultations", label: "Consultations", icon: CalendarClock },

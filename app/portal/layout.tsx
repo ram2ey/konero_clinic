@@ -88,10 +88,10 @@ export default async function PortalLayout({ children }: { children: React.React
           <div className="flex items-center gap-3">
             <SidebarTrigger className="hover:bg-muted/70 rounded-lg p-1.5" />
             <div className="h-4 w-px bg-border/80" />
-            <div className="flex items-center gap-2">
-              <span className="text-xs font-semibold text-muted-foreground">Dr. Alex Vico-Korda</span>
-              <span className="text-muted-foreground/40 text-xs">/</span>
-              <span className="text-xs sm:text-sm font-bold text-foreground">Patient Health Portal</span>
+            <div className="flex min-w-0 items-center gap-2">
+              <span className="hidden sm:inline text-xs font-semibold text-muted-foreground">Dr. Alex Vico-Korda</span>
+              <span className="hidden sm:inline text-muted-foreground/40 text-xs">/</span>
+              <span className="truncate text-xs sm:text-sm font-bold text-foreground">Patient Health Portal</span>
             </div>
           </div>
 

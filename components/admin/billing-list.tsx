@@ -5,7 +5,6 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 
 import { InvoiceStatusActions } from "@/components/admin/invoice-status-actions";
-import { InvoiceStatusBadge } from "@/components/portal/status-badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { formatCurrency, formatDate } from "@/lib/format";
 
@@ -136,7 +135,6 @@ export function BillingList({ invoices }: { invoices: BillingInvoice[] }) {
                     <span className="text-sm sm:text-base font-bold tabular-nums text-foreground">
                       {formatCurrency(item.amount)}
                     </span>
-                    <InvoiceStatusBadge status={item.status} />
                     <InvoiceStatusActions
                       invoiceId={item.id}
                       currentStatus={item.status}
