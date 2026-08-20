@@ -23,3 +23,8 @@ next-env.d.ts
 # local-only convenience scripts, not meant to be committed
 run-in-sql-editor.sql
 dev-*.log
+
+# playwright
+/playwright-report/
+/test-results/
+/blob-report/
