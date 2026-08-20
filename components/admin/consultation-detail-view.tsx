@@ -78,6 +78,9 @@ export type LabOrder = {
 export type Assessment = {
   mse?: Mse;
   physical_exam?: PhysicalExam;
+  // Review visits only — the clerking history itself lives in
+  // patient_history, taken once per patient.
+  interval_history?: string | null;
   summary?: string | null;
   phenomenology?: string | null;
   management_plan?: string | null;
@@ -296,6 +299,18 @@ export function ConsultationDetailView({
           </div>
         </div>
       </div>
+
+      {/* Interval history — recorded on review visits only. */}
+      {assessment?.interval_history && (
+        <div className="rounded-xl border border-border/80 bg-card p-4 shadow-2xs">
+          <h5 className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1.5">
+            Progress Since Last Visit
+          </h5>
+          <p className="whitespace-pre-wrap text-xs text-foreground leading-relaxed">
+            {assessment.interval_history}
+          </p>
+        </div>
+      )}
 
       {/* 2. Clinical Formulation & Summary */}
       <div className="space-y-3">

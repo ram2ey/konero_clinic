@@ -99,6 +99,11 @@ const assessmentSchema = z
   .object({
     mse: mseSchema,
     physicalExam: physicalExamSchema,
+    // Review visits only: what has happened since the last visit. Distinct
+    // from the clerking history in patient_history, which is taken once
+    // per patient — this is a per-visit narrative, so it belongs on the
+    // consultation alongside the rest of the assessment.
+    intervalHistory: longText(5000),
     summary: longText(5000),
     phenomenology: longText(5000),
     managementPlan: longText(5000),
@@ -339,6 +344,7 @@ export async function recordConsultation(
                 other: assessment.physicalExam.other ?? null,
               }
             : null,
+          interval_history: assessment.intervalHistory ?? null,
           summary: assessment.summary ?? null,
           phenomenology: assessment.phenomenology ?? null,
           management_plan: assessment.managementPlan ?? null,
@@ -393,8 +399,18 @@ export async function recordConsultation(
       return { status: "error", message };
     }
 
-    // If history data was provided, persist to patient_history
-    if (history) {
+    // Persist the clerking history — first visits only.
+    //
+    // The upsert below replaces the whole `history` jsonb for the patient,
+    // so writing it on a review would overwrite a complete clerking with
+    // whatever partial object the caller sent. The form doesn't render the
+    // template on a review (it collects an interval note into
+    // assessment.interval_history instead), but this is the layer that has
+    // to guarantee it: a stale tab, a replayed request, or a future caller
+    // must not be able to blank a patient's history by recording a
+    // follow-up. Updating an existing history is what savePatientHistory
+    // and the History tab are for.
+    if (history && visitType === "first_visit") {
       const historyJson = {
         presenting_complaints: history.presentingComplaints ?? null,
         history_of_presenting_complaints: history.historyOfPresentingComplaints ?? null,

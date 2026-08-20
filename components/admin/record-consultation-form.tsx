@@ -1,6 +1,7 @@
 "use client";
 
 import { Plus, Trash2 } from "lucide-react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { createContext, useContext, useId, useState, type FormEvent, type ReactNode } from "react";
 
@@ -147,6 +148,7 @@ type FormState = {
   peMusculoskeletal: string;
   peSkin: string;
   peOther: string;
+  intervalHistory: string;
   summary: string;
   phenomenology: string;
   managementPlan: string;
@@ -174,6 +176,7 @@ const EMPTY_FORM: FormState = {
   peMusculoskeletal: "",
   peSkin: "",
   peOther: "",
+  intervalHistory: "",
   summary: "",
   phenomenology: "",
   managementPlan: "",
@@ -226,6 +229,7 @@ function fieldId(name: string): string {
 function sectionForField(path: string): string | undefined {
   if (path.startsWith("vitals")) return "vitals";
   if (path.startsWith("history")) return "history";
+  if (path.startsWith("assessment.intervalHistory")) return "history";
   if (path.startsWith("assessment.mse")) return "mse";
   if (path.startsWith("assessment.physicalExam")) return "physicalExam";
   if (path.startsWith("assessment.summary")) return "summary";
@@ -384,6 +388,10 @@ export function RecordConsultationForm({
   const [fieldErrors, setFieldErrors] = useState<Record<string, string[]> | null>(null);
   const [openSections, setOpenSections] = useState<string[]>([]);
   const frequencyListId = useId();
+  // Frozen at mount: whether this patient already has a clerking history
+  // on file. Only used to word the hint shown on a review, so it must not
+  // react to the doctor typing into the (first-visit) history fields.
+  const [hasRecordedHistory] = useState(() => hasAnyValue(mapDbHistoryToState(initialHistory)));
 
   function set<K extends keyof FormState>(key: K, value: FormState[K]) {
     setForm((prev) => ({ ...prev, [key]: value }));
@@ -469,7 +477,7 @@ export function RecordConsultationForm({
       form.weightKg,
       form.oxygenSaturation,
     ].some(hasValue),
-    history: hasAnyValue(history),
+    history: visitType === "first_visit" ? hasAnyValue(history) : hasValue(form.intervalHistory),
     mse: [
       mse.appearance,
       mse.behaviour,
@@ -533,8 +541,14 @@ export function RecordConsultationForm({
             oxygenSaturation: orUndefined(form.oxygenSaturation),
           }
         : undefined,
-      history: hasAnyValue(history) ? history : undefined,
+      // Only a first visit writes the patient's clerking history. On a
+      // review the full template isn't shown, and sending it would upsert
+      // patient_history — a whole-row overwrite — with whatever happened
+      // to be in state. See the interval-history note in the History
+      // section below.
+      history: visitType === "first_visit" && hasAnyValue(history) ? history : undefined,
       assessment: {
+        intervalHistory: visitType === "review" ? orUndefined(form.intervalHistory) : undefined,
         mse: {
           appearance: orUndefined(mse.appearance),
           behaviour: orUndefined(mse.behaviour),
@@ -731,7 +745,41 @@ export function RecordConsultationForm({
               </div>
             </Section>
 
-            <Section value="history" title="History" optional filled={sectionHasContent.history}>
+            <Section
+              value="history"
+              title={visitType === "first_visit" ? "History" : "Interval History"}
+              optional
+              filled={sectionHasContent.history}
+            >
+              {/* The clerking history is taken once per patient, not per
+                  visit (it lives in patient_history, keyed by patient).
+                  Re-presenting the whole template at every review would
+                  invite overwriting it with a half-filled copy, so a
+                  review gets a single interval note stored on the
+                  consultation instead. The full template stays editable
+                  on the patient's History tab. */}
+              {visitType === "review" ? (
+                <div className="space-y-2">
+                  <TextField
+                    name="assessment.intervalHistory"
+                    label="Progress since last visit"
+                    value={form.intervalHistory}
+                    onChange={(v) => set("intervalHistory", v)}
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    {hasRecordedHistory
+                      ? "The full clerking history was taken at the first visit — "
+                      : "No clerking history is on file for this patient yet — take it on the "}
+                    <Link
+                      href={`/admin/consultations/${patientId}/history`}
+                      className="font-medium text-primary underline underline-offset-2"
+                    >
+                      History tab
+                    </Link>
+                    {hasRecordedHistory ? " to view or update it." : "."}
+                  </p>
+                </div>
+              ) : (
               <div className="space-y-4">
                 <TextField
                   name="history.presentingComplaints"
@@ -1044,6 +1092,7 @@ export function RecordConsultationForm({
                   onChange={(v) => setHistoryField("premorbidPersonality", v)}
                 />
               </div>
+              )}
             </Section>
 
             <Section value="mse" title="Mental State Examination (MSE)" filled={sectionHasContent.mse}>
