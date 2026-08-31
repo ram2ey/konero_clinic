@@ -3,12 +3,10 @@
 import imageCompression from "browser-image-compression";
 import { useRef, useState, type ChangeEvent, type FormEvent } from "react";
 
-import { recordLabReport } from "@/actions/record-lab-report";
+import { deleteOrphanLabFile, recordLabReport } from "@/actions/record-lab-report";
 import { searchLabTests } from "@/actions/search-lab-tests";
 import { CatalogCombobox } from "@/components/catalog-combobox";
 import { ALLOWED_MIME_TYPES, MAX_FILE_SIZE_BYTES, type AllowedMimeType } from "@/lib/lab-upload-constraints";
-import { sanitizeFileName } from "@/lib/sanitize-filename";
-import { createClient } from "@/lib/supabase/client";
 
 const IMAGE_TYPES = new Set<AllowedMimeType>(["image/jpeg", "image/png"]);
 
@@ -51,11 +49,10 @@ export function LabUploader({ patientId, onUploaded }: LabUploaderProps) {
       return;
     }
 
-    // UX validation only. The real, unbypassable enforcement is the
-    // lab-documents bucket's allowed_mime_types/file_size_limit (see
-    // supabase/migrations) — a hostile client can call the Storage API
-    // directly and skip this component, so this only protects honest
-    // users from an accidental wrong file.
+    // UX validation only. The real, unbypassable enforcement is in the
+    // /api/lab-file/upload route (MIME allowlist + 15 MiB) — a hostile
+    // client can POST there directly and skip this component, so this
+    // only protects honest users from an accidental wrong file.
     if (!ALLOWED_MIME_TYPES.includes(selected.type as AllowedMimeType)) {
       setError("Only PDF, JPEG, or PNG files are allowed.");
       setFile(null);
@@ -87,7 +84,6 @@ export function LabUploader({ patientId, onUploaded }: LabUploaderProps) {
       return;
     }
 
-    const supabase = createClient();
     let fileToUpload: File | Blob = file;
 
     if (IMAGE_TYPES.has(file.type as AllowedMimeType)) {
@@ -102,23 +98,36 @@ export function LabUploader({ patientId, onUploaded }: LabUploaderProps) {
       } catch (compressionError) {
         // Compression is a storage-budget optimization, not a
         // correctness requirement — fall back to the original file
-        // rather than blocking the upload entirely. The bucket's own
-        // file_size_limit still protects against an oversized upload.
+        // rather than blocking the upload entirely. The upload route's
+        // size check still protects against an oversized upload.
         console.warn("Image compression failed, uploading original file", compressionError);
         fileToUpload = file;
       }
     }
 
-    const filePath = `${patientId}/${Date.now()}-${sanitizeFileName(file.name)}`;
-
     setPhase("uploading");
-    const { error: uploadError } = await supabase.storage
-      .from("lab-documents")
-      .upload(filePath, fileToUpload, { contentType: file.type, upsert: false });
+    const uploadForm = new FormData();
+    uploadForm.set("patientId", patientId);
+    uploadForm.set(
+      "file",
+      fileToUpload instanceof File
+        ? fileToUpload
+        : new File([fileToUpload], file.name, { type: file.type }),
+    );
 
-    if (uploadError) {
+    let filePath: string;
+    try {
+      const res = await fetch("/api/lab-file/upload", { method: "POST", body: uploadForm });
+      const body = (await res.json()) as { filePath?: string; error?: string };
+      if (!res.ok || !body.filePath) {
+        setPhase("idle");
+        setError(body.error || "Upload failed. Please try again.");
+        return;
+      }
+      filePath = body.filePath;
+    } catch {
       setPhase("idle");
-      setError(uploadError.message || "Upload failed. Please try again.");
+      setError("Upload failed. Please try again.");
       return;
     }
 
@@ -131,10 +140,9 @@ export function LabUploader({ patientId, onUploaded }: LabUploaderProps) {
     });
 
     if (result.status !== "success") {
-      // The file already landed in Storage but has no metadata row —
-      // clean it up rather than leaving an orphaned, untracked object.
-      // Same compensating-action shape as actions/register-patient.ts.
-      await supabase.storage.from("lab-documents").remove([filePath]);
+      // The file was written but has no metadata row — clean it up rather
+      // than leaving an orphaned, untracked object.
+      await deleteOrphanLabFile(patientId, filePath);
       setPhase("idle");
       setError(result.message ?? "Failed to save the lab report.");
       return;

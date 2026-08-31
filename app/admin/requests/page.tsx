@@ -14,6 +14,7 @@ import {
 } from "@/components/admin/requests-table";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { query } from "@/lib/db";
 import { requireAdmin } from "@/lib/require-admin";
 
 export const metadata = {
@@ -26,17 +27,15 @@ export default async function AdminRequestsPage() {
     redirect("/login");
   }
 
-  // Fetch consultation requests
-  const { data: rawRequests, error } = await admin.supabase
-    .from("consultation_requests")
-    .select("*")
-    .order("created_at", { ascending: false });
-
-  if (error) {
+  let requests: ConsultationRequestItem[] = [];
+  try {
+    const { rows } = await query<ConsultationRequestItem>(
+      `select * from public.consultation_requests order by created_at desc`,
+    );
+    requests = rows;
+  } catch (error) {
     console.error("[AdminRequestsPage] Error fetching requests:", error);
   }
-
-  const requests: ConsultationRequestItem[] = (rawRequests as ConsultationRequestItem[]) ?? [];
 
   const total = requests.length;
   const pending = requests.filter((r) => r.status === "pending").length;

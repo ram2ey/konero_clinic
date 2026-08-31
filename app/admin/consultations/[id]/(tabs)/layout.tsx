@@ -3,17 +3,15 @@ import { notFound } from "next/navigation";
 import { Suspense } from "react";
 
 import { ResetPasswordButton } from "@/components/admin/reset-password-button";
+import { query } from "@/lib/db";
 import { formatMedicalId } from "@/lib/format";
-import { createClient } from "@/lib/supabase/server";
 
 async function PatientHeading({ patientId }: { patientId: string }) {
-  const supabase = await createClient();
-  const { data: patient } = await supabase
-    .from("profiles")
-    .select("full_name")
-    .eq("id", patientId)
-    .eq("role", "patient")
-    .single<{ full_name: string | null }>();
+  const { rows } = await query<{ full_name: string | null }>(
+    `select full_name from public.profiles where id = $1 and role = 'patient'`,
+    [patientId],
+  );
+  const patient = rows[0];
 
   if (!patient) {
     notFound();

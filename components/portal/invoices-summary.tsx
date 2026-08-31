@@ -3,8 +3,8 @@ import { Receipt } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
+import { query } from "@/lib/db";
 import { formatCurrency, formatDate } from "@/lib/format";
-import { createClient } from "@/lib/supabase/server";
 
 import { InvoiceStatusActions } from "@/components/admin/invoice-status-actions";
 import { StatTile } from "./stat-tile";
@@ -29,16 +29,13 @@ export async function InvoicesSummary({
   patientId: string;
   isAdmin?: boolean;
 }) {
-  const supabase = await createClient();
-
-  const { data: invoices } = await supabase
-    .from("invoices")
-    .select("id, amount, status, description, created_at")
-    .eq("patient_id", patientId)
-    .order("created_at", { ascending: false })
-    .returns<Invoice[]>();
-
-  const items = invoices ?? [];
+  const { rows: items } = await query<Invoice>(
+    `select id, amount::float8 as amount, status, description, created_at
+       from public.invoices
+      where patient_id = $1
+      order by created_at desc`,
+    [patientId],
+  );
   const amountDue = items
     .filter((i) => i.status === "pending" || i.status === "overdue")
     .reduce((sum, i) => sum + i.amount, 0);

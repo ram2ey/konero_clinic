@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
 import type { ActionState } from "@/lib/action-state";
+import { query } from "@/lib/db";
 import { logAndSanitize } from "@/lib/errors";
 import { requireAdmin } from "@/lib/require-admin";
 import { zodFieldErrors } from "@/lib/zod-field-errors";
@@ -40,17 +41,10 @@ export async function updateAccount(input: UpdateAccountInput): Promise<ActionSt
 
     const { fullName, phone } = parsed.data;
 
-    const { error } = await admin.supabase
-      .from("profiles")
-      .update({ full_name: fullName, phone: phone ?? null })
-      .eq("id", admin.userId);
-
-    if (error) {
-      return {
-        status: "error",
-        message: logAndSanitize("updateAccount", error, "Failed to save changes. Please try again."),
-      };
-    }
+    await query(
+      `update public.profiles set full_name = $1, phone = $2 where id = $3`,
+      [fullName, phone ?? null, admin.userId],
+    );
 
     revalidatePath("/admin/settings");
 

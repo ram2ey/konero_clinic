@@ -4,8 +4,9 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 
 import type { ActionState } from "@/lib/action-state";
-import { createAdminClient } from "@/lib/supabase/admin";
-import { createClient } from "@/lib/supabase/server";
+import { createSession } from "@/lib/auth/session";
+import { verifyPassword } from "@/lib/auth/password";
+import { query } from "@/lib/db";
 import { zodFieldErrors } from "@/lib/zod-field-errors";
 
 const signInSchema = z.object({
@@ -13,31 +14,30 @@ const signInSchema = z.object({
   password: z.string().min(1, "Enter your password."),
 });
 
-// App-level lockout on top of whatever platform-level rate limiting
-// Supabase Auth applies itself — this is patient mental-health data, so
-// unlimited password guesses against one account shouldn't be possible
-// even if the platform default were ever loosened.
+// App-level lockout: patient mental-health data, so unlimited password
+// guesses against one account shouldn't be possible. Recorded in
+// sign_in_attempts, self-pruning per email.
 const MAX_FAILED_ATTEMPTS = 5;
 const WINDOW_MINUTES = 15;
 
+type UserRow = {
+  id: string;
+  password_hash: string;
+  must_change_password: boolean;
+};
+
 /**
- * Redirects to /admin unconditionally on success rather than branching on
- * role here — middleware already owns that decision (it bounces a
- * non-admin session straight to /portal), so this avoids a second,
- * potentially-drifting copy of the same routing rule.
- *
- * The one exception is must_change_password: a Server Action's own
- * redirect() communicates its target to the client via the action's
- * response payload, which wins over a redirect middleware issues for that
- * same fetch — middleware's identical must-change-password check (see
- * middleware.ts) never gets a chance to override it for this specific
- * request. So this checks it directly, using data already returned by
- * signInWithPassword — no extra round trip. Middleware still enforces the
- * same rule as a backstop for every other kind of navigation (a bookmark,
- * a direct URL, a page refresh), which is what actually matters for a
- * flag that must hold even if this one call site is ever wrong.
+ * Redirects to /admin on success (the admin layout / middleware bounce a
+ * patient session on to /portal). The one exception is
+ * must_change_password: a Server Action's own redirect() wins over any the
+ * layout would issue for the same fetch, so this handles that case
+ * directly — the layouts still enforce it as a backstop for every other
+ * navigation.
  */
-export async function signIn(_prevState: ActionState, formData: FormData): Promise<ActionState> {
+export async function signIn(
+  _prevState: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
   const parsed = signInSchema.safeParse({
     email: formData.get("email"),
     password: formData.get("password"),
@@ -52,45 +52,52 @@ export async function signIn(_prevState: ActionState, formData: FormData): Promi
   }
 
   const { email, password } = parsed.data;
-
-  // Service-role client, not the caller's session client: there is no
-  // session yet at sign-in time, so there's no "own row" an RLS policy
-  // could scope this to. See supabase/migrations for the corresponding
-  // revoke-all-from-anon on this table — the service role is the only
-  // thing that can touch it, by design, not by RLS carve-out.
-  const supabaseAdmin = createAdminClient();
   const windowStart = new Date(Date.now() - WINDOW_MINUTES * 60 * 1000).toISOString();
 
-  const { count } = await supabaseAdmin
-    .from("sign_in_attempts")
-    .select("id", { count: "exact", head: true })
-    .eq("email", email)
-    .eq("succeeded", false)
-    .gte("created_at", windowStart);
-
-  if ((count ?? 0) >= MAX_FAILED_ATTEMPTS) {
-    return { status: "error", message: "Too many failed attempts. Please try again in a few minutes." };
+  const { rows: countRows } = await query<{ n: string }>(
+    `select count(*)::text as n
+       from public.sign_in_attempts
+      where email = $1 and succeeded = false and created_at >= $2`,
+    [email, windowStart],
+  );
+  if (Number(countRows[0]?.n ?? 0) >= MAX_FAILED_ATTEMPTS) {
+    return {
+      status: "error",
+      message: "Too many failed attempts. Please try again in a few minutes.",
+    };
   }
 
-  const supabase = await createClient();
-  const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+  const { rows } = await query<UserRow>(
+    `select id, password_hash, must_change_password from public.users where email = $1`,
+    [email],
+  );
+  const user = rows[0];
+  const ok = user ? await verifyPassword(user.password_hash, password) : false;
 
-  // Record the attempt and drop this email's rows outside the window in
-  // the same round-trip — self-pruning, no separate cleanup job needed.
-  // Best-effort: a logging failure here must never block sign-in itself.
+  // Record the attempt and prune this email's rows outside the window in
+  // the same round-trip. Best-effort — a logging failure must not block
+  // sign-in.
   try {
-    await supabaseAdmin.from("sign_in_attempts").insert({ email, succeeded: !error });
-    await supabaseAdmin.from("sign_in_attempts").delete().eq("email", email).lt("created_at", windowStart);
+    await query(
+      `insert into public.sign_in_attempts (email, succeeded) values ($1, $2)`,
+      [email, ok],
+    );
+    await query(
+      `delete from public.sign_in_attempts where email = $1 and created_at < $2`,
+      [email, windowStart],
+    );
   } catch {
-    // Ignored — see comment above.
+    // ignored
   }
 
-  if (error) {
+  if (!ok || !user) {
     // Deliberately generic — doesn't reveal whether the email exists.
     return { status: "error", message: "Invalid email or password." };
   }
 
-  if (data.user.app_metadata?.must_change_password === true) {
+  await createSession(user.id);
+
+  if (user.must_change_password) {
     redirect("/auth/set-password");
   }
 

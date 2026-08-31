@@ -3,8 +3,8 @@ import Link from "next/link";
 
 import { LabReportDownloadButton } from "@/components/portal/lab-report-download-button";
 import { Card, CardContent } from "@/components/ui/card";
+import { query } from "@/lib/db";
 import { formatDate } from "@/lib/format";
-import { createClient } from "@/lib/supabase/server";
 
 type LabReportRow = {
   id: string;
@@ -16,21 +16,20 @@ type LabReportRow = {
 };
 
 export default async function LabReportsPage() {
-  const supabase = await createClient();
-
-  const { data: reports } = await supabase
-    .from("lab_reports")
-    .select("id, patient_id, test_name, file_path, notes, created_at")
-    .order("created_at", { ascending: false })
-    .returns<LabReportRow[]>();
-
-  const items = reports ?? [];
+  const { rows: items } = await query<LabReportRow>(
+    `select id, patient_id, test_name, file_path, notes, created_at
+       from public.lab_reports
+      order by created_at desc`,
+  );
 
   const patientIds = Array.from(new Set(items.map((r) => r.patient_id)));
-  const { data: patients } = patientIds.length
-    ? await supabase.from("profiles").select("id, full_name").in("id", patientIds)
-    : { data: [] as { id: string; full_name: string | null }[] };
-  const nameById = new Map((patients ?? []).map((p) => [p.id, p.full_name ?? "Unnamed patient"]));
+  const { rows: patients } = patientIds.length
+    ? await query<{ id: string; full_name: string | null }>(
+        `select id, full_name from public.profiles where id = any($1::uuid[])`,
+        [patientIds],
+      )
+    : { rows: [] as { id: string; full_name: string | null }[] };
+  const nameById = new Map(patients.map((p) => [p.id, p.full_name ?? "Unnamed patient"]));
 
   return (
     <main className="mx-auto max-w-6xl space-y-6 px-4 py-6 sm:px-6 sm:py-8 lg:px-8">

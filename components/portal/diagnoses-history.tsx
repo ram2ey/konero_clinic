@@ -3,8 +3,8 @@ import { Stethoscope } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
+import { query } from "@/lib/db";
 import { formatDate } from "@/lib/format";
-import { createClient } from "@/lib/supabase/server";
 
 import { RecordStatusBadge } from "./status-badge";
 
@@ -17,16 +17,13 @@ type Diagnosis = {
 };
 
 export async function DiagnosesHistory({ patientId }: { patientId: string }) {
-  const supabase = await createClient();
-
-  const { data: diagnoses } = await supabase
-    .from("diagnoses")
-    .select("id, condition, status, icd11_code, created_at")
-    .eq("patient_id", patientId)
-    .order("created_at", { ascending: false })
-    .returns<Diagnosis[]>();
-
-  const items = diagnoses ?? [];
+  const { rows: items } = await query<Diagnosis>(
+    `select id, condition, status, icd11_code, created_at
+       from public.diagnoses
+      where patient_id = $1
+      order by created_at desc`,
+    [patientId],
+  );
 
   return (
     <Card className="border-border/80 shadow-xs">

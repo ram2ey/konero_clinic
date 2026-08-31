@@ -4,8 +4,8 @@ import { randomUUID } from "crypto";
 import { z } from "zod";
 
 import type { ActionState } from "@/lib/action-state";
+import { query } from "@/lib/db";
 import { logAndSanitize } from "@/lib/errors";
-import { createClient } from "@/lib/supabase/server";
 import { zodFieldErrors } from "@/lib/zod-field-errors";
 
 const SEXES = ["male", "female", "intersex"] as const;
@@ -93,32 +93,28 @@ export async function submitConsultationRequest(
       reason,
     } = parsed.data;
 
-    const supabase = await createClient();
-
-    // Generated here rather than left to the column default and read back
-    // via `.select().single()`: PostgREST turns that into an INSERT ...
-    // RETURNING, which requires a SELECT policy to hand the row back —
-    // and this table deliberately grants anon INSERT only, not SELECT (it
-    // holds phone/email/DOB/reason-for-visit; a SELECT policy permissive
-    // enough for an anonymous submitter to read back their own row would
-    // let anyone read every pending request via the API). Supplying the id
-    // ourselves avoids needing RETURNING at all.
+    // The id is generated here (rather than read back via RETURNING) — the
+    // public form never needs the row back, only a confirmation.
     const requestId = randomUUID();
 
-    const { error: insertError } = await supabase.from("consultation_requests").insert({
-      id: requestId,
-      full_name: fullName,
-      email,
-      phone,
-      dob: dob || null,
-      sex: sex || null,
-      preferred_mode: preferredMode,
-      preferred_time: preferredTime || null,
-      reason: reason || null,
-      status: "pending",
-    });
-
-    if (insertError) {
+    try {
+      await query(
+        `insert into public.consultation_requests
+           (id, full_name, email, phone, dob, sex, preferred_mode, preferred_time, reason, status)
+         values ($1, $2, $3, $4, $5, $6, $7, $8, $9, 'pending')`,
+        [
+          requestId,
+          fullName,
+          email,
+          phone,
+          dob || null,
+          sex || null,
+          preferredMode,
+          preferredTime || null,
+          reason || null,
+        ],
+      );
+    } catch (insertError) {
       return {
         status: "error",
         message: logAndSanitize(

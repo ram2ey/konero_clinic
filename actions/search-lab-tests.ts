@@ -53,7 +53,6 @@ export async function searchLabTests(input: { query: string }): Promise<SearchLa
     }
 
     const result = await runCatalogSearch<LabTestRow>({
-      supabase: access.supabase,
       table: "lab_tests",
       columns: "id, name, category, specimen",
       searchColumn: "search_text",

@@ -18,8 +18,8 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { FieldRow } from "@/components/field-row";
+import { query } from "@/lib/db";
 import { calculateAge, formatDate, formatMedicalId, humanizeEnum } from "@/lib/format";
-import { createClient } from "@/lib/supabase/server";
 
 type Profile = {
   full_name: string | null;
@@ -51,13 +51,11 @@ function nextOfKinValue(profile: Profile | null): string {
 }
 
 export async function BioDataCard({ patientId }: { patientId: string }) {
-  const supabase = await createClient();
-
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select(PROFILE_COLUMNS)
-    .eq("id", patientId)
-    .single<Profile>();
+  const { rows } = await query<Profile>(
+    `select ${PROFILE_COLUMNS} from public.profiles where id = $1`,
+    [patientId],
+  );
+  const profile = rows[0] ?? null;
 
   const ageText = profile?.dob ? `${calculateAge(profile.dob)} yrs` : null;
 

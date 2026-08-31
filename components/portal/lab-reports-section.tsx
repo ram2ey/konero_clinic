@@ -3,8 +3,8 @@ import { FileText } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
+import { query } from "@/lib/db";
 import { formatDate } from "@/lib/format";
-import { createClient } from "@/lib/supabase/server";
 
 import { LabReportDownloadButton } from "./lab-report-download-button";
 import { UploadLabDrawer } from "./upload-lab-drawer";
@@ -24,16 +24,13 @@ export async function LabReportsSection({
   patientId: string;
   showUpload?: boolean;
 }) {
-  const supabase = await createClient();
-
-  const { data: labReports } = await supabase
-    .from("lab_reports")
-    .select("id, test_name, file_path, notes, created_at")
-    .eq("patient_id", patientId)
-    .order("created_at", { ascending: false })
-    .returns<LabReport[]>();
-
-  const items = labReports ?? [];
+  const { rows: items } = await query<LabReport>(
+    `select id, test_name, file_path, notes, created_at
+       from public.lab_reports
+      where patient_id = $1
+      order by created_at desc`,
+    [patientId],
+  );
 
   return (
     <Card className="border-border/80 shadow-xs">

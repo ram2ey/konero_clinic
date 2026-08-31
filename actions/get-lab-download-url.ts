@@ -3,11 +3,11 @@
 import { z } from "zod";
 
 import type { ActionState } from "@/lib/action-state";
+import { query } from "@/lib/db";
 import { logAndSanitize } from "@/lib/errors";
 import { requireDoctorOrPatient } from "@/lib/require-clinical-access";
+import { createDownloadToken } from "@/lib/storage";
 import { zodFieldErrors } from "@/lib/zod-field-errors";
-
-const SIGNED_URL_TTL_SECONDS = 60;
 
 const getLabDownloadUrlSchema = z.object({
   filePath: z.string().min(1).max(1024),
@@ -19,25 +19,18 @@ export type GetLabDownloadUrlInput = z.input<typeof getLabDownloadUrlSchema>;
 type DownloadUrlResult = ActionState & { url?: string };
 
 /**
- * Issues a short-lived signed URL for a lab document.
- *
- * Two independent layers enforce "doctor or the owning patient":
- *  1. requireDoctorOrPatient() below, for a clean error message.
- *  2. The lab_reports lookup and createSignedUrl call both run on the
- *     caller's own session client (never the admin client), so RLS on
- *     lab_reports and on storage.objects is still checked for real. Even
- *     if (1) had a bug, a patient's session can never sign a path outside
- *     their own storage folder — the storage RLS policy itself rejects
- *     it. This function is a convenience, not the security boundary.
- *
- * The lab_reports lookup also matters on its own: it confirms this is a
- * real, recorded report for this patient rather than just a
- * plausible-looking path, before ever asking Storage to sign it. Because
- * that query runs through the same RLS, a patient asking about another
- * patient's row simply gets zero rows back — not an error, just "not
- * found" — so this can't be used to probe which paths exist.
+ * Returns a short-lived URL for a lab document. Two layers enforce
+ * "doctor or the owning patient":
+ *  1. requireDoctorOrPatient() below.
+ *  2. The lab_reports lookup is scoped to `patient_id` — a caller asking
+ *     about another patient's row gets zero rows, so this can't be used to
+ *     probe which paths exist.
+ * The returned URL carries a 60-second HMAC token; the /api/lab-file route
+ * re-checks the session and the lab_reports row before streaming the file.
  */
-export async function getLabDownloadUrl(input: GetLabDownloadUrlInput): Promise<DownloadUrlResult> {
+export async function getLabDownloadUrl(
+  input: GetLabDownloadUrlInput,
+): Promise<DownloadUrlResult> {
   try {
     const parsed = getLabDownloadUrlSchema.safeParse(input);
     if (!parsed.success) {
@@ -55,44 +48,17 @@ export async function getLabDownloadUrl(input: GetLabDownloadUrlInput): Promise<
       return { status: "error", message: access.message };
     }
 
-    const { data: report, error: lookupError } = await access.supabase
-      .from("lab_reports")
-      .select("file_path")
-      .eq("patient_id", patientId)
-      .eq("file_path", filePath)
-      .maybeSingle();
+    const { rows } = await query<{ file_path: string }>(
+      `select file_path from public.lab_reports where patient_id = $1 and file_path = $2`,
+      [patientId, filePath],
+    );
 
-    if (lookupError) {
-      return {
-        status: "error",
-        message: logAndSanitize(
-          "getLabDownloadUrl.lookup",
-          lookupError,
-          "Failed to load the document. Please try again.",
-        ),
-      };
-    }
-
-    if (!report) {
+    if (!rows[0]) {
       return { status: "error", message: "File not found." };
     }
 
-    const { data: signed, error: signError } = await access.supabase.storage
-      .from("lab-documents")
-      .createSignedUrl(filePath, SIGNED_URL_TTL_SECONDS, { download: true });
-
-    if (signError || !signed) {
-      return {
-        status: "error",
-        message: logAndSanitize(
-          "getLabDownloadUrl.createSignedUrl",
-          signError ?? new Error("createSignedUrl returned no data"),
-          "Failed to generate a download link. Please try again.",
-        ),
-      };
-    }
-
-    return { status: "success", url: signed.signedUrl };
+    const token = createDownloadToken(filePath, patientId);
+    return { status: "success", url: `/api/lab-file?token=${encodeURIComponent(token)}` };
   } catch (error) {
     return {
       status: "error",

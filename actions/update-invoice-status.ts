@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
 import type { ActionState } from "@/lib/action-state";
+import { query } from "@/lib/db";
 import { logAndSanitize } from "@/lib/errors";
 import { requireAdmin } from "@/lib/require-admin";
 import { zodFieldErrors } from "@/lib/zod-field-errors";
@@ -36,17 +37,7 @@ export async function updateInvoiceStatus(input: UpdateInvoiceStatusInput): Prom
 
     const { invoiceId, status } = parsed.data;
 
-    const { error } = await admin.supabase
-      .from("invoices")
-      .update({ status })
-      .eq("id", invoiceId);
-
-    if (error) {
-      return {
-        status: "error",
-        message: logAndSanitize("updateInvoiceStatus", error, "Failed to update invoice status. Please try again."),
-      };
-    }
+    await query(`update public.invoices set status = $1 where id = $2`, [status, invoiceId]);
 
     revalidatePath("/admin/billing");
     revalidatePath("/admin");

@@ -50,7 +50,6 @@ export async function searchIcd11(input: { query: string }): Promise<SearchIcd11
     }
 
     const result = await runCatalogSearch<Icd11Row>({
-      supabase: admin.supabase,
       table: "icd11_codes",
       columns: "code, title, uri",
       searchColumn: "title",

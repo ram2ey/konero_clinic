@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
 import type { ActionState } from "@/lib/action-state";
+import { query } from "@/lib/db";
 import { logAndSanitize } from "@/lib/errors";
 import { requireAdmin } from "@/lib/require-admin";
 import { zodFieldErrors } from "@/lib/zod-field-errors";
@@ -195,18 +196,19 @@ export async function savePatientHistory(input: SavePatientHistoryInput): Promis
       premorbid_personality: history.premorbidPersonality ?? null,
     };
 
-    const { error } = await admin.supabase.from("patient_history").upsert({
-      patient_id: patientId,
-      history: historyJson,
-      updated_at: new Date().toISOString(),
-      updated_by: admin.userId,
-    });
-
-    if (error) {
+    try {
+      await query(
+        `insert into public.patient_history (patient_id, history, updated_at, updated_by)
+         values ($1, $2, now(), $3)
+         on conflict (patient_id)
+         do update set history = excluded.history, updated_at = now(), updated_by = excluded.updated_by`,
+        [patientId, historyJson, admin.userId],
+      );
+    } catch (err) {
       const message =
-        error.code === "23503"
+        (err as { code?: string }).code === "23503"
           ? "Patient not found."
-          : logAndSanitize("savePatientHistory", error, "Failed to save history. Please try again.");
+          : logAndSanitize("savePatientHistory", err, "Failed to save history. Please try again.");
 
       return { status: "error", message };
     }

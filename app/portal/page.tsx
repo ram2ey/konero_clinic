@@ -8,7 +8,7 @@ import { InvoicesSummary, InvoicesSummarySkeleton } from "@/components/portal/in
 import { LabReportsSection, LabReportsSectionSkeleton } from "@/components/portal/lab-reports-section";
 import { MedicationsList, MedicationsListSkeleton } from "@/components/portal/medications-list";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { createClient } from "@/lib/supabase/server";
+import { getSessionUser } from "@/lib/auth/session";
 
 const TABS = [
   { value: "overview", label: "Overview", icon: LayoutDashboard },
@@ -19,13 +19,10 @@ const TABS = [
 ];
 
 export default async function PatientPortalPage() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getSessionUser();
 
-  // Belt and suspenders — middleware already redirects unauthenticated
-  // requests away from /portal before this ever runs.
+  // Belt and suspenders — middleware + the portal layout already redirect
+  // unauthenticated requests away before this runs.
   if (!user) {
     redirect("/login");
   }

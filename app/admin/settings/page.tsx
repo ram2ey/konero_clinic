@@ -1,19 +1,21 @@
+import { redirect } from "next/navigation";
+
 import { AccountSettingsForm } from "@/components/admin/account-settings-form";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { createClient } from "@/lib/supabase/server";
+import { getSessionUser } from "@/lib/auth/session";
+import { query } from "@/lib/db";
 
 export default async function SettingsPage() {
-  const supabase = await createClient();
+  const user = await getSessionUser();
+  if (!user) {
+    redirect("/login");
+  }
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("full_name, phone")
-    .eq("id", user?.id ?? "")
-    .single<{ full_name: string | null; phone: string | null }>();
+  const { rows } = await query<{ full_name: string | null; phone: string | null }>(
+    `select full_name, phone from public.profiles where id = $1`,
+    [user.id],
+  );
+  const profile = rows[0] ?? null;
 
   return (
     <main className="mx-auto max-w-2xl space-y-6 px-4 py-6 sm:px-6 sm:py-8 lg:px-8">

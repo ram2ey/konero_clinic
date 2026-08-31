@@ -1,44 +1,34 @@
 import "server-only";
 
-import { createClient } from "@/lib/supabase/server";
-
-type SupabaseServerClient = Awaited<ReturnType<typeof createClient>>;
+import { getSessionUser } from "@/lib/auth/session";
 
 type ClinicalAccessResult =
-  | { authorized: true; supabase: SupabaseServerClient; userId: string; isAdmin: boolean }
+  | { authorized: true; userId: string; isAdmin: boolean }
   | { authorized: false; message: string };
 
 /**
- * Confirms the invoking user is either the doctor_admin or the patient
- * identified by `patientId` — the shared rule behind lab report uploads
- * and signed download URLs.
+ * Confirms the caller is either the doctor_admin or the patient named by
+ * `patientId` — the rule behind lab-report uploads and downloads.
  *
- * As with requireAdmin(), this is UX / defense-in-depth, not the only
- * boundary: the DB calls made with the returned `supabase` client still
- * run as the caller's own session, so RLS on `lab_reports` and
- * `storage.objects` enforces the identical "admin or owning patient" rule
- * regardless of what this function decides.
+ * As with `requireAdmin`, this is now a real boundary (no RLS behind it):
+ * callers must still scope their SQL to `patientId` / the returned
+ * `userId`, but this is what decides whether the caller may touch this
+ * patient's records at all.
  */
-export async function requireDoctorOrPatient(patientId: string): Promise<ClinicalAccessResult> {
-  const supabase = await createClient();
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+export async function requireDoctorOrPatient(
+  patientId: string,
+): Promise<ClinicalAccessResult> {
+  const user = await getSessionUser();
 
   if (!user) {
     return { authorized: false, message: "You must be signed in to do that." };
   }
-
   if (user.id === patientId) {
-    return { authorized: true, supabase, userId: user.id, isAdmin: false };
+    return { authorized: true, userId: user.id, isAdmin: false };
+  }
+  if (user.role === "doctor_admin") {
+    return { authorized: true, userId: user.id, isAdmin: true };
   }
 
-  const { data: isAdmin, error } = await supabase.rpc("is_admin");
-
-  if (error || !isAdmin) {
-    return { authorized: false, message: "You do not have permission to do that." };
-  }
-
-  return { authorized: true, supabase, userId: user.id, isAdmin: true };
+  return { authorized: false, message: "You do not have permission to do that." };
 }

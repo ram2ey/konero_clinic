@@ -1,6 +1,6 @@
 import { BillingList, type BillingInvoice } from "@/components/admin/billing-list";
+import { query } from "@/lib/db";
 import { formatCurrency } from "@/lib/format";
-import { createClient } from "@/lib/supabase/server";
 
 type InvoiceStatus = "pending" | "paid" | "overdue" | "cancelled";
 
@@ -14,26 +14,20 @@ type InvoiceRow = {
 };
 
 export default async function BillingPage() {
-  const supabase = await createClient();
+  const { rows: items } = await query<InvoiceRow>(
+    `select id, patient_id, amount::float8 as amount, status, description, created_at
+       from public.invoices
+      order by created_at desc`,
+  );
 
-  const { data: invoices } = await supabase
-    .from("invoices")
-    .select("id, patient_id, amount, status, description, created_at")
-    .order("created_at", { ascending: false })
-    .returns<InvoiceRow[]>();
-
-  const items = invoices ?? [];
-
-  // Separate lookup rather than an embedded select — invoices has a
-  // single FK to profiles so an embed would be unambiguous here, but
-  // lab_reports (patient_id + uploaded_by) doesn't have that guarantee,
-  // and matching the same two-query shape across both admin roll-ups
-  // keeps them consistent rather than mixing approaches.
   const patientIds = Array.from(new Set(items.map((i) => i.patient_id)));
-  const { data: patients } = patientIds.length
-    ? await supabase.from("profiles").select("id, full_name").in("id", patientIds)
-    : { data: [] as { id: string; full_name: string | null }[] };
-  const nameById = new Map((patients ?? []).map((p) => [p.id, p.full_name ?? "Unnamed patient"]));
+  const { rows: patients } = patientIds.length
+    ? await query<{ id: string; full_name: string | null }>(
+        `select id, full_name from public.profiles where id = any($1::uuid[])`,
+        [patientIds],
+      )
+    : { rows: [] as { id: string; full_name: string | null }[] };
+  const nameById = new Map(patients.map((p) => [p.id, p.full_name ?? "Unnamed patient"]));
 
   const billingInvoices: BillingInvoice[] = items.map((item) => ({
     ...item,

@@ -1,6 +1,6 @@
 import { EMPTY_HISTORY, PatientHistoryForm, type HistoryState } from "@/components/admin/patient-history-form";
 import { Skeleton } from "@/components/ui/skeleton";
-import { createClient } from "@/lib/supabase/server";
+import { query } from "@/lib/db";
 
 type PatientHistoryRow = {
   presenting_complaints?: string | null;
@@ -81,12 +81,11 @@ function toHistoryState(row: PatientHistoryRow): HistoryState {
 }
 
 export async function PatientHistorySection({ patientId }: { patientId: string }) {
-  const supabase = await createClient();
-  const { data } = await supabase
-    .from("patient_history")
-    .select("history, updated_at")
-    .eq("patient_id", patientId)
-    .maybeSingle<{ history: PatientHistoryRow; updated_at: string }>();
+  const { rows } = await query<{ history: PatientHistoryRow; updated_at: string }>(
+    `select history, updated_at from public.patient_history where patient_id = $1`,
+    [patientId],
+  );
+  const data = rows[0] ?? null;
 
   return (
     <PatientHistoryForm

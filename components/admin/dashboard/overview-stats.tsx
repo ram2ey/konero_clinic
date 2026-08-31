@@ -2,8 +2,8 @@ import { AlertCircle, CalendarClock, Pill, Receipt, Stethoscope, TrendingUp, Use
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { StatTile } from "@/components/portal/stat-tile";
+import { query } from "@/lib/db";
 import { formatCurrency } from "@/lib/format";
-import { createClient } from "@/lib/supabase/server";
 
 function monthKey(date: Date) {
   return `${date.getFullYear()}-${date.getMonth()}`;
@@ -29,22 +29,28 @@ function growthTrend(rows: { created_at: string }[]) {
 }
 
 export async function OverviewStats() {
-  const supabase = await createClient();
-
   const [patientsResult, consultationsResult, invoicesResult, diagnosesResult, prescriptionsResult] =
     await Promise.all([
-      supabase.from("profiles").select("created_at").eq("role", "patient"),
-      supabase.from("consultations").select("created_at"),
-      supabase.from("invoices").select("amount, status").in("status", ["pending", "overdue"]),
-      supabase.from("diagnoses").select("id", { count: "exact", head: true }).eq("status", "active"),
-      supabase.from("prescriptions").select("id", { count: "exact", head: true }).eq("status", "active"),
+      query<{ created_at: string }>(
+        `select created_at from public.profiles where role = 'patient'`,
+      ),
+      query<{ created_at: string }>(`select created_at from public.consultations`),
+      query<{ amount: number; status: string }>(
+        `select amount::float8 as amount, status from public.invoices where status in ('pending', 'overdue')`,
+      ),
+      query<{ n: string }>(
+        `select count(*)::text as n from public.diagnoses where status = 'active'`,
+      ),
+      query<{ n: string }>(
+        `select count(*)::text as n from public.prescriptions where status = 'active'`,
+      ),
     ]);
 
-  const patients = patientsResult.data ?? [];
-  const consultations = consultationsResult.data ?? [];
-  const invoices = invoicesResult.data ?? [];
-  const activeDiagnoses = diagnosesResult.count ?? 0;
-  const activePrescriptions = prescriptionsResult.count ?? 0;
+  const patients = patientsResult.rows;
+  const consultations = consultationsResult.rows;
+  const invoices = invoicesResult.rows;
+  const activeDiagnoses = Number(diagnosesResult.rows[0]?.n ?? 0);
+  const activePrescriptions = Number(prescriptionsResult.rows[0]?.n ?? 0);
 
   const pendingAmount = invoices.filter((i) => i.status === "pending").reduce((sum, i) => sum + i.amount, 0);
   const overdueAmount = invoices.filter((i) => i.status === "overdue").reduce((sum, i) => sum + i.amount, 0);

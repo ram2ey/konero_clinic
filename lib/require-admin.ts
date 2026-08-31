@@ -1,42 +1,28 @@
 import "server-only";
 
-import { createClient } from "@/lib/supabase/server";
-
-type SupabaseServerClient = Awaited<ReturnType<typeof createClient>>;
+import { getSessionUser } from "@/lib/auth/session";
 
 type RequireAdminResult =
-  | { authorized: true; supabase: SupabaseServerClient; userId: string }
+  | { authorized: true; userId: string }
   | { authorized: false; message: string };
 
 /**
- * Confirms the invoking request comes from a signed-in doctor_admin.
+ * Confirms the request comes from the signed-in doctor_admin.
  *
- * This is a UX / defense-in-depth check, not the only line of defense —
- * every clinical table's RLS policies already reject non-admin writes at
- * the database layer (see supabase/migrations). Calling this first just
- * lets a Server Action fail fast with a clean, sanitized message instead
- * of surfacing a raw Postgres/RLS error to the client.
- *
- * Uses the `is_admin()` RPC rather than re-deriving the check here, so
- * there is exactly one definition of "is this user an admin" for the
- * whole app (see supabase/migrations for why it's safe from recursion).
+ * With RLS gone, this is no longer just a "fail fast with a clean
+ * message" convenience — together with the explicit `where` clauses in
+ * each query, it IS the authorization boundary. Every admin-only Server
+ * Action calls this first and passes `userId` into its SQL.
  */
 export async function requireAdmin(): Promise<RequireAdminResult> {
-  const supabase = await createClient();
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getSessionUser();
 
   if (!user) {
     return { authorized: false, message: "You must be signed in to do that." };
   }
-
-  const { data: isAdmin, error } = await supabase.rpc("is_admin");
-
-  if (error || !isAdmin) {
+  if (user.role !== "doctor_admin") {
     return { authorized: false, message: "You do not have permission to do that." };
   }
 
-  return { authorized: true, supabase, userId: user.id };
+  return { authorized: true, userId: user.id };
 }

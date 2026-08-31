@@ -8,36 +8,43 @@ import { ConsultationSnippetCard } from "@/components/admin/consultation-snippet
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { createClient } from "@/lib/supabase/server";
+import { query } from "@/lib/db";
+
+// PostgREST embed → correlated json_agg subqueries; row shape unchanged.
+const SNIPPETS_SQL = `
+  select
+    c.id, c.created_at, c.vitals, c.assessment, c.visit_type,
+    coalesce(
+      (select json_agg(json_build_object(
+         'id', d.id, 'condition', d.condition, 'status', d.status,
+         'icd11_code', d.icd11_code, 'icd11_uri', d.icd11_uri) order by d.created_at)
+       from public.diagnoses d where d.consultation_id = c.id),
+      '[]'::json
+    ) as diagnoses,
+    coalesce(
+      (select json_agg(json_build_object(
+         'id', p.id, 'medication_name', p.medication_name, 'dosage', p.dosage,
+         'frequency', p.frequency, 'instructions', p.instructions, 'status', p.status) order by p.created_at)
+       from public.prescriptions p where p.consultation_id = c.id),
+      '[]'::json
+    ) as prescriptions
+  from public.consultations c
+  where c.patient_id = $1
+  order by c.created_at desc
+  limit 6
+`;
 
 export async function ConsultationSnippets({ patientId }: { patientId: string }) {
-  const supabase = await createClient();
-
   const [consultationsRes, patientRes] = await Promise.all([
-    supabase
-      .from("consultations")
-      .select(`
-        id,
-        created_at,
-        vitals,
-        assessment,
-        visit_type,
-        diagnoses (id, condition, status, icd11_code, icd11_uri),
-        prescriptions (id, medication_name, dosage, frequency, instructions, status)
-      `)
-      .eq("patient_id", patientId)
-      .order("created_at", { ascending: false })
-      .limit(6)
-      .returns<ConsultationDetail[]>(),
-    supabase
-      .from("profiles")
-      .select("full_name")
-      .eq("id", patientId)
-      .single<{ full_name: string | null }>(),
+    query<ConsultationDetail>(SNIPPETS_SQL, [patientId]),
+    query<{ full_name: string | null }>(
+      `select full_name from public.profiles where id = $1`,
+      [patientId],
+    ),
   ]);
 
-  const items = consultationsRes.data ?? [];
-  const patientName = patientRes.data?.full_name;
+  const items = consultationsRes.rows;
+  const patientName = patientRes.rows[0]?.full_name;
 
   return (
     <Card className="border-border/80 shadow-xs">

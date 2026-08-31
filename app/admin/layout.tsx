@@ -16,7 +16,7 @@ import {
   SidebarProvider,
   SidebarTrigger,
 } from "@/components/ui/sidebar";
-import { getCachedAuthUser, getCachedProfile } from "@/lib/auth-cache";
+import { getSessionUser } from "@/lib/auth/session";
 
 function initials(name: string | null) {
   if (!name) return "?";
@@ -25,19 +25,21 @@ function initials(name: string | null) {
 }
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
-  const user = await getCachedAuthUser();
+  const user = await getSessionUser();
 
   if (!user) {
     redirect("/login");
   }
 
-  const profile = await getCachedProfile(user.id);
+  if (user.mustChangePassword) {
+    redirect("/auth/set-password");
+  }
 
-  if (profile?.role !== "doctor_admin") {
+  if (user.role !== "doctor_admin") {
     redirect("/portal");
   }
 
-  const fullName = profile.fullName ?? null;
+  const fullName = user.fullName ?? null;
 
   return (
     <SidebarProvider>

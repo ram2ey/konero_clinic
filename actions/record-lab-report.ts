@@ -4,8 +4,10 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
 import type { ActionState } from "@/lib/action-state";
+import { query } from "@/lib/db";
 import { logAndSanitize } from "@/lib/errors";
 import { requireDoctorOrPatient } from "@/lib/require-clinical-access";
+import { deleteLabFile } from "@/lib/storage";
 import { zodFieldErrors } from "@/lib/zod-field-errors";
 
 const recordLabReportSchema = z
@@ -54,19 +56,17 @@ export async function recordLabReport(input: RecordLabReportInput): Promise<Acti
       return { status: "error", message: access.message };
     }
 
-    const { error } = await access.supabase.from("lab_reports").insert({
-      patient_id: patientId,
-      uploaded_by: access.userId,
-      test_name: testName,
-      file_path: filePath,
-      notes: notes ?? null,
-    });
-
-    if (error) {
+    try {
+      await query(
+        `insert into public.lab_reports (patient_id, uploaded_by, test_name, file_path, notes)
+         values ($1, $2, $3, $4, $5)`,
+        [patientId, access.userId, testName, filePath, notes ?? null],
+      );
+    } catch (err) {
       const message =
-        error.code === "23514"
+        (err as { code?: string }).code === "23514"
           ? "This file does not belong to that patient."
-          : logAndSanitize("recordLabReport", error, "Failed to save the lab report. Please try again.");
+          : logAndSanitize("recordLabReport", err, "Failed to save the lab report. Please try again.");
 
       return { status: "error", message };
     }
@@ -81,4 +81,20 @@ export async function recordLabReport(input: RecordLabReportInput): Promise<Acti
       message: logAndSanitize("recordLabReport", error, "Something went wrong. Please try again."),
     };
   }
+}
+
+/**
+ * Deletes an uploaded lab file that never got a metadata row — the client
+ * uploader calls this when recordLabReport fails, so Storage and Postgres
+ * don't drift (the same compensating-action shape as before, minus the
+ * direct Storage client).
+ */
+export async function deleteOrphanLabFile(
+  patientId: string,
+  filePath: string,
+): Promise<void> {
+  const access = await requireDoctorOrPatient(patientId);
+  if (!access.authorized) return;
+  if (!filePath.startsWith(`${patientId}/`)) return;
+  await deleteLabFile(filePath);
 }

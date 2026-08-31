@@ -2,9 +2,8 @@ import "server-only";
 
 import { z } from "zod";
 
-import { createClient } from "@/lib/supabase/server";
-
-type SupabaseServerClient = Awaited<ReturnType<typeof createClient>>;
+import { getSessionUser } from "@/lib/auth/session";
+import { query } from "@/lib/db";
 
 export const MAX_CATALOG_RESULTS = 20;
 
@@ -14,12 +13,8 @@ export const catalogQuerySchema = z.object({
 
 /**
  * One normalized shape for every reference catalogue the UI can search —
- * ICD-11 codes, medications, lab tests — so a single combobox component
- * renders all three (see components/admin/catalog-combobox.tsx).
- *
- * The catalogue-specific fields are optional rather than hidden behind a
- * generic payload: three concrete optionals stay type-safe at the call
- * site, where an untyped `meta` bag would only push casts onto callers.
+ * ICD-11 codes, medications, lab tests — so a single combobox renders all
+ * three (see components/catalog-combobox.tsx).
  */
 export type CatalogMatch = {
   /** Stable identifier: a uuid for medications/lab tests, the code for ICD-11. */
@@ -44,60 +39,65 @@ export function escapeLikePattern(value: string): string {
   return value.replace(/[%_\\]/g, (match) => `\\${match}`);
 }
 
+// SQL identifiers can't be parameterised, so table / column names are
+// pinned to a literal allowlist — only these three call sites exist and
+// no user input ever reaches these fields.
+const ALLOWED_TABLES = new Set(["icd11_codes", "medications", "lab_tests"]);
+const IDENT = /^[a-z_][a-z0-9_]*$/;
+
 /**
- * Runs the shared "search one reference table by substring" query. Auth is
- * deliberately the caller's job: medications are admin-only, while lab
- * tests are readable by any signed-in user because the patient portal's
- * uploader needs them too (see supabase/migrations for the RLS split).
+ * Runs the shared "search one reference table by substring" query.
+ * `SELECT <columns> FROM <table> WHERE <searchColumn> ILIKE $1 ORDER BY
+ * <orderColumn> LIMIT 20`.
  */
 export async function runCatalogSearch<Row>({
-  supabase,
   table,
   columns,
   searchColumn,
   orderColumn,
-  query,
+  query: searchText,
   map,
 }: {
-  supabase: SupabaseServerClient;
   table: string;
   columns: string;
   searchColumn: string;
   orderColumn: string;
   query: string;
   map: (row: Row) => CatalogMatch;
-  // Tagged with a boolean rather than discriminated on `error`, because a
-  // truthiness check against `unknown` narrows nothing.
 }): Promise<{ ok: true; results: CatalogMatch[] } | { ok: false; error: unknown }> {
-  const { data, error } = await supabase
-    .from(table)
-    .select(columns)
-    .ilike(searchColumn, `%${escapeLikePattern(query)}%`)
-    .order(orderColumn)
-    .limit(MAX_CATALOG_RESULTS)
-    .returns<Row[]>();
+  if (
+    !ALLOWED_TABLES.has(table) ||
+    !IDENT.test(searchColumn) ||
+    !IDENT.test(orderColumn)
+  ) {
+    return { ok: false, error: new Error(`runCatalogSearch: disallowed identifier`) };
+  }
 
-  if (error) return { ok: false, error };
-
-  return { ok: true, results: (data ?? []).map(map) };
+  try {
+    const { rows } = await query<Row extends Record<string, unknown> ? Row : never>(
+      `select ${columns}
+         from public.${table}
+        where ${searchColumn} ilike $1
+        order by ${orderColumn}
+        limit ${MAX_CATALOG_RESULTS}`,
+      [`%${escapeLikePattern(searchText)}%`],
+    );
+    return { ok: true, results: (rows as Row[]).map(map) };
+  } catch (error) {
+    return { ok: false, error };
+  }
 }
 
 /**
- * Confirms the caller is signed in, for catalogues that aren't admin-only.
- * As with requireAdmin(), this is a fast, clean failure path — RLS on the
- * table is still what actually enforces access.
+ * Confirms the caller is signed in, for catalogues that aren't admin-only
+ * (lab tests — the patient portal's uploader needs them).
  */
 export async function requireSignedIn(): Promise<
-  { authorized: true; supabase: SupabaseServerClient } | { authorized: false; message: string }
+  { authorized: true } | { authorized: false; message: string }
 > {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
+  const user = await getSessionUser();
   if (!user) {
     return { authorized: false, message: "You must be signed in to do that." };
   }
-
-  return { authorized: true, supabase };
+  return { authorized: true };
 }

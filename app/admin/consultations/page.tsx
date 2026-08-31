@@ -4,9 +4,9 @@ import Link from "next/link";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { query } from "@/lib/db";
 import { calculateAge, formatDate, formatMedicalId } from "@/lib/format";
 import { inputClass } from "@/lib/form-ui";
-import { createClient } from "@/lib/supabase/server";
 
 function initials(name: string | null) {
   if (!name) return "?";
@@ -27,27 +27,28 @@ export default async function ConsultationsPage({
   searchParams: Promise<{ q?: string }>;
 }) {
   const { q } = await searchParams;
-  const query = q?.trim() ?? "";
+  const searchTerm = q?.trim() ?? "";
 
-  const supabase = await createClient();
+  // Strip ILIKE wildcards so a literal "%" or "_" the user types is matched
+  // literally; the value goes in as a bound parameter, so it can't break
+  // the query.
+  const safeQuery = searchTerm.replace(/[%\\_]/g, "").trim();
 
-  let request = supabase
-    .from("profiles")
-    .select("id, full_name, phone, dob")
-    .eq("role", "patient")
-    .order("created_at", { ascending: false });
-
-  if (query) {
-    // Strip PostgREST syntax delimiters and ILIKE wildcards so arbitrary
-    // search input cannot trigger a 400 Bad Request or malformed filter.
-    const safeQuery = query.replace(/[.,():%\\_]/g, "").trim();
-    if (safeQuery) {
-      request = request.or(`full_name.ilike.%${safeQuery}%,phone.ilike.%${safeQuery}%`);
-    }
-  }
-
-  const { data: patients } = await request.returns<PatientRow[]>();
-  const items = patients ?? [];
+  const { rows: items } = safeQuery
+    ? await query<PatientRow>(
+        `select id, full_name, phone, dob
+           from public.profiles
+          where role = 'patient'
+            and (full_name ilike $1 or phone ilike $1)
+          order by created_at desc`,
+        [`%${safeQuery}%`],
+      )
+    : await query<PatientRow>(
+        `select id, full_name, phone, dob
+           from public.profiles
+          where role = 'patient'
+          order by created_at desc`,
+      );
 
   return (
     <main className="mx-auto max-w-6xl space-y-6 px-4 py-6 sm:px-6 sm:py-8 lg:px-8">
@@ -76,7 +77,7 @@ export default async function ConsultationsPage({
           <input
             type="search"
             name="q"
-            defaultValue={query}
+            defaultValue={searchTerm}
             placeholder="Search by patient name..."
             aria-label="Search patients"
             className={`${inputClass} pl-10`}
@@ -109,7 +110,7 @@ export default async function ConsultationsPage({
                 <Users className="size-6 opacity-60" />
               </div>
               <p className="text-sm font-medium text-muted-foreground mt-2">
-                {query ? `No patients match "${query}".` : "No patients registered yet."}
+                {searchTerm ? `No patients match "${searchTerm}".` : "No patients registered yet."}
               </p>
             </div>
           ) : (

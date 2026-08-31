@@ -3,9 +3,10 @@
 import { revalidatePath } from "next/cache";
 
 import type { ActionState } from "@/lib/action-state";
+import { hashPassword } from "@/lib/auth/password";
+import { query, withTransaction } from "@/lib/db";
 import { logAndSanitize } from "@/lib/errors";
 import { requireAdmin } from "@/lib/require-admin";
-import { createAdminClient } from "@/lib/supabase/admin";
 import { generateTempPassword } from "@/lib/temp-password";
 
 export type ApproveRequestResult = ActionState<{
@@ -15,8 +16,18 @@ export type ApproveRequestResult = ActionState<{
   tempPassword: string;
 }>;
 
+type RequestRow = {
+  status: string;
+  converted_patient_id: string | null;
+  full_name: string;
+  email: string;
+  phone: string;
+  dob: string | null;
+  sex: string | null;
+};
+
 export async function approveAndOnboardRequest(
-  requestId: string
+  requestId: string,
 ): Promise<ApproveRequestResult> {
   try {
     const admin = await requireAdmin();
@@ -24,104 +35,69 @@ export async function approveAndOnboardRequest(
       return { status: "error", message: admin.message };
     }
 
-    // 1. Fetch the request details
-    const { data: request, error: fetchError } = await admin.supabase
-      .from("consultation_requests")
-      .select("*")
-      .eq("id", requestId)
-      .single();
+    const { rows } = await query<RequestRow>(
+      `select status, converted_patient_id, full_name, email, phone, dob, sex
+         from public.consultation_requests
+        where id = $1`,
+      [requestId],
+    );
+    const request = rows[0];
 
-    if (fetchError || !request) {
+    if (!request) {
       return {
         status: "error",
         message: "Consultation request not found or has been removed.",
       };
     }
-
     if (request.status === "approved" && request.converted_patient_id) {
       return {
         status: "error",
-        message: "This consultation request has already been approved and converted to a patient.",
+        message:
+          "This consultation request has already been approved and converted to a patient.",
       };
     }
 
     const fullName = request.full_name.trim();
     const email = request.email.trim().toLowerCase();
     const phone = request.phone.trim();
-    const dob = request.dob;
-    const sex = request.sex;
-
-    const supabaseAdmin = createAdminClient();
     const tempPassword = generateTempPassword();
+    const passwordHash = await hashPassword(tempPassword);
 
-    // 2. Create Auth User
-    const { data: createdData, error: createError } =
-      await supabaseAdmin.auth.admin.createUser({
-        email,
-        password: tempPassword,
-        email_confirm: true,
-        user_metadata: { full_name: fullName },
-        app_metadata: { must_change_password: true },
+    let patientId: string;
+    try {
+      patientId = await withTransaction(async (client) => {
+        const created = await client.query<{ id: string }>(
+          `insert into public.users (email, password_hash, must_change_password)
+           values ($1, $2, true)
+           returning id`,
+          [email, passwordHash],
+        );
+        const userId = created.rows[0].id;
+
+        await client.query(
+          `insert into public.profiles (id, role, full_name, phone, dob, sex)
+           values ($1, 'patient', $2, $3, $4, $5)`,
+          [userId, fullName, phone, request.dob || null, request.sex || null],
+        );
+
+        await client.query(
+          `update public.consultation_requests
+              set status = 'approved', converted_patient_id = $1, updated_at = now()
+            where id = $2`,
+          [userId, requestId],
+        );
+
+        return userId;
       });
-
-    if (createError) {
-      const alreadyRegistered =
-        createError.code === "email_exists" ||
-        createError.message.toLowerCase().includes("already been registered") ||
-        createError.message.toLowerCase().includes("already registered");
-
-      return {
-        status: "error",
-        message: logAndSanitize(
-          "approveAndOnboardRequest.createUser",
-          createError,
-          alreadyRegistered
-            ? "A patient account with this email address already exists."
-            : "Failed to create patient account."
-        ),
-      };
+    } catch (err) {
+      if ((err as { code?: string }).code === "23505") {
+        return {
+          status: "error",
+          message: "A patient account with this email address already exists.",
+        };
+      }
+      throw err;
     }
-
-    const newUser = createdData.user;
-    if (!newUser) {
-      return {
-        status: "error",
-        message: "Failed to generate patient user identity.",
-      };
-    }
-
-    // 3. Create Profile
-    const { error: profileError } = await admin.supabase.from("profiles").insert({
-      id: newUser.id,
-      role: "patient",
-      full_name: fullName,
-      phone,
-      dob: dob || null,
-      sex: sex || null,
-    });
-
-    if (profileError) {
-      // Compensate: Delete created auth user so we don't leave an orphan
-      await supabaseAdmin.auth.admin.deleteUser(newUser.id);
-      return {
-        status: "error",
-        message: logAndSanitize(
-          "approveAndOnboardRequest.insertProfile",
-          profileError,
-          "Failed to create patient profile record."
-        ),
-      };
-    }
-
-    // 4. Update consultation_requests record
-    await admin.supabase
-      .from("consultation_requests")
-      .update({
-        status: "approved",
-        converted_patient_id: newUser.id,
-        updated_at: new Date().toISOString(),
-      })
-      .eq("id", requestId);
 
     revalidatePath("/admin/requests");
     revalidatePath("/admin/consultations");
@@ -130,12 +106,7 @@ export async function approveAndOnboardRequest(
     return {
       status: "success",
       message: `Patient account for ${fullName} created successfully.`,
-      data: {
-        patientId: newUser.id,
-        fullName,
-        email,
-        tempPassword,
-      },
+      data: { patientId, fullName, email, tempPassword },
     };
   } catch (err) {
     return {
@@ -143,7 +114,7 @@ export async function approveAndOnboardRequest(
       message: logAndSanitize(
         "approveAndOnboardRequest.unexpected",
         err,
-        "An unexpected error occurred while onboarding the patient."
+        "An unexpected error occurred while onboarding the patient.",
       ),
     };
   }
@@ -152,7 +123,7 @@ export async function approveAndOnboardRequest(
 export async function updateRequestStatus(
   requestId: string,
   status: "pending" | "contacted" | "rejected",
-  adminNotes?: string
+  adminNotes?: string,
 ): Promise<ActionState> {
   try {
     const admin = await requireAdmin();
@@ -160,45 +131,33 @@ export async function updateRequestStatus(
       return { status: "error", message: admin.message };
     }
 
-    const updates: Record<string, unknown> = {
-      status,
-      updated_at: new Date().toISOString(),
-    };
-
     if (adminNotes !== undefined) {
-      updates.admin_notes = adminNotes;
-    }
-
-    const { error } = await admin.supabase
-      .from("consultation_requests")
-      .update(updates)
-      .eq("id", requestId);
-
-    if (error) {
-      return {
-        status: "error",
-        message: logAndSanitize(
-          "updateRequestStatus",
-          error,
-          "Failed to update request status."
-        ),
-      };
+      await query(
+        `update public.consultation_requests
+            set status = $1, admin_notes = $2, updated_at = now()
+          where id = $3`,
+        [status, adminNotes, requestId],
+      );
+    } else {
+      await query(
+        `update public.consultation_requests
+            set status = $1, updated_at = now()
+          where id = $2`,
+        [status, requestId],
+      );
     }
 
     revalidatePath("/admin/requests");
     revalidatePath("/admin");
 
-    return {
-      status: "success",
-      message: `Status updated to ${status}.`,
-    };
+    return { status: "success", message: `Status updated to ${status}.` };
   } catch (err) {
     return {
       status: "error",
       message: logAndSanitize(
         "updateRequestStatus.unexpected",
         err,
-        "An unexpected error occurred."
+        "An unexpected error occurred.",
       ),
     };
   }

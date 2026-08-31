@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
 import type { ActionState } from "@/lib/action-state";
+import { query } from "@/lib/db";
 import { logAndSanitize } from "@/lib/errors";
 import { requireAdmin } from "@/lib/require-admin";
 import { zodFieldErrors } from "@/lib/zod-field-errors";
@@ -359,40 +360,54 @@ export async function recordConsultation(
         }
       : null;
 
-    const { data, error } = await admin.supabase.rpc("record_consultation", {
-      p_patient_id: patientId,
-      p_doctor_id: admin.userId,
-      p_vitals: vitalsJson,
-      p_assessment: assessmentJson,
-      p_diagnoses: diagnoses.map((d) => ({
-        condition: d.condition,
-        status: d.status,
-        icd11_code: d.icd11Code ?? null,
-        icd11_uri: d.icd11Uri ?? null,
-      })),
-      p_prescriptions: prescriptions.map((p) => ({
-        medication_name: p.medicationName,
-        dosage: p.dosage,
-        frequency: p.frequency,
-        instructions: p.instructions ?? null,
-        status: p.status,
-        medication_id: p.medicationId ?? null,
-      })),
-      p_invoice: invoice ? { amount: invoice.amount, description: invoice.description ?? null } : null,
-      p_visit_type: visitType,
-    });
+    const diagnosesPayload = diagnoses.map((d) => ({
+      condition: d.condition,
+      status: d.status,
+      icd11_code: d.icd11Code ?? null,
+      icd11_uri: d.icd11Uri ?? null,
+    }));
+    const prescriptionsPayload = prescriptions.map((p) => ({
+      medication_name: p.medicationName,
+      dosage: p.dosage,
+      frequency: p.frequency,
+      instructions: p.instructions ?? null,
+      status: p.status,
+      medication_id: p.medicationId ?? null,
+    }));
+    const invoicePayload = invoice
+      ? { amount: invoice.amount, description: invoice.description ?? null }
+      : null;
 
-    if (error) {
-      // 23503: the FK on consultations.patient_id rejected a nonexistent
-      // id. invalid_patient: the id exists but isn't a patient profile
-      // (e.g. the admin's own id) — see record_consultation in
-      // supabase/migrations.
+    // Single Postgres transaction (see record_consultation in db/schema.sql)
+    // — a bad row anywhere in the consultation/diagnoses/prescriptions/
+    // invoice set rolls the whole thing back.
+    let consultationId: string;
+    try {
+      const { rows } = await query<{ id: string }>(
+        `select public.record_consultation($1, $2, $3::jsonb, $4::jsonb, $5::jsonb, $6::jsonb, $7::jsonb, $8) as id`,
+        [
+          patientId,
+          admin.userId,
+          vitalsJson ? JSON.stringify(vitalsJson) : null,
+          assessmentJson ? JSON.stringify(assessmentJson) : null,
+          JSON.stringify(diagnosesPayload),
+          JSON.stringify(prescriptionsPayload),
+          invoicePayload ? JSON.stringify(invoicePayload) : null,
+          visitType,
+        ],
+      );
+      consultationId = rows[0]?.id;
+    } catch (err) {
+      // 23503: the FK on consultations.patient_id rejected a nonexistent id.
+      // invalid_patient: the id exists but isn't a patient profile (e.g. the
+      // admin's own id) — raised by record_consultation.
+      const e = err as { code?: string; message?: string };
       const message =
-        error.code === "23503" || error.message?.includes("invalid_patient")
+        e.code === "23503" || e.message?.includes("invalid_patient")
           ? "Patient not found."
           : logAndSanitize(
               "recordConsultation",
-              error,
+              err,
               "Failed to record the consultation. Please try again.",
             );
 
@@ -481,12 +496,13 @@ export async function recordConsultation(
       };
 
       try {
-        await admin.supabase.from("patient_history").upsert({
-          patient_id: patientId,
-          history: historyJson,
-          updated_at: new Date().toISOString(),
-          updated_by: admin.userId,
-        });
+        await query(
+          `insert into public.patient_history (patient_id, history, updated_at, updated_by)
+           values ($1, $2, now(), $3)
+           on conflict (patient_id)
+           do update set history = excluded.history, updated_at = now(), updated_by = excluded.updated_by`,
+          [patientId, historyJson, admin.userId],
+        );
       } catch (historyErr) {
         console.error("Failed to upsert patient_history during recordConsultation:", historyErr);
       }
@@ -497,7 +513,7 @@ export async function recordConsultation(
     return {
       status: "success",
       message: "Consultation recorded.",
-      consultationId: data ?? undefined,
+      consultationId: consultationId ?? undefined,
     };
   } catch (error) {
     return {

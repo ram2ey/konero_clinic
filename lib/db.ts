@@ -29,7 +29,6 @@ if (!connectionString) {
 const needsSsl = /[?&]sslmode=require/.test(connectionString);
 
 declare global {
-  // eslint-disable-next-line no-var
   var __clinicPgPool: Pool | undefined;
 }
 

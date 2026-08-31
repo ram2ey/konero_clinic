@@ -3,8 +3,8 @@ import { Pill } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
+import { query } from "@/lib/db";
 import { formatDate } from "@/lib/format";
-import { createClient } from "@/lib/supabase/server";
 
 import { RecordStatusBadge } from "./status-badge";
 
@@ -19,17 +19,13 @@ type Prescription = {
 };
 
 export async function MedicationsList({ patientId }: { patientId: string }) {
-  const supabase = await createClient();
-
-  const { data: prescriptions } = await supabase
-    .from("prescriptions")
-    .select("id, medication_name, dosage, frequency, instructions, status, created_at")
-    .eq("patient_id", patientId)
-    .eq("status", "active")
-    .order("created_at", { ascending: false })
-    .returns<Prescription[]>();
-
-  const items = prescriptions ?? [];
+  const { rows: items } = await query<Prescription>(
+    `select id, medication_name, dosage, frequency, instructions, status, created_at
+       from public.prescriptions
+      where patient_id = $1 and status = 'active'
+      order by created_at desc`,
+    [patientId],
+  );
 
   return (
     <Card className="border-border/80 shadow-xs">

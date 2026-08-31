@@ -49,7 +49,6 @@ export async function searchMedications(input: { query: string }): Promise<Searc
     }
 
     const result = await runCatalogSearch<MedicationRow>({
-      supabase: admin.supabase,
       table: "medications",
       columns: "id, name, form, strengths, drug_class",
       searchColumn: "search_text",
