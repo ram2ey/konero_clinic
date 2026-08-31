@@ -384,7 +384,10 @@ export async function recordConsultation(
     let consultationId: string;
     try {
       const { rows } = await query<{ id: string }>(
-        `select public.record_consultation($1, $2, $3::jsonb, $4::jsonb, $5::jsonb, $6::jsonb, $7::jsonb, $8) as id`,
+        `select public.record_consultation(
+           $1::uuid, $2::uuid, $3::jsonb, $4::jsonb, $5::jsonb, $6::jsonb, $7::jsonb,
+           $8::public.consultation_visit_type
+         ) as id`,
         [
           patientId,
           admin.userId,
