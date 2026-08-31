@@ -6,13 +6,13 @@ import { ConsultationRequestForm } from "@/components/public/consultation-reques
 import { BrandLogo } from "@/components/ui/brand-logo";
 
 export const metadata: Metadata = {
-  title: "Request a Consultation | Dr. Alex Vico Korda",
+  title: "Request a Consultation | Konero Clinic",
   description:
-    "Schedule a private psychiatric or mental health consultation with Dr. Alex Vico Korda. Available for in-person clinic visits and secure virtual telehealth consultations.",
+    "Schedule a private psychiatric or mental health consultation at Konero Clinic. Available for in-person clinic visits and secure virtual telehealth consultations.",
   openGraph: {
-    title: "Request a Consultation | Dr. Alex Vico Korda",
+    title: "Request a Consultation | Konero Clinic",
     description:
-      "Schedule a private psychiatric or mental health consultation with Dr. Alex Vico Korda. Confidential, expert clinical care.",
+      "Schedule a private psychiatric or mental health consultation at Konero Clinic. Confidential, expert clinical care.",
     type: "website",
   },
 };
@@ -25,7 +25,7 @@ export default function RequestConsultationPage() {
         className="pointer-events-none absolute inset-0 flex items-center justify-center overflow-hidden"
         aria-hidden="true"
       >
-        <div className="size-[650px] rounded-full bg-gradient-to-tr from-primary/10 via-violet-500/5 to-brand-gold/10 blur-3xl opacity-60" />
+        <div className="size-[650px] rounded-full bg-gradient-to-tr from-primary/10 via-blue-600/5 to-brand-gold/10 blur-3xl opacity-60" />
       </div>
 
       <div className="relative mx-auto max-w-2xl space-y-6">
@@ -55,7 +55,7 @@ export default function RequestConsultationPage() {
             </h1>
             <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed">
               Schedule a private psychiatric or mental health consultation. Fill in your
-              details below, and Dr. Alex Vico Korda’s office will contact you directly with
+              details below, and the Konero Clinic office will contact you directly with
               your appointment schedule.
             </p>
           </div>
@@ -78,7 +78,7 @@ export default function RequestConsultationPage() {
             </Link>
           </p>
           <p className="text-[11px] text-muted-foreground/70">
-            © {new Date().getFullYear()} Dr. Alex Vico Korda. All rights reserved.
+            © {new Date().getFullYear()} Konero Clinic. All rights reserved.
           </p>
         </div>
       </div>

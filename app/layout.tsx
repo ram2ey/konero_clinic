@@ -12,8 +12,8 @@ const plusJakartaSans = Plus_Jakarta_Sans({
 });
 
 export const metadata: Metadata = {
-  title: "Dr. Alex Vico-Korda | Medical Clinic & Patient Portal",
-  description: "Dr. Alex Vico-Korda Psychiatry & Medical Practice — Patient Portal and Clinic Administration",
+  title: "Konero Clinic | Medical Clinic & Patient Portal",
+  description: "Konero Clinic Psychiatry & Medical Practice — Patient Portal and Clinic Administration",
 };
 
 export default function RootLayout({

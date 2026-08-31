@@ -96,7 +96,7 @@ export async function PatientBiodataFull({ patientId }: { patientId: string }) {
         <CardHeader className="border-b border-border/60 pb-4">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div className="flex items-center gap-3">
-              <div className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-primary/20 via-violet-500/15 to-primary/5 text-primary ring-1 ring-primary/25">
+              <div className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-primary/20 via-blue-600/15 to-primary/5 text-primary ring-1 ring-primary/25">
                 <User className="size-5" />
               </div>
               <div>

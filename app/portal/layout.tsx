@@ -58,7 +58,7 @@ export default async function PortalLayout({ children }: { children: React.React
         <SidebarFooter className="border-t border-border/50 p-3 space-y-2">
           <div className="flex items-center gap-2.5 px-1 py-1">
             <Avatar className="size-8 shrink-0 ring-1 ring-primary/20 shadow-xs">
-              <AvatarFallback className="bg-gradient-to-br from-primary/20 via-violet-500/10 to-brand-gold/20 text-xs font-bold text-foreground">
+              <AvatarFallback className="bg-gradient-to-br from-primary/20 via-blue-600/10 to-brand-gold/20 text-xs font-bold text-foreground">
                 {initials(fullName)}
               </AvatarFallback>
             </Avatar>
@@ -89,7 +89,7 @@ export default async function PortalLayout({ children }: { children: React.React
             <SidebarTrigger className="hover:bg-muted/70 rounded-lg p-1.5" />
             <div className="h-4 w-px bg-border/80" />
             <div className="flex min-w-0 items-center gap-2">
-              <span className="hidden sm:inline text-xs font-semibold text-muted-foreground">Dr. Alex Vico-Korda</span>
+              <span className="hidden sm:inline text-xs font-semibold text-muted-foreground">Konero Clinic</span>
               <span className="hidden sm:inline text-muted-foreground/40 text-xs">/</span>
               <span className="truncate text-xs sm:text-sm font-bold text-foreground">Patient Health Portal</span>
             </div>

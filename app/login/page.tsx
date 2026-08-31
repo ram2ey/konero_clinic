@@ -21,7 +21,7 @@ export default function LoginPage() {
         className="pointer-events-none absolute inset-0 flex items-center justify-center overflow-hidden"
         aria-hidden="true"
       >
-        <div className="size-[500px] rounded-full bg-gradient-to-tr from-primary/10 via-violet-500/5 to-brand-gold/10 blur-3xl opacity-70" />
+        <div className="size-[500px] rounded-full bg-gradient-to-tr from-primary/10 via-blue-600/5 to-brand-gold/10 blur-3xl opacity-70" />
       </div>
 
       <div className="relative w-full max-w-md space-y-6">

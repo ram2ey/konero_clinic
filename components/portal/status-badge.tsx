@@ -85,7 +85,7 @@ const VISIT_TYPE_CONFIG: Record<
 > = {
   first_visit: {
     label: "1st Visit",
-    badgeClass: "border-violet-500/25 bg-violet-500/10 text-violet-700 dark:border-violet-500/30 dark:bg-violet-500/15 dark:text-violet-300",
+    badgeClass: "border-blue-600/25 bg-blue-600/10 text-blue-800 dark:border-blue-500/30 dark:bg-blue-500/15 dark:text-blue-300",
   },
   review: {
     label: "Review",

@@ -75,7 +75,7 @@ export function ConsultationRequestForm() {
           </h2>
           <p className="text-sm text-muted-foreground max-w-md mx-auto leading-relaxed">
             Thank you, <span className="font-semibold text-foreground">{fullName}</span>.
-            Dr. Alex Vico Korda’s clinic has received your consultation request.
+            Konero Clinic has received your consultation request.
           </p>
         </div>
 

@@ -61,7 +61,7 @@ function ModeBadge({ mode }: { mode: string }) {
       );
     case "in_person":
       return (
-        <span className="inline-flex items-center gap-1 rounded-md bg-violet-500/10 px-2 py-0.5 text-[11px] font-semibold text-violet-600 dark:text-violet-400">
+        <span className="inline-flex items-center gap-1 rounded-md bg-blue-600/10 px-2 py-0.5 text-[11px] font-semibold text-blue-700 dark:text-blue-400">
           <MapPin className="size-3" />
           <span>In-Person</span>
         </span>
@@ -221,7 +221,7 @@ export function RequestsTable({
               ? "No requests match your current search query."
               : activeTab === "pending"
               ? "All caught up! There are no pending requests waiting for review."
-              : "Share your booking link (dralexvicokorda.com/request-consultation) on social media to receive patient requests."}
+              : "Share your booking link (the /request-consultation page) on social media to receive patient requests."}
           </p>
         </div>
       ) : (

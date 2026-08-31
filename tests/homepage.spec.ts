@@ -9,7 +9,7 @@ test.describe("Public pages", () => {
   test("login page renders with branding and form", async ({ page }) => {
     await page.goto("/login");
 
-    await expect(page).toHaveTitle(/Dr\. Alex Vico-Korda/);
+    await expect(page).toHaveTitle(/Konero Clinic/);
     await expect(page.getByRole("heading", { name: "Welcome back" })).toBeVisible();
     await expect(page.getByLabel("Email address")).toBeVisible();
     await expect(page.getByLabel("Password")).toBeVisible();

@@ -58,13 +58,13 @@ export default async function AdminLayout({ children }: { children: React.ReactN
         <SidebarFooter className="border-t border-border/50 p-3 space-y-2">
           <div className="flex items-center gap-2.5 px-1 py-1">
             <Avatar className="size-8 shrink-0 ring-1 ring-primary/20 shadow-xs">
-              <AvatarFallback className="bg-gradient-to-br from-primary via-violet-700 to-indigo-800 text-xs font-bold text-white">
+              <AvatarFallback className="bg-gradient-to-br from-primary via-blue-800 to-blue-950 text-xs font-bold text-white">
                 {initials(fullName)}
               </AvatarFallback>
             </Avatar>
             <div className="min-w-0 flex-1 group-data-[collapsible=icon]:hidden">
               <p className="truncate text-xs font-semibold text-sidebar-foreground">
-                {fullName ?? "Dr. Alex Vico-Korda"}
+                {fullName ?? "Konero Clinic"}
               </p>
               <p className="truncate text-[10px] text-muted-foreground font-medium flex items-center gap-1">
                 <ShieldCheck className="size-3 text-primary inline" />
@@ -92,14 +92,14 @@ export default async function AdminLayout({ children }: { children: React.ReactN
             <SidebarTrigger className="hover:bg-muted/70 rounded-lg p-1.5" />
             <div className="h-4 w-px bg-border/80" />
             <div className="flex min-w-0 items-center gap-2">
-              <span className="hidden sm:inline text-xs font-semibold text-muted-foreground">Dr. Alex Vico-Korda</span>
+              <span className="hidden sm:inline text-xs font-semibold text-muted-foreground">Konero Clinic</span>
               <span className="hidden sm:inline text-muted-foreground/40 text-xs">/</span>
               <AdminHeaderLabel />
             </div>
           </div>
 
           <div className="flex items-center gap-2">
-            <span className="rounded-full border border-violet-500/25 bg-violet-500/10 px-2.5 py-0.5 text-xs font-semibold text-violet-700 dark:text-violet-300">
+            <span className="border border-blue-600/25 bg-blue-600/10 px-2.5 py-0.5 text-xs font-semibold text-blue-800 dark:text-blue-300">
               Doctor / Admin
             </span>
           </div>

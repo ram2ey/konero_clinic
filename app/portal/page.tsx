@@ -42,7 +42,7 @@ export default async function PatientPortalPage() {
               Patient Health Portal
             </h1>
             <p className="text-xs sm:text-sm text-muted-foreground max-w-2xl">
-              Securely access your medical profile, active prescriptions, clinical diagnoses, and diagnostic reports under <span className="font-semibold text-primary">Dr. Alex Vico-Korda</span>.
+              Securely access your medical profile, active prescriptions, clinical diagnoses, and diagnostic reports at <span className="font-semibold text-primary">Konero Clinic</span>.
             </p>
           </div>
         </div>

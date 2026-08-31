@@ -125,7 +125,7 @@ export default async function ConsultationsPage({
                   >
                     <div className="flex min-w-0 items-center gap-3.5">
                       <Avatar className="size-10 shrink-0 ring-1 ring-primary/20 shadow-xs">
-                        <AvatarFallback className="bg-gradient-to-br from-primary/20 via-violet-500/10 to-brand-gold/20 text-xs font-bold text-foreground">
+                        <AvatarFallback className="bg-gradient-to-br from-primary/20 via-blue-600/10 to-brand-gold/20 text-xs font-bold text-foreground">
                           {initials(name)}
                         </AvatarFallback>
                       </Avatar>

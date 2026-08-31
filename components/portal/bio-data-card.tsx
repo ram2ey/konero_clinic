@@ -68,7 +68,7 @@ export async function BioDataCard({ patientId }: { patientId: string }) {
         <CardHeader className="border-b border-border/60 pb-4">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div className="flex items-center gap-3.5">
-              <div className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-violet-600 via-primary to-indigo-700 text-white font-bold shadow-md shadow-primary/25 ring-1 ring-white/30">
+              <div className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-blue-700 via-primary to-blue-900 text-white font-bold shadow-md shadow-primary/25 ring-1 ring-white/30">
                 <User className="size-5" />
               </div>
               <div>

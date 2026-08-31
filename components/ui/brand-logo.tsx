@@ -38,10 +38,10 @@ export function BrandLogo({
       {...props}
     >
       <div className={cn("flex items-baseline gap-1.5", titleSizes[size])}>
-        <span className="text-primary font-bold text-[0.88em]">Dr.</span>
         <span className="bg-gradient-to-r from-foreground via-foreground to-primary/90 bg-clip-text font-extrabold text-foreground">
-          Alex Vico-Korda
+          Konero
         </span>
+        <span className="text-primary font-bold text-[0.88em]">Clinic</span>
       </div>
       {showSubtitle && subtitle && (
         <p className={cn("text-muted-foreground font-medium mt-1 truncate tracking-normal", subtitleSizes[size])}>

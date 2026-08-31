@@ -40,75 +40,75 @@
     --color-card: var(--card);
     --color-foreground: var(--foreground);
     --color-background: var(--background);
-    --radius-sm: calc(var(--radius) * 0.6);
-    --radius-md: calc(var(--radius) * 0.8);
-    --radius-lg: var(--radius);
-    --radius-xl: calc(var(--radius) * 1.4);
-    --radius-2xl: calc(var(--radius) * 1.8);
-    --radius-3xl: calc(var(--radius) * 2.2);
-    --radius-4xl: calc(var(--radius) * 2.6);
+    --radius-sm: 0px;
+    --radius-md: 0px;
+    --radius-lg: 0px;
+    --radius-xl: 0px;
+    --radius-2xl: 0px;
+    --radius-3xl: 0px;
+    --radius-4xl: 0px;
 }
 
 :root {
     /* Atmospheric slate canvas depth: background is a soft slate-50/100 tint
        while cards remain crisp pure-white, providing immediate physical lift. */
-    --background: oklch(0.985 0.008 280); /* faint violet-slate canvas */
-    --foreground: oklch(0.18 0.04 275); /* deep slate */
+    --background: oklch(0.985 0.006 255); /* faint blue-slate canvas */
+    --foreground: oklch(0.18 0.035 260); /* deep navy slate */
     --card: oklch(1 0 0); /* pure white elevated card */
-    --card-foreground: oklch(0.18 0.04 275); /* deep slate */
+    --card-foreground: oklch(0.18 0.035 260); /* deep navy slate */
     --popover: oklch(1 0 0);
-    --popover-foreground: oklch(0.18 0.04 275);
-    
-    /* Brand: vibrant rich violet & warm champagne gold */
-    --primary: oklch(0.46 0.27 288); /* vivid royal violet */
-    --primary-foreground: oklch(0.99 0.005 288); /* pure luminous light */
-    --secondary: oklch(0.95 0.015 280); /* light violet-slate */
-    --secondary-foreground: oklch(0.25 0.06 285);
-    --muted: oklch(0.96 0.012 280);
-    --muted-foreground: oklch(0.48 0.04 275);
-    --accent: oklch(0.94 0.035 288); /* soft violet wash */
-    --accent-foreground: oklch(0.38 0.22 288); /* vibrant violet text */
+    --popover-foreground: oklch(0.18 0.035 260);
+
+    /* Brand: deep dark blue & warm champagne gold */
+    --primary: oklch(0.40 0.16 260); /* deep dark blue */
+    --primary-foreground: oklch(0.99 0.005 260); /* pure luminous light */
+    --secondary: oklch(0.95 0.012 255); /* light blue-slate */
+    --secondary-foreground: oklch(0.24 0.05 260);
+    --muted: oklch(0.96 0.01 255);
+    --muted-foreground: oklch(0.48 0.035 260);
+    --accent: oklch(0.94 0.028 258); /* soft blue wash */
+    --accent-foreground: oklch(0.34 0.14 260); /* deep blue text */
     --destructive: oklch(0.577 0.245 27.325);
-    --border: oklch(0.91 0.018 280); /* crisp hairline border */
-    --input: oklch(0.91 0.018 280);
-    --ring: oklch(0.55 0.25 288); /* glowing violet halo */
+    --border: oklch(0.91 0.015 255); /* crisp hairline border */
+    --input: oklch(0.91 0.015 255);
+    --ring: oklch(0.48 0.15 260); /* dark blue focus halo */
     --brand-gold: oklch(0.77 0.16 85);
     --brand-gold-foreground: oklch(0.25 0.06 80);
-    --chart-1: oklch(0.46 0.27 288);
-    --chart-2: oklch(0.65 0.20 288);
+    --chart-1: oklch(0.40 0.16 260);
+    --chart-2: oklch(0.58 0.14 258);
     --chart-3: oklch(0.77 0.16 85);
     --chart-4: oklch(0.68 0.18 160);
     --chart-5: oklch(0.269 0 0);
-    --radius: 0.875rem;
-    --sidebar: oklch(0.99 0.008 288); /* clean white-violet sidebar */
-    --sidebar-foreground: oklch(0.18 0.04 275);
-    --sidebar-primary: oklch(0.46 0.27 288);
-    --sidebar-primary-foreground: oklch(0.99 0.005 288);
-    --sidebar-accent: oklch(0.93 0.04 288); /* vibrant light violet hover */
-    --sidebar-accent-foreground: oklch(0.35 0.25 288);
-    --sidebar-border: oklch(0.91 0.018 280);
-    --sidebar-ring: oklch(0.55 0.25 288);
+    --radius: 0rem;
+    --sidebar: oklch(0.99 0.006 260); /* clean white-blue sidebar */
+    --sidebar-foreground: oklch(0.18 0.035 260);
+    --sidebar-primary: oklch(0.40 0.16 260);
+    --sidebar-primary-foreground: oklch(0.99 0.005 260);
+    --sidebar-accent: oklch(0.93 0.03 258); /* light blue hover */
+    --sidebar-accent-foreground: oklch(0.32 0.15 260);
+    --sidebar-border: oklch(0.91 0.015 255);
+    --sidebar-ring: oklch(0.48 0.15 260);
 }
 
 .dark {
-    --background: oklch(0.12 0.032 264.7); /* deep obsidian slate-950 */
+    --background: oklch(0.12 0.03 260); /* deep obsidian navy-950 */
     --foreground: oklch(0.984 0.003 247.858); /* slate-50 */
-    --card: oklch(0.17 0.035 265.7); /* elevated slate-900 card */
+    --card: oklch(0.17 0.032 260); /* elevated navy-900 card */
     --card-foreground: oklch(0.984 0.003 247.858); /* slate-50 */
-    --popover: oklch(0.17 0.035 265.7); /* slate-900 */
+    --popover: oklch(0.17 0.032 260); /* navy-900 */
     --popover-foreground: oklch(0.984 0.003 247.858); /* slate-50 */
-    --primary: oklch(0.68 0.2 293.5); /* luminous violet-400 */
-    --primary-foreground: oklch(0.15 0.1 291); /* dark violet */
-    --secondary: oklch(0.24 0.035 260); /* slate-800 */
+    --primary: oklch(0.58 0.16 260); /* luminous dark blue */
+    --primary-foreground: oklch(0.98 0.01 260); /* near-white */
+    --secondary: oklch(0.24 0.032 260); /* slate-800 */
     --secondary-foreground: oklch(0.984 0.003 247.858); /* slate-50 */
-    --muted: oklch(0.22 0.032 260); /* slate-800 */
-    --muted-foreground: oklch(0.68 0.04 256.8); /* slate-400 */
-    --accent: oklch(0.24 0.04 293); /* dark violet accent */
-    --accent-foreground: oklch(0.92 0.05 293); /* bright violet-100 */
+    --muted: oklch(0.22 0.03 260); /* slate-800 */
+    --muted-foreground: oklch(0.68 0.038 258); /* slate-400 */
+    --accent: oklch(0.24 0.045 260); /* dark blue accent */
+    --accent-foreground: oklch(0.90 0.06 260); /* bright blue-100 */
     --destructive: oklch(0.704 0.191 22.216);
-    --border: oklch(0.24 0.032 260); /* slate-800 */
-    --input: oklch(0.24 0.032 260); /* slate-800 */
-    --ring: oklch(0.65 0.22 292.7); /* violet-500 */
+    --border: oklch(0.24 0.03 260); /* slate-800 */
+    --input: oklch(0.24 0.03 260); /* slate-800 */
+    --ring: oklch(0.55 0.16 260); /* dark blue focus */
     --brand-gold: oklch(0.74 0.15 82);
     --brand-gold-foreground: oklch(0.22 0.05 80);
     --chart-1: oklch(0.87 0 0);
@@ -116,14 +116,14 @@
     --chart-3: oklch(0.439 0 0);
     --chart-4: oklch(0.371 0 0);
     --chart-5: oklch(0.269 0 0);
-    --sidebar: oklch(0.15 0.032 265); /* slate-900 */
+    --sidebar: oklch(0.15 0.03 260); /* navy-900 */
     --sidebar-foreground: oklch(0.984 0.003 247.858); /* slate-50 */
-    --sidebar-primary: oklch(0.68 0.2 293.5); /* violet-400 */
-    --sidebar-primary-foreground: oklch(0.15 0.1 291); /* violet-950 */
-    --sidebar-accent: oklch(0.24 0.04 293); /* slate-800 */
-    --sidebar-accent-foreground: oklch(0.85 0.08 293); /* violet-300 */
-    --sidebar-border: oklch(0.22 0.032 260); /* slate-800 */
-    --sidebar-ring: oklch(0.65 0.22 292.7); /* violet-500 */
+    --sidebar-primary: oklch(0.58 0.16 260); /* dark blue */
+    --sidebar-primary-foreground: oklch(0.98 0.01 260); /* near-white */
+    --sidebar-accent: oklch(0.24 0.045 260); /* slate-800 */
+    --sidebar-accent-foreground: oklch(0.82 0.09 260); /* blue-300 */
+    --sidebar-border: oklch(0.22 0.03 260); /* slate-800 */
+    --sidebar-ring: oklch(0.55 0.16 260); /* dark blue */
 }
 
 @layer base {
@@ -135,6 +135,13 @@
   }
   html {
     @apply font-sans scroll-smooth;
+  }
+  /* Straight edges everywhere: neutralize every border-radius — Tailwind
+     rounded-* utilities, hardcoded radii, and component defaults alike. */
+  *,
+  *::before,
+  *::after {
+    border-radius: 0 !important;
   }
 }
 
@@ -148,11 +155,11 @@
 }
 
 .card-elevated {
-  @apply bg-card border border-border/70 shadow-[0_1px_3px_0_rgba(0,0,0,0.04),0_1px_2px_-1px_rgba(0,0,0,0.04)] rounded-xl transition-all duration-200 hover:shadow-[0_4px_12px_0_rgba(0,0,0,0.06),0_2px_4px_-2px_rgba(0,0,0,0.04)];
+  @apply bg-card border border-border/70 shadow-[0_1px_3px_0_rgba(0,0,0,0.04),0_1px_2px_-1px_rgba(0,0,0,0.04)] transition-all duration-200 hover:shadow-[0_4px_12px_0_rgba(0,0,0,0.06),0_2px_4px_-2px_rgba(0,0,0,0.04)];
 }
 
 .kpi-card {
-  @apply relative overflow-hidden rounded-xl border border-border/70 bg-card p-4 shadow-[0_1px_3px_0_rgba(0,0,0,0.04)] transition-all duration-200 hover:shadow-md hover:border-primary/30;
+  @apply relative overflow-hidden border border-border/70 bg-card p-4 shadow-[0_1px_3px_0_rgba(0,0,0,0.04)] transition-all duration-200 hover:shadow-md hover:border-primary/30;
 }
 
 @keyframes pulse-subtle {

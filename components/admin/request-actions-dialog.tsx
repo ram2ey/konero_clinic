@@ -79,7 +79,7 @@ export function ApproveRequestButton({
 
   const copyWhatsAppMessage = () => {
     if (!createdData) return;
-    const msg = `Hello ${createdData.fullName},\n\nYour patient account with Dr. Alex Vico Korda has been created.\n\nYou can access your patient portal here:\n🔗 https://dralexvicokorda.com/login\n\n📧 Email: ${createdData.email}\n🔑 Temporary Password: ${createdData.tempPassword}\n\n(You will be asked to set your own permanent password upon your first sign-in).\n\nBest regards,\nDr. Alex Vico Korda Clinic`;
+    const msg = `Hello ${createdData.fullName},\n\nYour patient account with Konero Clinic has been created.\n\nYou can access your patient portal here:\n🔗 https://dralexvicokorda.com/login\n\n📧 Email: ${createdData.email}\n🔑 Temporary Password: ${createdData.tempPassword}\n\n(You will be asked to set your own permanent password upon your first sign-in).\n\nBest regards,\nKonero Clinic`;
     navigator.clipboard.writeText(msg);
     setCopiedWhatsApp(true);
     setTimeout(() => setCopiedWhatsApp(false), 2000);
@@ -89,7 +89,7 @@ export function ApproveRequestButton({
   const cleanPhone = clientPhone.replace(/[^0-9]/g, "");
   const waUrl = createdData
     ? `https://wa.me/${cleanPhone}?text=${encodeURIComponent(
-        `Hello ${createdData.fullName}, your patient account with Dr. Alex Vico Korda has been approved. You can log in at https://dralexvicokorda.com/login using Email: ${createdData.email} and Temporary Password: ${createdData.tempPassword}`
+        `Hello ${createdData.fullName}, your patient account with Konero Clinic has been approved. You can log in at https://dralexvicokorda.com/login using Email: ${createdData.email} and Temporary Password: ${createdData.tempPassword}`
       )}`
     : `https://wa.me/${cleanPhone}`;
 
