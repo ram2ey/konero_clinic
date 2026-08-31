@@ -22,7 +22,10 @@ if (!connectionString) {
   process.exit(1);
 }
 
-const sql = readFileSync(resolve(process.cwd(), file), "utf8");
+// Strip a leading UTF-8 BOM (U+FEFF) if present — Postgres rejects it as a
+// syntax error at position 1, unlike psql which silently drops it.
+let sql = readFileSync(resolve(process.cwd(), file), "utf8");
+if (sql.charCodeAt(0) === 0xfeff) sql = sql.slice(1);
 const needsSsl = /[?&]sslmode=require/.test(connectionString);
 const client = new pg.Client({
   connectionString,
