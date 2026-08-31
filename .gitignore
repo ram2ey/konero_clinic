@@ -11,6 +11,9 @@
 # env
 .env*.local
 
+# local lab-document storage volume
+/.lab-documents/
+
 # misc
 .DS_Store
 *.pem

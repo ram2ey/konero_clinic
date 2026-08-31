@@ -2,13 +2,14 @@ import { test, expect, type Page, type BrowserContext } from "@playwright/test";
 
 import { fillCombobox, openAccordionSection, testEmail, trackFailedRequests, trackJsErrors } from "./helpers";
 
-// Everything behind sign-in, end to end, against the real project (no
-// local Supabase instance is configured — see .env.local). Requires
-// PLAYWRIGHT_ADMIN_EMAIL / PLAYWRIGHT_ADMIN_PASSWORD as env vars (never
-// hard-coded here, never written to a committed file) — the whole file is
-// skipped when they're absent, so a normal `npx playwright test` run by
-// anyone else doesn't fail for lacking credentials to the one real admin
-// account this schema allows.
+// Everything behind sign-in, end to end, against a running dev server
+// backed by a real Postgres (export DATABASE_URL before the run). Requires
+// PLAYWRIGHT_ADMIN_EMAIL / PLAYWRIGHT_ADMIN_PASSWORD as env vars for a
+// doctor_admin created via `npm run create-admin` (never hard-coded here,
+// never written to a committed file) — the whole file is skipped when
+// they're absent, so a normal `npx playwright test` run by anyone else
+// doesn't fail for lacking credentials to the one admin account this
+// schema allows.
 //
 // Creates exactly one disposable patient (see TEST_PATIENT_NAME /
 // TEST_PATIENT_EMAIL below) and two consultations on it. Nothing else is
@@ -228,7 +229,7 @@ test.describe("Authenticated flows", () => {
     await medsSection.locator('input[aria-label="Frequency"]').fill("Nocte (at night)");
 
     // Investigations — one catalogue covering labs, imaging, and
-    // procedures alike (see the seed migrations under supabase/migrations),
+    // procedures alike (see db/seed.sql),
     // matched by alias. Two rows here: one lab test, one imaging study, to
     // prove both categories are actually searchable and selectable, not
     // just the lab side that existed before.
@@ -434,19 +435,19 @@ test.describe("Authenticated flows", () => {
     if (patientId) {
       console.log(`\n[cleanup] Disposable test patient created — id: ${patientId}, email: ${TEST_PATIENT_EMAIL}`);
       console.log(
-        "[cleanup] Run in the Supabase SQL editor to remove it and its two test consultations:\n" +
+        "[cleanup] Run against the database to remove it and its two test consultations:\n" +
           `  delete from public.diagnoses where patient_id = '${patientId}';\n` +
           `  delete from public.prescriptions where patient_id = '${patientId}';\n` +
           `  delete from public.patient_history where patient_id = '${patientId}';\n` +
           `  delete from public.consultations where patient_id = '${patientId}';\n` +
-          `  delete from auth.users where id = '${patientId}';\n`,
+          `  delete from public.users where id = '${patientId}';\n`,
       );
     }
     if (approvalPatientId) {
       console.log(
         `\n[cleanup] Disposable approved-request patient created — id: ${approvalPatientId}, ` +
           `email: ${approvalRequestEmail}. No consultations recorded on it, so a plain ` +
-          `\`delete from auth.users where id = '${approvalPatientId}';\` clears it (cascades to ` +
+          `\`delete from public.users where id = '${approvalPatientId}';\` clears it (cascades to ` +
           "profiles). Its email matches the playwright-%@example.invalid pattern, so it's also " +
           "swept by the general test-data cleanup query if that's run instead.",
       );

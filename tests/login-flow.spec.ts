@@ -2,12 +2,11 @@ import { test, expect, type Page } from "@playwright/test";
 
 import { testEmail } from "./helpers";
 
-// This suite runs against the real Supabase project (there is no local
-// instance configured — see .env.local), so it deliberately never touches
-// the real admin's email. testEmail() generates an @example.invalid
-// address per call — RFC 2606 reserves that TLD to never resolve, and a
-// fresh one per test avoids order-dependence between this file's tests
-// under the config's fullyParallel: true.
+// Runs against a dev server backed by a real Postgres (export DATABASE_URL
+// before the run). It deliberately never touches the real admin's email —
+// testEmail() generates an @example.invalid address per call (RFC 2606
+// reserves that TLD to never resolve), and a fresh one per test avoids
+// order-dependence under the config's fullyParallel: true.
 
 async function attemptLogin(page: Page, email: string, password: string) {
   await page.goto("/login");
@@ -62,7 +61,7 @@ test.describe("Sign-in", () => {
 
     // MAX_FAILED_ATTEMPTS in actions/sign-in.ts is 5 — the 6th attempt for
     // the same email within the 15-minute window should be rejected
-    // before it ever reaches Supabase Auth.
+    // before the password is even checked.
     const email = testEmail("lockout");
     let lastMessage = "";
     for (let i = 0; i < 6; i++) {

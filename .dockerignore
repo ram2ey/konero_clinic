@@ -1,0 +1,13 @@
+node_modules
+.next
+.git
+.gitignore
+playwright-report
+test-results
+blob-report
+tests
+.env*.local
+.lab-documents
+*.md
+npm-debug.log*
+dev-*.log

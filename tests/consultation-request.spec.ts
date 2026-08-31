@@ -2,11 +2,11 @@ import { test, expect } from "@playwright/test";
 
 import { testEmail, trackFailedRequests, trackJsErrors } from "./helpers";
 
-// The submission tests below write to the real Supabase project (no local
-// instance is configured — see .env.local), the same as authenticated-flows.spec.ts.
-// Each successful submission creates one disposable consultation_requests row,
-// tagged via testEmail() and never otherwise touched. See the end-of-run
-// report for the cleanup query.
+// The submission tests below write to the app's Postgres (export
+// DATABASE_URL before the run), the same as authenticated-flows.spec.ts.
+// Each successful submission creates one disposable consultation_requests
+// row, tagged via testEmail() and never otherwise touched. See the
+// end-of-run report for the cleanup query.
 const createdRequestEmails: string[] = [];
 
 test.describe("Consultation Request Intake", () => {
@@ -116,7 +116,7 @@ test.describe("Consultation Request Intake", () => {
       console.log(
         `\n[cleanup] ${createdRequestEmails.length} disposable consultation_requests row(s) created — emails:\n` +
           createdRequestEmails.map((e) => `  ${e}`).join("\n") +
-          "\n[cleanup] Run in the Supabase SQL editor to remove them:\n" +
+          "\n[cleanup] Run against the database to remove them:\n" +
           `  delete from public.consultation_requests where email in (${createdRequestEmails
             .map((e) => `'${e}'`)
             .join(", ")});\n`

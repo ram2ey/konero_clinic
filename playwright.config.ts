@@ -27,6 +27,9 @@ export default defineConfig({
       },
     },
   ],
+  // `npm run dev` reads DATABASE_URL (and SESSION_COOKIE_SECRET / STORAGE_DIR)
+  // from .env.local — copy .env.local.example and point it at a local
+  // Postgres that has had `npm run db:setup` applied.
   webServer: {
     command: "npm run dev",
     url: "http://localhost:3000",
