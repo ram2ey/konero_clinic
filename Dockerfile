@@ -1,21 +1,20 @@
 # syntax=docker/dockerfile:1
 
-# ---- deps: install node_modules (incl. dev deps, needed for the build) ----
+# ---- deps: full install incl. devDependencies (needed for `next build`) ----
 FROM node:22-alpine AS deps
 WORKDIR /app
 # libc6-compat: some prebuilt native modules expect glibc symbols on musl.
 RUN apk add --no-cache libc6-compat
 COPY package.json package-lock.json ./
-RUN npm ci
+# --include=dev: the hosting platform may inject NODE_ENV=production as a
+# build arg; npm would then skip devDependencies (typescript, tailwind,
+# eslint) and the build would fail. This forces them in regardless.
+RUN npm ci --include=dev
 
 # ---- builder: compile the Next.js standalone output ----
 FROM node:22-alpine AS builder
 WORKDIR /app
 ENV NEXT_TELEMETRY_DISABLED=1
-# `next build` needs devDependencies (typescript, tailwind, eslint). The
-# hosting platform may inject NODE_ENV=production as a build arg, which
-# would make npm skip them — force it back for this stage.
-ENV NODE_ENV=development
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 # Placeholder values only, so module top-level code (lib/db.ts,
