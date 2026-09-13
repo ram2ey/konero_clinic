@@ -21,6 +21,15 @@ export const metadata = {
   title: "Consultation Requests | Admin Dashboard",
 };
 
+// `pg` can return PostgreSQL date/timestamp fields as JavaScript Date
+// instances. Client Components must receive display values, not Date objects:
+// rendering a Date directly (as DOB is rendered in RequestsTable) makes React
+// throw error #31 and takes down the whole page.
+function serializeDbDate(value: unknown): string | null {
+  if (value instanceof Date) return value.toISOString();
+  return typeof value === "string" ? value : null;
+}
+
 export default async function AdminRequestsPage() {
   const admin = await requireAdmin();
   if (!admin.authorized) {
@@ -32,7 +41,14 @@ export default async function AdminRequestsPage() {
     const { rows } = await query<ConsultationRequestItem>(
       `select * from public.consultation_requests order by created_at desc`,
     );
-    requests = rows;
+    // Normalize at the Server → Client boundary. This also protects the
+    // dashboard from older records created before the current form validation.
+    requests = rows.map((request) => ({
+      ...request,
+      dob: serializeDbDate(request.dob),
+      created_at: serializeDbDate(request.created_at) ?? "",
+      updated_at: serializeDbDate(request.updated_at) ?? "",
+    }));
   } catch (error) {
     console.error("[AdminRequestsPage] Error fetching requests:", error);
   }
