@@ -10,6 +10,7 @@ import { searchIcd11 } from "@/actions/search-icd11";
 import { searchLabTests } from "@/actions/search-lab-tests";
 import { searchMedications } from "@/actions/search-medications";
 import { CatalogCombobox } from "@/components/catalog-combobox";
+import type { ConsultationDetail } from "@/components/admin/consultation-detail-view";
 import type { CatalogMatch } from "@/lib/catalog-search";
 import { type HistoryState, mapDbHistoryToState } from "@/lib/patient-history";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
@@ -186,6 +187,68 @@ const EMPTY_FORM: FormState = {
   invoiceAmount: "",
   invoiceDescription: "",
 };
+
+const asText = (value: string | number | null | undefined) => value == null ? "" : String(value);
+
+function initialFormState(consultation?: ConsultationDetail): FormState {
+  if (!consultation) return EMPTY_FORM;
+  const vitals = consultation.vitals;
+  const assessment = consultation.assessment;
+  const physical = assessment?.physical_exam;
+  return {
+    ...EMPTY_FORM,
+    bloodPressureSystolic: asText(vitals?.blood_pressure?.systolic),
+    bloodPressureDiastolic: asText(vitals?.blood_pressure?.diastolic),
+    heartRate: asText(vitals?.heart_rate_bpm),
+    temperatureCelsius: asText(vitals?.temperature_celsius),
+    respiratoryRate: asText(vitals?.respiratory_rate),
+    weightKg: asText(vitals?.weight_kg),
+    oxygenSaturation: asText(vitals?.oxygen_saturation_percent),
+    peGeneral: asText(physical?.general),
+    peAnthropometric: asText(physical?.anthropometric),
+    peCardiovascular: asText(physical?.cardiovascular),
+    peRespiratory: asText(physical?.respiratory),
+    peGastrointestinal: asText(physical?.gastrointestinal),
+    peCns: asText(physical?.cns),
+    peMusculoskeletal: asText(physical?.musculoskeletal),
+    peSkin: asText(physical?.skin),
+    peOther: asText(physical?.other),
+    intervalHistory: asText(assessment?.interval_history),
+    summary: asText(assessment?.summary),
+    phenomenology: asText(assessment?.phenomenology),
+    managementPlan: asText(assessment?.management_plan),
+    investigations: asText(assessment?.investigations),
+    riskAssessment: asText(assessment?.risk_assessment),
+    prognosis: asText(assessment?.prognosis),
+  };
+}
+
+function initialMseState(consultation?: ConsultationDetail): MseState {
+  const source = consultation?.assessment?.mse;
+  if (!source) return EMPTY_MSE;
+  return {
+    appearance: asText(source.appearance), behaviour: asText(source.behaviour),
+    mood: asText(source.mood), affect: asText(source.affect),
+    perception: asText(source.perception), speech: asText(source.speech),
+    thought: {
+      streamFlow: asText(source.thought?.stream_flow), form: asText(source.thought?.form),
+      content: asText(source.thought?.content), possession: asText(source.thought?.possession),
+      control: asText(source.thought?.control),
+    },
+    cognition: {
+      orientation: asText(source.cognition?.orientation), memory: asText(source.cognition?.memory),
+      attention: asText(source.cognition?.attention), concentration: asText(source.cognition?.concentration),
+      abstraction: asText(source.cognition?.abstraction),
+      generalFundOfKnowledge: asText(source.cognition?.general_fund_of_knowledge),
+      judgement: asText(source.cognition?.judgement),
+    },
+    insight: asText(source.insight),
+  };
+}
+
+function recordStatus(value: string): RecordStatus {
+  return value === "resolved" || value === "cancelled" ? value : "active";
+}
 
 // Every field below is named after the exact Zod path the server
 // returns in fieldErrors (see actions/record-consultation.ts and
@@ -369,20 +432,45 @@ export function RecordConsultationForm({
   patientId,
   suggestedVisitType,
   initialHistory,
+  initialConsultation,
 }: {
   patientId: string;
   suggestedVisitType: VisitType;
   initialHistory?: HistoryState;
+  initialConsultation?: ConsultationDetail;
 }) {
   const router = useRouter();
 
-  const [visitType, setVisitType] = useState<VisitType>(suggestedVisitType);
-  const [form, setForm] = useState<FormState>(EMPTY_FORM);
+  const isEditing = Boolean(initialConsultation);
+  const [visitType, setVisitType] = useState<VisitType>(initialConsultation?.visit_type ?? suggestedVisitType);
+  const [form, setForm] = useState<FormState>(() => initialFormState(initialConsultation));
   const [history, setHistory] = useState<HistoryState>(() => mapDbHistoryToState(initialHistory));
-  const [mse, setMse] = useState<MseState>(EMPTY_MSE);
-  const [diagnoses, setDiagnoses] = useState<DiagnosisRow[]>([]);
-  const [prescriptions, setPrescriptions] = useState<PrescriptionRow[]>([]);
-  const [labOrders, setLabOrders] = useState<LabOrderRow[]>([]);
+  const [mse, setMse] = useState<MseState>(() => initialMseState(initialConsultation));
+  const [diagnoses, setDiagnoses] = useState<DiagnosisRow[]>(() =>
+    (initialConsultation?.diagnoses ?? []).map((item) => ({
+      condition: item.condition,
+      status: recordStatus(item.status),
+      icd11Code: item.icd11_code ?? undefined,
+      icd11Uri: item.icd11_uri ?? undefined,
+    })),
+  );
+  const [prescriptions, setPrescriptions] = useState<PrescriptionRow[]>(() =>
+    (initialConsultation?.prescriptions ?? []).map((item) => ({
+      medicationName: item.medication_name,
+      dosage: item.dosage ?? "",
+      frequency: item.frequency ?? "",
+      instructions: item.instructions ?? "",
+      status: recordStatus(item.status),
+      medicationId: item.medication_id ?? undefined,
+    })),
+  );
+  const [labOrders, setLabOrders] = useState<LabOrderRow[]>(() =>
+    (initialConsultation?.assessment?.lab_orders ?? []).map((item) => ({
+      testName: item.test_name,
+      note: item.note ?? "",
+      labTestId: item.lab_test_id ?? undefined,
+    })),
+  );
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string[]> | null>(null);
@@ -528,6 +616,7 @@ export function RecordConsultationForm({
     ].some((v) => v.trim().length > 0);
 
     const input: RecordConsultationInput = {
+      consultationId: initialConsultation?.id,
       patientId,
       visitType,
       vitals: hasVitals
@@ -617,7 +706,7 @@ export function RecordConsultationForm({
           status: p.status,
           medicationId: p.medicationId,
         })),
-      invoice: orUndefined(form.invoiceAmount)
+      invoice: !isEditing && orUndefined(form.invoiceAmount)
         ? { amount: form.invoiceAmount, description: orUndefined(form.invoiceDescription) }
         : undefined,
     };
@@ -626,7 +715,7 @@ export function RecordConsultationForm({
     setPending(false);
 
     if (result.status !== "success") {
-      setError(result.message ?? "Failed to record the consultation.");
+      setError(result.message ?? `Failed to ${isEditing ? "update" : "record"} the consultation.`);
       const errors = result.fieldErrors ?? null;
       setFieldErrors(errors);
 
@@ -650,17 +739,20 @@ export function RecordConsultationForm({
       return;
     }
 
-    router.push(`/admin/consultations/${patientId}?recorded=1`);
+    router.push(`/admin/consultations/${patientId}?${isEditing ? "updated" : "recorded"}=1&tab=consultation`);
   }
 
   return (
     <main className="mx-auto max-w-3xl space-y-6 px-4 py-8 sm:px-6 lg:px-8">
       <header className="flex flex-wrap items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight text-foreground">Record Consultation</h1>
+          <h1 className="text-2xl font-semibold tracking-tight text-foreground">
+            {isEditing ? "Edit Consultation" : "Record Consultation"}
+          </h1>
           <p className="text-sm text-muted-foreground">
-            Expand the sections you need for this visit — everything is optional except at least a
-            condition or medication if you add one.
+            {isEditing
+              ? "Review and update the saved clinical record. Linked diagnoses and prescriptions are saved together."
+              : "Expand the sections you need for this visit — everything is optional except at least a condition or medication if you add one."}
           </p>
         </div>
 
@@ -1477,7 +1569,7 @@ export function RecordConsultationForm({
               <TextField name="assessment.prognosis" label="Prognosis" value={form.prognosis} onChange={(v) => set("prognosis", v)} />
             </Section>
 
-            <Section value="invoice" title="Invoice" filled={sectionHasContent.invoice}>
+            {!isEditing && <Section value="invoice" title="Invoice" filled={sectionHasContent.invoice}>
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <InputField
                   name="invoice.amount"
@@ -1494,7 +1586,7 @@ export function RecordConsultationForm({
                   onChange={(v) => set("invoiceDescription", v)}
                 />
               </div>
-            </Section>
+            </Section>}
           </Accordion>
         </Card>
 
@@ -1515,7 +1607,7 @@ export function RecordConsultationForm({
 
           <div className="flex justify-end gap-3">
             <Button type="submit" disabled={pending}>
-              {pending ? "Saving…" : "Save consultation"}
+              {pending ? "Saving…" : isEditing ? "Save changes" : "Save consultation"}
             </Button>
           </div>
         </form>

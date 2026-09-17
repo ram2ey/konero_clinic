@@ -107,6 +107,7 @@ export type PrescriptionRecord = {
   frequency?: string | null;
   instructions?: string | null;
   status: string;
+  medication_id?: string | null;
 };
 
 export type ConsultationDetail = {

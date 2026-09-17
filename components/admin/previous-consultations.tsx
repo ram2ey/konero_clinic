@@ -22,7 +22,8 @@ const CONSULTATIONS_SQL = `
     coalesce(
       (select json_agg(json_build_object(
          'id', p.id, 'medication_name', p.medication_name, 'dosage', p.dosage,
-         'frequency', p.frequency, 'instructions', p.instructions, 'status', p.status) order by p.created_at)
+         'frequency', p.frequency, 'instructions', p.instructions, 'status', p.status,
+         'medication_id', p.medication_id) order by p.created_at)
        from public.prescriptions p where p.consultation_id = c.id),
       '[]'::json
     ) as prescriptions
@@ -43,7 +44,7 @@ export async function PreviousConsultations({ patientId }: { patientId: string }
   const items = consultationsRes.rows;
   const patientName = patientRes.rows[0]?.full_name;
 
-  return <PreviousConsultationsList items={items} patientName={patientName} />;
+  return <PreviousConsultationsList items={items} patientId={patientId} patientName={patientName} />;
 }
 
 export function PreviousConsultationsSkeleton() {

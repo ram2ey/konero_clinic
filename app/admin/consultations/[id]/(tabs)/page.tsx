@@ -50,6 +50,9 @@ export default async function ConsultationFolderPage({
           <Suspense fallback={null}>
             <SuccessBanner param="recorded" message="Consultation recorded." />
           </Suspense>
+          <Suspense fallback={null}>
+            <SuccessBanner param="updated" message="Consultation updated." />
+          </Suspense>
 
           <div className="flex flex-wrap items-center justify-between gap-4">
             <div>
@@ -96,4 +99,3 @@ export default async function ConsultationFolderPage({
     />
   );
 }
-

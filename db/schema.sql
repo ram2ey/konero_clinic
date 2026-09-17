@@ -244,6 +244,76 @@ begin
 end;
 $$;
 
+-- Replaces the editable contents of one consultation and its directly
+-- linked diagnoses/prescriptions in a single transaction. The patient id
+-- check prevents an id from one patient folder being used to edit another.
+create or replace function public.update_consultation(
+  p_consultation_id uuid,
+  p_patient_id uuid,
+  p_doctor_id uuid,
+  p_vitals jsonb,
+  p_assessment jsonb,
+  p_diagnoses jsonb,
+  p_prescriptions jsonb,
+  p_visit_type public.consultation_visit_type default 'review'
+)
+returns uuid
+language plpgsql
+set search_path = public
+as $$
+begin
+  if not exists (
+    select 1 from public.profiles where id = p_patient_id and role = 'patient'
+  ) then
+    raise exception 'invalid_patient';
+  end if;
+
+  update public.consultations
+     set doctor_id = p_doctor_id,
+         vitals = p_vitals,
+         assessment = p_assessment,
+         visit_type = p_visit_type
+   where id = p_consultation_id and patient_id = p_patient_id;
+
+  if not found then
+    raise exception 'consultation_not_found';
+  end if;
+
+  delete from public.diagnoses where consultation_id = p_consultation_id;
+  delete from public.prescriptions where consultation_id = p_consultation_id;
+
+  if p_diagnoses is not null and jsonb_array_length(p_diagnoses) > 0 then
+    insert into public.diagnoses (patient_id, consultation_id, condition, status, icd11_code, icd11_uri)
+    select
+      p_patient_id,
+      p_consultation_id,
+      d->>'condition',
+      coalesce((d->>'status')::public.record_status, 'active'),
+      d->>'icd11_code',
+      d->>'icd11_uri'
+    from jsonb_array_elements(p_diagnoses) as d;
+  end if;
+
+  if p_prescriptions is not null and jsonb_array_length(p_prescriptions) > 0 then
+    insert into public.prescriptions (
+      patient_id, consultation_id, medication_name, dosage, frequency, instructions, status, medication_id
+    )
+    select
+      p_patient_id,
+      p_consultation_id,
+      pr->>'medication_name',
+      pr->>'dosage',
+      pr->>'frequency',
+      pr->>'instructions',
+      coalesce((pr->>'status')::public.record_status, 'active'),
+      nullif(pr->>'medication_id', '')::uuid
+    from jsonb_array_elements(p_prescriptions) as pr;
+  end if;
+
+  return p_consultation_id;
+end;
+$$;
+
 drop trigger if exists medications_search_text_trg on public.medications;
 create trigger medications_search_text_trg
   before insert or update on public.medications

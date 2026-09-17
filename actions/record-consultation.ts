@@ -226,6 +226,7 @@ const invoiceSchema = z.object({
 });
 
 const recordConsultationSchema = z.object({
+  consultationId: z.string().uuid("Invalid consultation id.").optional(),
   patientId: z.string().uuid("Invalid patient id."),
   visitType: z.enum(VISIT_TYPES),
   vitals: vitalsSchema,
@@ -283,7 +284,7 @@ export async function recordConsultation(
       };
     }
 
-    const { patientId, visitType, vitals, history, assessment, diagnoses, prescriptions, invoice } = parsed.data;
+    const { consultationId: existingConsultationId, patientId, visitType, vitals, history, assessment, diagnoses, prescriptions, invoice } = parsed.data;
 
     const vitalsJson = vitals
       ? {
@@ -383,22 +384,39 @@ export async function recordConsultation(
     // invoice set rolls the whole thing back.
     let consultationId: string;
     try {
-      const { rows } = await query<{ id: string }>(
-        `select public.record_consultation(
-           $1::uuid, $2::uuid, $3::jsonb, $4::jsonb, $5::jsonb, $6::jsonb, $7::jsonb,
-           $8::public.consultation_visit_type
-         ) as id`,
-        [
-          patientId,
-          admin.userId,
-          vitalsJson ? JSON.stringify(vitalsJson) : null,
-          assessmentJson ? JSON.stringify(assessmentJson) : null,
-          JSON.stringify(diagnosesPayload),
-          JSON.stringify(prescriptionsPayload),
-          invoicePayload ? JSON.stringify(invoicePayload) : null,
-          visitType,
-        ],
-      );
+      const { rows } = existingConsultationId
+        ? await query<{ id: string }>(
+            `select public.update_consultation(
+               $1::uuid, $2::uuid, $3::uuid, $4::jsonb, $5::jsonb, $6::jsonb, $7::jsonb,
+               $8::public.consultation_visit_type
+             ) as id`,
+            [
+              existingConsultationId,
+              patientId,
+              admin.userId,
+              vitalsJson ? JSON.stringify(vitalsJson) : null,
+              assessmentJson ? JSON.stringify(assessmentJson) : null,
+              JSON.stringify(diagnosesPayload),
+              JSON.stringify(prescriptionsPayload),
+              visitType,
+            ],
+          )
+        : await query<{ id: string }>(
+            `select public.record_consultation(
+               $1::uuid, $2::uuid, $3::jsonb, $4::jsonb, $5::jsonb, $6::jsonb, $7::jsonb,
+               $8::public.consultation_visit_type
+             ) as id`,
+            [
+              patientId,
+              admin.userId,
+              vitalsJson ? JSON.stringify(vitalsJson) : null,
+              assessmentJson ? JSON.stringify(assessmentJson) : null,
+              JSON.stringify(diagnosesPayload),
+              JSON.stringify(prescriptionsPayload),
+              invoicePayload ? JSON.stringify(invoicePayload) : null,
+              visitType,
+            ],
+          );
       consultationId = rows[0]?.id;
     } catch (err) {
       // 23503: the FK on consultations.patient_id rejected a nonexistent id.
@@ -408,6 +426,8 @@ export async function recordConsultation(
       const message =
         e.code === "23503" || e.message?.includes("invalid_patient")
           ? "Patient not found."
+          : e.message?.includes("consultation_not_found")
+            ? "Consultation not found."
           : logAndSanitize(
               "recordConsultation",
               err,
@@ -515,7 +535,7 @@ export async function recordConsultation(
 
     return {
       status: "success",
-      message: "Consultation recorded.",
+      message: existingConsultationId ? "Consultation updated." : "Consultation recorded.",
       consultationId: consultationId ?? undefined,
     };
   } catch (error) {

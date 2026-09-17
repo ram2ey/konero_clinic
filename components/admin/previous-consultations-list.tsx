@@ -4,7 +4,9 @@ import {
   ChevronDown,
   ChevronUp,
   ClipboardList,
+  Pencil,
 } from "lucide-react";
+import Link from "next/link";
 import { useState } from "react";
 
 import {
@@ -31,9 +33,11 @@ function vitalsSummary(vitals: Vitals): string | null {
 
 export function PreviousConsultationsList({
   items,
+  patientId,
   patientName,
 }: {
   items: ConsultationDetail[];
+  patientId: string;
   patientName?: string | null;
 }) {
   // Set of opened consultation IDs
@@ -166,6 +170,12 @@ export function PreviousConsultationsList({
 
                 {/* Direct Action Modal trigger */}
                 <div className="flex items-center justify-end border-t border-border/40 pt-2 sm:border-0 sm:pt-0 sm:pl-3">
+                  <Button asChild variant="ghost" size="sm" className="mr-1 h-7 gap-1 text-xs font-semibold">
+                    <Link href={`/admin/consultations/${patientId}/edit/${item.id}`}>
+                      <Pencil className="size-3" />
+                      Edit
+                    </Link>
+                  </Button>
                   <ConsultationModal
                     consultation={item}
                     patientName={patientName}
