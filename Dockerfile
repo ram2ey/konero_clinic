@@ -46,7 +46,8 @@ COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 # public/ holds only a .gitkeep today, but Next expects the dir to exist.
 COPY --from=builder --chown=nextjs:nodejs /app/public ./public
 
-# SQL + one-time setup scripts, run against the linked database via
+# SQL + setup scripts. The schema is applied automatically at container
+# startup; the seed and admin bootstrap remain explicit one-time operations:
 #   docker exec <ctr> node scripts/run-sql.mjs db/schema.sql
 #   docker exec <ctr> node scripts/run-sql.mjs db/seed.sql
 #   docker exec -e ADMIN_EMAIL=... -e ADMIN_PASSWORD=... -e ADMIN_NAME=... <ctr> node scripts/create-admin.mjs
@@ -59,4 +60,7 @@ ENV STORAGE_DIR=/data/lab-documents
 
 USER nextjs
 EXPOSE 3000
-CMD ["node", "server.js"]
+# schema.sql is idempotent and also contains ALTER statements for existing
+# installations. Apply it before accepting traffic so application code and
+# the database can never be deployed at different schema versions.
+CMD ["sh", "-c", "node scripts/run-sql.mjs db/schema.sql && exec node server.js"]

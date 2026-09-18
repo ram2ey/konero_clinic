@@ -61,7 +61,10 @@ This is where uploaded lab-report PDFs are written. It survives redeploys.
 
 ### Deploy
 
-Hit **Deploy**. Wait for the build + health check to go green.
+Hit **Deploy**. Wait for the build + health check to go green. The container
+applies `db/schema.sql` before starting the web server. The schema file is
+idempotent, so this also applies required columns and constraints whenever an
+existing installation is upgraded.
 
 ## 4. One-time database setup
 
@@ -69,9 +72,6 @@ Open a shell into the running app container (Coolify → the app →
 **Terminal**, or `docker exec -it <container> sh`):
 
 ```bash
-# create the schema (tables, enums, triggers, record_consultation)
-node scripts/run-sql.mjs db/schema.sql
-
 # load the reference catalogues (ICD-11, medications, lab tests)
 node scripts/run-sql.mjs db/seed.sql
 
@@ -82,7 +82,8 @@ ADMIN_NAME="Dr Jane Doe" \
 node scripts/create-admin.mjs
 ```
 
-`db/schema.sql` and `db/seed.sql` are idempotent — safe to re-run.
+`db/schema.sql` is applied automatically at every container start.
+`db/schema.sql` and `db/seed.sql` are idempotent — safe to re-run manually.
 `create-admin.mjs` refuses a second admin (enforced by a partial-unique
 index).
 
