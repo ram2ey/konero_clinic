@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 
 import { InvoiceStatusActions } from "@/components/admin/invoice-status-actions";
+import { InvoicePaymentDialog } from "@/components/admin/invoice-payment-dialog";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { formatCurrency, formatDate } from "@/lib/format";
 
@@ -14,6 +15,7 @@ export type BillingInvoice = {
   id: string;
   patient_id: string;
   amount: number;
+  amount_paid: number;
   status: InvoiceStatus;
   description: string | null;
   created_at: string;
@@ -36,9 +38,11 @@ export function BillingList({ invoices }: { invoices: BillingInvoice[] }) {
     setInvoiceList(invoices);
   }, [invoices]);
 
-  function handleInvoiceStatusUpdated(invoiceId: string, nextStatus: InvoiceStatus) {
+  function handleInvoiceUpdated(invoiceId: string, nextStatus: InvoiceStatus, amountPaid: number) {
     setInvoiceList((prev) =>
-      prev.map((item) => (item.id === invoiceId ? { ...item, status: nextStatus } : item))
+      prev.map((item) =>
+        item.id === invoiceId ? { ...item, status: nextStatus, amount_paid: amountPaid } : item,
+      ),
     );
   }
 
@@ -131,14 +135,27 @@ export function BillingList({ invoices }: { invoices: BillingInvoice[] }) {
                       {item.description ?? "Medical Consultation"} &bull; {formatDate(item.created_at)}
                     </p>
                   </Link>
-                  <div className="flex flex-wrap items-center gap-3.5 self-start sm:self-center">
-                    <span className="text-sm sm:text-base font-bold tabular-nums text-foreground">
-                      {formatCurrency(item.amount)}
-                    </span>
+                  <div className="flex flex-wrap items-end gap-3.5 self-start sm:self-center">
+                    <div className="grid grid-cols-3 gap-3 text-right">
+                      <AmountColumn label="Invoice" value={item.amount} />
+                      <AmountColumn label="Paid" value={item.amount_paid} />
+                      <AmountColumn
+                        label="Outstanding"
+                        value={item.status === "cancelled" ? 0 : Math.max(0, item.amount - item.amount_paid)}
+                        highlight={item.status !== "cancelled" && item.amount_paid < item.amount}
+                      />
+                    </div>
+                    <InvoicePaymentDialog
+                      invoiceId={item.id}
+                      amount={item.amount}
+                      amountPaid={item.amount_paid}
+                      disabled={item.status === "cancelled"}
+                      onPaymentUpdated={(amountPaid, status) => handleInvoiceUpdated(item.id, status, amountPaid)}
+                    />
                     <InvoiceStatusActions
                       invoiceId={item.id}
                       currentStatus={item.status}
-                      onStatusUpdated={(next) => handleInvoiceStatusUpdated(item.id, next)}
+                      onStatusUpdated={(next, amountPaid) => handleInvoiceUpdated(item.id, next, amountPaid)}
                     />
                   </div>
                 </div>
@@ -147,6 +164,17 @@ export function BillingList({ invoices }: { invoices: BillingInvoice[] }) {
           )}
         </CardContent>
       </Card>
+    </div>
+  );
+}
+
+function AmountColumn({ label, value, highlight = false }: { label: string; value: number; highlight?: boolean }) {
+  return (
+    <div className="min-w-18">
+      <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">{label}</p>
+      <p className={`text-sm font-bold tabular-nums ${highlight ? "text-amber-700 dark:text-amber-300" : "text-foreground"}`}>
+        {formatCurrency(value)}
+      </p>
     </div>
   );
 }

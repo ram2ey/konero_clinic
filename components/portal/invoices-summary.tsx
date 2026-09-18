@@ -7,12 +7,14 @@ import { query } from "@/lib/db";
 import { formatCurrency, formatDate } from "@/lib/format";
 
 import { InvoiceStatusActions } from "@/components/admin/invoice-status-actions";
+import { InvoicePaymentDialog } from "@/components/admin/invoice-payment-dialog";
 import { StatTile } from "./stat-tile";
 import { InvoiceStatusBadge } from "./status-badge";
 
 type Invoice = {
   id: string;
   amount: number;
+  amount_paid: number;
   status: "pending" | "paid" | "overdue" | "cancelled";
   description: string | null;
   created_at: string;
@@ -30,7 +32,8 @@ export async function InvoicesSummary({
   isAdmin?: boolean;
 }) {
   const { rows: items } = await query<Invoice>(
-    `select id, amount::float8 as amount, status, description, created_at
+    `select id, amount::float8 as amount, amount_paid::float8 as amount_paid,
+            status, description, created_at
        from public.invoices
       where patient_id = $1
       order by created_at desc`,
@@ -38,7 +41,7 @@ export async function InvoicesSummary({
   );
   const amountDue = items
     .filter((i) => i.status === "pending" || i.status === "overdue")
-    .reduce((sum, i) => sum + i.amount, 0);
+    .reduce((sum, i) => sum + Math.max(0, i.amount - i.amount_paid), 0);
 
   const now = new Date();
   const thisMonthKey = monthKey(now);
@@ -108,16 +111,27 @@ export async function InvoicesSummary({
                     </p>
                     <p className="text-xs text-muted-foreground mt-0.5">{formatDate(item.created_at)}</p>
                   </div>
-                  <div className="flex flex-wrap items-center gap-3 self-start sm:self-center">
-                    <span className="text-sm sm:text-base font-bold tabular-nums text-foreground">
-                      {formatCurrency(item.amount)}
-                    </span>
+                  <div className="flex flex-wrap items-end gap-3 self-start sm:self-center">
+                    <div className="grid grid-cols-3 gap-3 text-right">
+                      <InvoiceAmount label="Invoice" value={item.amount} />
+                      <InvoiceAmount label="Paid" value={item.amount_paid} />
+                      <InvoiceAmount
+                        label="Outstanding"
+                        value={item.status === "cancelled" ? 0 : Math.max(0, item.amount - item.amount_paid)}
+                        highlight={item.status !== "cancelled" && item.amount_paid < item.amount}
+                      />
+                    </div>
                     <InvoiceStatusBadge status={item.status} />
                     {isAdmin && (
-                      <InvoiceStatusActions
-                        invoiceId={item.id}
-                        currentStatus={item.status}
-                      />
+                      <>
+                        <InvoicePaymentDialog
+                          invoiceId={item.id}
+                          amount={item.amount}
+                          amountPaid={item.amount_paid}
+                          disabled={item.status === "cancelled"}
+                        />
+                        <InvoiceStatusActions invoiceId={item.id} currentStatus={item.status} />
+                      </>
                     )}
                   </div>
                 </div>
@@ -127,6 +141,17 @@ export async function InvoicesSummary({
         )}
       </CardContent>
     </Card>
+  );
+}
+
+function InvoiceAmount({ label, value, highlight = false }: { label: string; value: number; highlight?: boolean }) {
+  return (
+    <div className="min-w-18">
+      <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">{label}</p>
+      <p className={`text-sm font-bold tabular-nums ${highlight ? "text-amber-700 dark:text-amber-300" : "text-foreground"}`}>
+        {formatCurrency(value)}
+      </p>
+    </div>
   );
 }
 

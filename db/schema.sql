@@ -179,10 +179,30 @@ create table if not exists public.invoices (
   id          uuid primary key default gen_random_uuid(),
   patient_id  uuid not null references public.profiles(id) on delete restrict,
   amount      numeric(12, 2) not null check (amount >= 0),
+  amount_paid numeric(12, 2) not null default 0 check (amount_paid >= 0 and amount_paid <= amount),
   status      public.invoice_status not null default 'pending',
   description text,
   created_at  timestamptz not null default now()
 );
+
+-- Existing installations predate partial payments. Keep this schema file
+-- idempotent so applying it upgrades those databases as well as creating new
+-- ones from scratch.
+alter table public.invoices
+  add column if not exists amount_paid numeric(12, 2) not null default 0;
+
+do $$ begin
+  if not exists (
+    select 1
+      from pg_constraint
+     where conname = 'invoices_amount_paid_range'
+       and conrelid = 'public.invoices'::regclass
+  ) then
+    alter table public.invoices
+      add constraint invoices_amount_paid_range
+      check (amount_paid >= 0 and amount_paid <= amount);
+  end if;
+end $$;
 
 create table if not exists public.patient_history (
   patient_id uuid primary key references public.profiles(id) on delete restrict,
@@ -467,11 +487,15 @@ begin
   end if;
 
   if p_invoice is not null then
-    insert into public.invoices (patient_id, amount, status, description)
+    insert into public.invoices (patient_id, amount, amount_paid, status, description)
     values (
       p_patient_id,
       (p_invoice->>'amount')::numeric,
-      coalesce((p_invoice->>'status')::public.invoice_status, 'pending'),
+      coalesce((p_invoice->>'amount_paid')::numeric, 0),
+      case
+        when coalesce((p_invoice->>'amount_paid')::numeric, 0) >= (p_invoice->>'amount')::numeric then 'paid'::public.invoice_status
+        else coalesce((p_invoice->>'status')::public.invoice_status, 'pending')
+      end,
       p_invoice->>'description'
     );
   end if;

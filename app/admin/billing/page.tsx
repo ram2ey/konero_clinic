@@ -9,6 +9,7 @@ type InvoiceRow = {
   id: string;
   patient_id: string;
   amount: number;
+  amount_paid: number;
   status: InvoiceStatus;
   description: string | null;
   created_at: string;
@@ -17,7 +18,8 @@ type InvoiceRow = {
 export default async function BillingPage() {
   const [{ rows: items }, { rows: allPatients }] = await Promise.all([
     query<InvoiceRow>(
-      `select id, patient_id, amount::float8 as amount, status, description, created_at
+      `select id, patient_id, amount::float8 as amount, amount_paid::float8 as amount_paid,
+              status, description, created_at
          from public.invoices
         order by created_at desc`,
     ),
@@ -46,7 +48,7 @@ export default async function BillingPage() {
   // side effect of how the filtering used to work.
   const amountDue = items
     .filter((i) => i.status === "pending" || i.status === "overdue")
-    .reduce((sum, i) => sum + i.amount, 0);
+    .reduce((sum, i) => sum + Math.max(0, i.amount - i.amount_paid), 0);
 
   return (
     <main className="mx-auto max-w-6xl space-y-6 px-4 py-6 sm:px-6 sm:py-8 lg:px-8">

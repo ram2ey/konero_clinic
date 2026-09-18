@@ -1,7 +1,7 @@
 "use client";
 
 import { Check, ChevronDown, Loader2 } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import { updateInvoiceStatus } from "@/actions/update-invoice-status";
 import { Button } from "@/components/ui/button";
@@ -22,11 +22,15 @@ export function InvoiceStatusActions({
 }: {
   invoiceId: string;
   currentStatus: InvoiceStatus;
-  onStatusUpdated?: (nextStatus: InvoiceStatus) => void;
+  onStatusUpdated?: (nextStatus: InvoiceStatus, amountPaid: number) => void;
 }) {
   const [status, setStatus] = useState<InvoiceStatus>(currentStatus);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    setStatus(currentStatus);
+  }, [currentStatus]);
 
   async function handleStatusChange(nextStatus: InvoiceStatus) {
     if (nextStatus === status || loading) return;
@@ -44,7 +48,7 @@ export function InvoiceStatusActions({
       return;
     }
 
-    onStatusUpdated?.(nextStatus);
+    onStatusUpdated?.(result.data?.status ?? nextStatus, result.data?.amountPaid ?? 0);
   }
 
   return (

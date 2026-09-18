@@ -35,8 +35,9 @@ export async function OverviewStats() {
         `select created_at from public.profiles where role = 'patient'`,
       ),
       query<{ created_at: string }>(`select created_at from public.consultations`),
-      query<{ amount: number; status: string }>(
-        `select amount::float8 as amount, status from public.invoices where status in ('pending', 'overdue')`,
+      query<{ amount: number; amount_paid: number; status: string }>(
+        `select amount::float8 as amount, amount_paid::float8 as amount_paid, status
+           from public.invoices where status in ('pending', 'overdue')`,
       ),
       query<{ n: string }>(
         `select count(*)::text as n from public.diagnoses where status = 'active'`,
@@ -52,8 +53,12 @@ export async function OverviewStats() {
   const activeDiagnoses = Number(diagnosesResult.rows[0]?.n ?? 0);
   const activePrescriptions = Number(prescriptionsResult.rows[0]?.n ?? 0);
 
-  const pendingAmount = invoices.filter((i) => i.status === "pending").reduce((sum, i) => sum + i.amount, 0);
-  const overdueAmount = invoices.filter((i) => i.status === "overdue").reduce((sum, i) => sum + i.amount, 0);
+  const pendingAmount = invoices
+    .filter((i) => i.status === "pending")
+    .reduce((sum, i) => sum + Math.max(0, i.amount - i.amount_paid), 0);
+  const overdueAmount = invoices
+    .filter((i) => i.status === "overdue")
+    .reduce((sum, i) => sum + Math.max(0, i.amount - i.amount_paid), 0);
 
   return (
     <Card className="border-border/80 shadow-xs">

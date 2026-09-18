@@ -19,7 +19,11 @@ export type UpdateInvoiceStatusInput = z.input<typeof updateInvoiceStatusSchema>
 /**
  * Admin-only: Updates an invoice's status (e.g. marking a pending invoice as paid).
  */
-export async function updateInvoiceStatus(input: UpdateInvoiceStatusInput): Promise<ActionState> {
+type InvoiceStatus = "pending" | "paid" | "overdue" | "cancelled";
+
+export async function updateInvoiceStatus(
+  input: UpdateInvoiceStatusInput,
+): Promise<ActionState<{ status: InvoiceStatus; amountPaid: number }>> {
   try {
     const admin = await requireAdmin();
     if (!admin.authorized) {
@@ -37,9 +41,24 @@ export async function updateInvoiceStatus(input: UpdateInvoiceStatusInput): Prom
 
     const { invoiceId, status } = parsed.data;
 
-    await query(`update public.invoices set status = $1 where id = $2`, [status, invoiceId]);
+    const { rows } = await query<{ patient_id: string; status: InvoiceStatus; amount_paid: number }>(
+      `update public.invoices
+          set status = $1,
+              amount_paid = case
+                when $1 = 'paid' then amount
+                when $1 in ('pending', 'overdue') and amount_paid >= amount then 0
+                else amount_paid
+              end
+        where id = $2
+        returning patient_id, status, amount_paid::float8 as amount_paid`,
+      [status, invoiceId],
+    );
+
+    const invoice = rows[0];
+    if (!invoice) return { status: "error", message: "Invoice not found." };
 
     revalidatePath("/admin/billing");
+    revalidatePath(`/admin/consultations/${invoice.patient_id}`);
     revalidatePath("/admin");
     revalidatePath("/portal");
 
@@ -50,7 +69,11 @@ export async function updateInvoiceStatus(input: UpdateInvoiceStatusInput): Prom
       cancelled: "Cancelled",
     }[status];
 
-    return { status: "success", message: `Invoice successfully ${statusLabel}.` };
+    return {
+      status: "success",
+      message: `Invoice successfully ${statusLabel}.`,
+      data: { status: invoice.status, amountPaid: invoice.amount_paid },
+    };
   } catch (error) {
     return {
       status: "error",

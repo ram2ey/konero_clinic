@@ -220,10 +220,16 @@ const historySchema = z
   })
   .optional();
 
-const invoiceSchema = z.object({
-  amount: z.coerce.number().positive("Invoice amount must be greater than 0.").max(10_000_000),
-  description: z.string().trim().max(500).optional(),
-});
+const invoiceSchema = z
+  .object({
+    amount: z.coerce.number().positive("Invoice amount must be greater than 0.").max(10_000_000),
+    amountPaid: z.coerce.number().min(0, "Amount paid cannot be negative.").max(10_000_000),
+    description: z.string().trim().max(500).optional(),
+  })
+  .refine((invoice) => invoice.amountPaid <= invoice.amount, {
+    path: ["amountPaid"],
+    message: "Amount paid cannot be more than the invoice amount.",
+  });
 
 const recordConsultationSchema = z.object({
   consultationId: z.string().uuid("Invalid consultation id.").optional(),
@@ -376,7 +382,7 @@ export async function recordConsultation(
       medication_id: p.medicationId ?? null,
     }));
     const invoicePayload = invoice
-      ? { amount: invoice.amount, description: invoice.description ?? null }
+      ? { amount: invoice.amount, amount_paid: invoice.amountPaid, description: invoice.description ?? null }
       : null;
 
     // Single Postgres transaction (see record_consultation in db/schema.sql)

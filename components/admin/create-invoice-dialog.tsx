@@ -16,6 +16,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { formatCurrency } from "@/lib/format";
 import { selectClass, textareaClass } from "@/lib/form-ui";
 
 export type InvoicePatientOption = { id: string; full_name: string | null };
@@ -25,6 +26,7 @@ export function CreateInvoiceDialog({ patients }: { patients: InvoicePatientOpti
   const [open, setOpen] = useState(false);
   const [patientId, setPatientId] = useState("");
   const [amount, setAmount] = useState("");
+  const [amountPaid, setAmountPaid] = useState("0");
   const [description, setDescription] = useState("");
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -33,6 +35,7 @@ export function CreateInvoiceDialog({ patients }: { patients: InvoicePatientOpti
   function reset() {
     setPatientId("");
     setAmount("");
+    setAmountPaid("0");
     setDescription("");
     setError(null);
     setFieldErrors(null);
@@ -43,7 +46,7 @@ export function CreateInvoiceDialog({ patients }: { patients: InvoicePatientOpti
     setPending(true);
     setError(null);
     setFieldErrors(null);
-    const result = await createInvoice({ patientId, amount, description });
+    const result = await createInvoice({ patientId, amount, amountPaid, description });
     setPending(false);
 
     if (result.status !== "success") {
@@ -68,7 +71,7 @@ export function CreateInvoiceDialog({ patients }: { patients: InvoicePatientOpti
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>Create patient invoice</DialogTitle>
-          <DialogDescription>This invoice is independent of a consultation and starts as pending.</DialogDescription>
+          <DialogDescription>Add the total fee and any payment already received. The balance is calculated automatically.</DialogDescription>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -104,6 +107,25 @@ export function CreateInvoiceDialog({ patients }: { patients: InvoicePatientOpti
               aria-invalid={fieldErrors?.amount ? true : undefined}
             />
             {fieldErrors?.amount?.[0] && <p className="text-xs text-destructive">{fieldErrors.amount[0]}</p>}
+          </div>
+
+          <div className="space-y-1.5">
+            <label htmlFor="invoice-amount-paid" className="text-sm font-medium">Amount paid (GHS)</label>
+            <Input
+              id="invoice-amount-paid"
+              type="number"
+              min="0"
+              max={amount || "10000000"}
+              step="0.01"
+              value={amountPaid}
+              onChange={(event) => setAmountPaid(event.target.value)}
+              disabled={pending}
+              aria-invalid={fieldErrors?.amountPaid ? true : undefined}
+            />
+            {fieldErrors?.amountPaid?.[0] && <p className="text-xs text-destructive">{fieldErrors.amountPaid[0]}</p>}
+            <p className="text-xs text-muted-foreground">
+              Outstanding balance: {formatCurrency(Math.max(0, (Number(amount) || 0) - (Number(amountPaid) || 0)))}
+            </p>
           </div>
 
           <div className="space-y-1.5">

@@ -17,6 +17,7 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { errorInputClass, inputClass, orUndefined, selectClass, textareaClass } from "@/lib/form-ui";
+import { formatCurrency } from "@/lib/format";
 import { MSE_COGNITION_LABELS, MSE_FIELD_LABELS, MSE_THOUGHT_LABELS } from "@/lib/mse-labels";
 import { createNestedFieldSetter } from "@/lib/nested-field";
 import { hasAnyValue } from "@/lib/utils";
@@ -157,6 +158,7 @@ type FormState = {
   riskAssessment: string;
   prognosis: string;
   invoiceAmount: string;
+  invoiceAmountPaid: string;
   invoiceDescription: string;
 };
 
@@ -185,6 +187,7 @@ const EMPTY_FORM: FormState = {
   riskAssessment: "",
   prognosis: "",
   invoiceAmount: "",
+  invoiceAmountPaid: "0",
   invoiceDescription: "",
 };
 
@@ -390,6 +393,8 @@ function InputField({
   label,
   type = "text",
   step,
+  min,
+  max,
   value,
   onChange,
 }: {
@@ -397,6 +402,8 @@ function InputField({
   label: string;
   type?: string;
   step?: string;
+  min?: string;
+  max?: string;
   value: string;
   onChange: (value: string) => void;
 }) {
@@ -412,6 +419,8 @@ function InputField({
         id={id}
         type={type}
         step={step}
+        min={min}
+        max={max}
         value={value}
         onChange={(e) => onChange(e.target.value)}
         disabled={pending}
@@ -707,7 +716,11 @@ export function RecordConsultationForm({
           medicationId: p.medicationId,
         })),
       invoice: !isEditing && orUndefined(form.invoiceAmount)
-        ? { amount: form.invoiceAmount, description: orUndefined(form.invoiceDescription) }
+        ? {
+            amount: form.invoiceAmount,
+            amountPaid: form.invoiceAmountPaid,
+            description: orUndefined(form.invoiceDescription),
+          }
         : undefined,
     };
 
@@ -1570,15 +1583,31 @@ export function RecordConsultationForm({
             </Section>
 
             {!isEditing && <Section value="invoice" title="Invoice" filled={sectionHasContent.invoice}>
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
                 <InputField
                   name="invoice.amount"
-                  label="Amount"
+                  label="Invoice amount"
                   type="number"
+                  min="0.01"
                   step="0.01"
                   value={form.invoiceAmount}
                   onChange={(v) => set("invoiceAmount", v)}
                 />
+                <div>
+                  <InputField
+                    name="invoice.amountPaid"
+                    label="Amount paid"
+                    type="number"
+                    min="0"
+                    max={form.invoiceAmount || "10000000"}
+                    step="0.01"
+                    value={form.invoiceAmountPaid}
+                    onChange={(v) => set("invoiceAmountPaid", v)}
+                  />
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    Outstanding: {formatCurrency(Math.max(0, (Number(form.invoiceAmount) || 0) - (Number(form.invoiceAmountPaid) || 0)))}
+                  </p>
+                </div>
                 <InputField
                   name="invoice.description"
                   label="Description"
