@@ -40,8 +40,8 @@ export async function createInvoice(input: CreateInvoiceInput): Promise<ActionSt
     const { patientId, amount, amountPaid, description } = parsed.data;
     const { rowCount } = await query(
       `insert into public.invoices (patient_id, amount, amount_paid, status, description)
-       select id, $2, $3,
-              case when $3 >= $2 then 'paid'::public.invoice_status else 'pending'::public.invoice_status end,
+       select id, $2::numeric, $3::numeric,
+              case when $3::numeric >= $2::numeric then 'paid'::public.invoice_status else 'pending'::public.invoice_status end,
               $4
          from public.profiles where id = $1 and role = 'patient'`,
       [patientId, amount, amountPaid, description],
